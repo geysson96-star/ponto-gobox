@@ -1,0 +1,41 @@
+plugins {
+    id 'com.android.application'
+}
+
+def runNumber = Integer.parseInt(System.getenv('GITHUB_RUN_NUMBER') ?: '1')
+def appUrl = System.getenv('APP_URL') ?: 'https://example.com/ponto.html'
+
+android {
+    namespace 'br.com.gobox.ponto'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'br.com.gobox.ponto'
+        minSdk 24
+        targetSdk 34
+        versionCode runNumber
+        versionName "1.0.${runNumber}"
+        resValue 'string', 'app_url', appUrl
+    }
+
+    signingConfigs {
+        release {
+            storeFile file('gobox-ponto.keystore')
+            storePassword 'gobox-ponto'
+            keyAlias 'gobox'
+            keyPassword 'gobox-ponto'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

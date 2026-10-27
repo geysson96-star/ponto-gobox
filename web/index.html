@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0B1A66">
+<title>Painel de Ponto GoBox</title>
+<link rel="icon" href="cube.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+  html,body{margin:0}
+  .login{max-width:420px;margin:8vh auto 0;display:grid;gap:16px;padding-left:16px;padding-right:16px}
+  .login .k-card{gap:12px}
+  .linkbtn{background:none;border:0;color:var(--navy);text-decoration:underline;padding:0;font:inherit;cursor:pointer;justify-self:start}
+  .apk{display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:var(--sunk);border-radius:14px;padding:16px 18px;margin-bottom:16px}
+  .apk img{width:56px;height:56px;border-radius:12px;border:1px solid var(--line)}
+  .apk .txt{flex:1;min-width:220px}
+  .role{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:6px;padding:2px 8px}
+  .role.admin{background:var(--navy);color:#fff}
+  .role.terminal{background:var(--pause-bg);color:var(--pause)}
+</style>
+</head>
+<body>
+<div id="root"><div class="gate"><div class="spinner"></div></div></div>
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+<script type="module" src="admin.js"></script>
+</body>
+</html>

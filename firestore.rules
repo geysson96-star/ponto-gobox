@@ -1,0 +1,48 @@
+rules_version = '2';
+// Regras de segurança do Ponto GoBox.
+// Administrador: vê e altera tudo. Celular (terminal): lê a equipe e só registra ponto.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signed() { return request.auth != null; }
+    function perfil() { return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data; }
+    function temPerfil() { return signed() && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)); }
+    function isAdmin() { return temPerfil() && perfil().role == 'admin'; }
+    function isTerminal() { return temPerfil() && perfil().role == 'terminal'; }
+    function setupFeito() { return exists(/databases/$(database)/documents/config/setup); }
+
+    // Marca que o primeiro administrador já foi criado
+    match /config/setup {
+      allow read: if true;
+      allow create: if signed() && !setupFeito() && request.resource.data.admin == request.auth.uid;
+    }
+
+    match /config/geral {
+      allow read: if isAdmin() || isTerminal();
+      allow write: if isAdmin();
+    }
+
+    // Logins do sistema (administradores e celulares)
+    match /usuarios/{uid} {
+      allow read: if isAdmin() || (signed() && request.auth.uid == uid);
+      allow create: if isAdmin()
+        || (signed() && request.auth.uid == uid && request.resource.data.role == 'admin'
+            && !setupFeito()
+            && getAfter(/databases/$(database)/documents/config/setup).data.admin == uid);
+      allow update, delete: if isAdmin();
+    }
+
+    match /funcionarios/{fid} {
+      allow read: if isAdmin() || isTerminal();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+        || (isTerminal() && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['dia', 'hoje', 'status', 'desde', 'incompleto', 'editado', 'atualizado']));
+
+      match /dias/{dia} {
+        allow read: if isAdmin() || isTerminal();
+        allow create, update: if isAdmin() || isTerminal();
+        allow delete: if isAdmin();
+      }
+    }
+  }
+}

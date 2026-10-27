@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0B1A66">
+<title>Ponto GoBox</title>
+<link rel="icon" href="cube.png">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+  html,body{margin:0;-webkit-tap-highlight-color:transparent}
+  :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+  .k-logo{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+  .net{font-size:12.5px;font-weight:600;border-radius:999px;padding:3px 10px;background:var(--pause-bg);color:var(--pause)}
+  .login{max-width:420px;margin:8vh auto 0;display:grid;gap:14px}
+</style>
+</head>
+<body>
+<div id="root" class="kiosk"><div class="gate"><div class="spinner"></div></div></div>
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+<script type="module" src="ponto.js"></script>
+<script>
+if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+</script>
+</body>
+</html>
