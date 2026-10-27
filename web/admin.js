@@ -4,7 +4,7 @@ import {
   doc, collection, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, writeBatch, batchDay, deleteField,
   $, esc, pad, dayKey, today, keyToDate, hm, dur, hmm, saldoTxt, fmtDay, longDate, DOWC, DOWL, MES,
   LABEL, SHORT, STATUS, DIAS_PADRAO, derive, isOpen, isStale, minHoje, empStatus, extrasDia, errMsg, toast, notConfigured,
-  PADRAO_SEMANA, semanaDe, previsto, mesDe, horasTxt, setRodizio, turnoRodizio, TURNO
+  PADRAO_SEMANA, semanaDe, previsto, mesDe, horasTxt, setRodizio, turnoRodizio, TURNO, agora, agoraMs, sincronizarRelogio
 } from "./common.js";
 
 const root = $("#root");
@@ -187,12 +187,13 @@ function refresh() {
 }
 
 function tick() {
-  const d = new Date();
+  const d = agora();
   const at = $("#a-time"); if (at) at.textContent = pad(d.getHours()) + ":" + pad(d.getMinutes());
   const ad = $("#a-date"); if (ad) ad.textContent = longDate(d);
   document.querySelectorAll("[data-live]").forEach(el => { const e = S.emps[el.dataset.live]; if (e) el.textContent = dur(minHoje(e)); });
 }
 setInterval(tick, 1000);
+sincronizarRelogio().then(tick); setInterval(sincronizarRelogio, 10 * 60000);
 let lastDay = today();
 setInterval(() => { if (today() !== lastDay) { lastDay = today(); refresh(); } else if (S.tab === "agora") renderAgora(); }, 30000);
 
@@ -421,7 +422,7 @@ function summarize(fid) {
     const dia = dayKey(d), reg = porDia[dia];
     if (reg) {
       const current = e.dia === dia && isOpen(e);
-      const min = derive(reg.marcacoes, { now: current ? Date.now() : null, incompleto: reg.incompleto }).liveMin;
+      const min = derive(reg.marcacoes, { now: current ? agoraMs() : null, incompleto: reg.incompleto }).liveMin;
       const x = extrasDia(e, dia, min, tol(), S.escalas);
       tot += min; ex50 += x.ex50; ex100 += x.ex100; if (!current) deb += x.deb; prevTot += x.prev.min; diasTrab++;
       if (reg.incompleto) inc++;

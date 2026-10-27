@@ -40,7 +40,31 @@ export const $ = (s, el = document) => el.querySelector(s);
 export const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 export const pad = n => String(n).padStart(2, "0");
 export const dayKey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-export const today = () => dayKey(new Date());
+/* ---------- Relógio pela internet ----------
+   O horário vem do servidor (cabeçalho Date da resposta HTTP), não do relógio do aparelho.
+   Guardamos a diferença entre o servidor e o aparelho e corrigimos todo horário com ela. */
+export const relogio = { offset: 0, ok: false, ultimo: 0, erro: false };
+export const agoraMs = () => Date.now() + relogio.offset;
+export const agora = () => new Date(agoraMs());
+async function amostra() {
+  const t0 = Date.now();
+  const r = await fetch(`config.js?relogio=${t0}`, { method: "HEAD", cache: "no-store" });
+  const t1 = Date.now();
+  const h = r.headers.get("date"); if (!h) throw new Error("sem data");
+  const srv = new Date(h).getTime() + 500; // o cabeçalho vem em segundos inteiros
+  return { offset: srv - (t0 + t1) / 2, rtt: t1 - t0 };
+}
+export async function sincronizarRelogio() {
+  try {
+    const amostras = [];
+    for (let i = 0; i < 3; i++) { try { amostras.push(await amostra()); } catch {} }
+    if (!amostras.length) throw new Error("offline");
+    amostras.sort((a, b) => a.rtt - b.rtt);
+    relogio.offset = Math.round(amostras[0].offset); relogio.ok = true; relogio.ultimo = Date.now(); relogio.erro = false;
+  } catch { relogio.erro = true; }
+  return relogio.ok;
+}
+export const today = () => dayKey(agora());
 export const keyToDate = k => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
 export const hm = ts => { const d = new Date(ts); return pad(d.getHours()) + ":" + pad(d.getMinutes()); };
 export const dur = min => { min = Math.max(0, Math.round(min)); return Math.floor(min / 60) + "h" + pad(min % 60); };
@@ -73,7 +97,7 @@ export function derive(marc, opts = {}) {
 }
 export const isOpen = e => !!(e && e.status && e.status !== "fora" && !e.incompleto);
 export const isStale = e => isOpen(e) && e.dia && e.dia !== today();
-export const minHoje = e => (e && e.dia === today()) ? derive(e.hoje, { now: Date.now(), incompleto: e.incompleto }).liveMin : 0;
+export const minHoje = e => (e && e.dia === today()) ? derive(e.hoje, { now: agoraMs(), incompleto: e.incompleto }).liveMin : 0;
 export const empStatus = e => isOpen(e) ? e.status : "fora";
 
 /* ---------- Jornada e escala ----------
@@ -133,7 +157,7 @@ export const horasTxt = min => { min = Math.round(min || 0); const h = Math.floo
 export function batchDay(b, e, dia, marc, { incompleto = false, editado = false } = {}) {
   marc = [...marc].sort((a, b2) => a.ts - b2.ts).map(x => ({ t: x.t, ts: x.ts }));
   const d = derive(marc, { incompleto });
-  const now = Date.now();
+  const now = agoraMs();
   b.set(doc(db, "funcionarios", e.id, "dias", dia), { data: dia, marcacoes: marc, minutos: Math.round(d.closedMin), incompleto, editado, atualizado: now });
   if (!e.dia || dia >= e.dia) {
     b.update(doc(db, "funcionarios", e.id), { dia, hoje: marc, status: d.status, desde: d.desde, incompleto, editado, atualizado: now });

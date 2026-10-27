@@ -3,7 +3,7 @@ import {
   configured, auth, db, onAuthStateChanged, signInWithEmailAndPassword, signOut,
   doc, collection, getDoc, onSnapshot, writeBatch, batchDay,
   $, esc, pad, dayKey, today, hm, dur, fmtDay, longDate, LABEL, SHORT, STATUS,
-  derive, isOpen, isStale, minHoje, empStatus, errMsg, toast, notConfigured, previsto, mesDe, horasTxt, setRodizio, TURNO
+  derive, isOpen, isStale, minHoje, empStatus, errMsg, toast, notConfigured, previsto, mesDe, horasTxt, setRodizio, TURNO, agora, agoraMs, relogio, sincronizarRelogio
 } from "./common.js";
 
 const root = $("#root");
@@ -69,6 +69,7 @@ function renderShell() {
         <div class="k-brand" id="k-brand">${esc(S.cfg.nome || "Ponto")}</div>
       </div>
       <span class="net" id="k-net" ${S.online ? "hidden" : ""}>Sem internet</span>
+      <span class="net" id="k-clk" ${relogio.ok ? "hidden" : ""}>Conferindo horário…</span>
     </div>
     <div class="k-clock"><div class="time" id="k-time">--:--</div><div class="date" id="k-date"></div></div>
     <section id="k-body"><div class="gate" style="margin-top:20px"><div class="spinner"></div></div></section>`;
@@ -77,7 +78,7 @@ function renderShell() {
   const start = () => { t = setTimeout(disconnectForm, 3000); }, stop = () => clearTimeout(t);
   lg.addEventListener("pointerdown", start); ["pointerup", "pointerleave", "pointercancel"].forEach(ev => lg.addEventListener(ev, stop));
   lg.addEventListener("contextmenu", e => e.preventDefault());
-  tick();
+  tick(); sync();
 }
 
 function resetKiosk() {
@@ -160,7 +161,11 @@ function keyPress(key) {
 async function punch(t, novoDia) {
   const k = S.k; const e = S.emps[k.fid]; if (!e || k.busy) return;
   k.busy = true; renderBody();
-  const now = Date.now(), td = dayKey(new Date(now));
+  if (!relogio.ok) {
+    await sincronizarRelogio();
+    if (!relogio.ok) { k.busy = false; renderBody(); toast("Sem internet para conferir o horário. Conecte o celular ao Wi-Fi ou aos dados móveis e tente de novo.", true); return; }
+  }
+  const now = agoraMs(), td = dayKey(new Date(now));
   const b = writeBatch(db);
   let dia, marc;
   if (novoDia && e.dia) {
@@ -195,12 +200,21 @@ function disconnectForm() {
 
 /* ---------- relógio, tela sempre ligada, rede ---------- */
 function tick() {
-  const d = new Date();
+  const d = agora();
   const kt = $("#k-time"); if (kt) kt.innerHTML = `${pad(d.getHours())}:${pad(d.getMinutes())}<small>${pad(d.getSeconds())}</small>`;
   const kd = $("#k-date"); if (kd) kd.textContent = longDate(d);
   document.querySelectorAll("[data-live]").forEach(el => { const e = S.emps[el.dataset.live]; if (e) el.textContent = dur(minHoje(e)); });
 }
 setInterval(tick, 1000);
+/* Sincroniza o relógio ao abrir, a cada 5 minutos, ao voltar a internet e ao reabrir o app */
+async function sync() {
+  await sincronizarRelogio();
+  const c = $("#k-clk"); if (c) { c.hidden = relogio.ok; c.textContent = relogio.ok ? "" : "Sem horário da internet"; }
+  tick();
+}
+sync(); setInterval(sync, 5 * 60000);
+addEventListener("online", sync);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") sync(); });
 let lastDay = today();
 setInterval(() => { if (today() !== lastDay) { lastDay = today(); renderBody(); } }, 30000);
 async function requestWake() {

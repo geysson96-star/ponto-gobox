@@ -1,5 +1,5 @@
 // Guarda a tela de ponto no celular para abrir mesmo sem internet.
-const CACHE = "ponto-gobox-v3";
+const CACHE = "ponto-gobox-v4";
 const ESSENCIAIS = ["ponto.html", "ponto.js", "common.js", "config.js", "style.css", "logo.png", "cube.png"];
 
 self.addEventListener("install", e => {
@@ -17,6 +17,7 @@ self.addEventListener("fetch", e => {
   const libs = url.hostname === "www.gstatic.com" || url.hostname.endsWith("fonts.googleapis.com") || url.hostname.endsWith("fonts.gstatic.com");
   if (!proprio && !libs) return;
   if (proprio && url.pathname.endsWith(".apk")) return;
+  if (url.searchParams.has("relogio")) return; // conferência de horário: sempre direto na internet
   e.respondWith(
     fetch(req).then(res => {
       if (res && (res.ok || res.type === "opaque")) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
