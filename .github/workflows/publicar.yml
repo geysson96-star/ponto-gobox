@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -40,6 +40,15 @@ jobs:
           mkdir -p _site
           cp -r web/* _site/
           cp android/app/build/outputs/apk/release/app-release.apk _site/ponto-gobox.apk
+
+      - name: Guardar o APK na branch apk
+        run: |
+          mkdir /tmp/apkbranch && cd /tmp/apkbranch
+          git init -q -b apk
+          cp $GITHUB_WORKSPACE/_site/ponto-gobox.apk .
+          git add ponto-gobox.apk
+          git -c user.name="github-actions" -c user.email="actions@github.com" commit -q -m "APK ${{ github.run_number }}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" apk
 
       - uses: actions/configure-pages@v5
 
