@@ -1,10 +1,10 @@
 /* Layout: terminal de ponto de uma coluna no celular (#ponto); painel em abas com tabelas no computador (#painel). Identidade GoBox: fundo branco, azul-marinho e vermelho da marca. */
 :root{
-  --bg:#FFFFFF; --surface:#FFFFFF; --sunk:#F2F4FA; --ink:#0E1A4F; --muted:#5C6589; --line:#DCE0EC;
-  --navy:#0B1A66; --red:#F0230A;
-  --accent:#0B1A66; --accent-hover:#16288A; --accent-ink:#FFFFFF; --accent-soft:#E8EBF6;
-  --work:#0B1A66; --work-bg:#E8EBF6; --pause:#D41E07; --pause-bg:#FFE9E5; --off:#5C6589; --off-bg:#EEF0F5;
-  --danger:#FFFFFF; --danger-bg:#F0230A; --shadow:0 1px 2px rgba(11,26,102,.06),0 8px 24px rgba(11,26,102,.07);
+  --bg:#FFFFFF; --surface:#FFFFFF; --sunk:#F2F4FA; --ink:#24244A; --muted:#5C6589; --line:#DCE0EC;
+  --navy:#333366; --red:#E5531F; --orange:#FF6633;
+  --accent:#333366; --accent-hover:#40407D; --accent-ink:#FFFFFF; --accent-soft:#E8EBF6;
+  --work:#333366; --work-bg:#E8EBF6; --pause:#D24A1A; --pause-bg:#FFEDE6; --off:#5C6589; --off-bg:#EEF0F5;
+  --danger:#FFFFFF; --danger-bg:#E5531F; --shadow:0 1px 2px rgba(51,51,102,.06),0 8px 24px rgba(51,51,102,.07);
   --display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
   --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
@@ -63,8 +63,8 @@ button{cursor:pointer}
 .k-brand{font-family:var(--display);font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .k-clock{background:var(--navy);color:#fff;border:0;border-radius:18px;padding:18px 20px;display:grid;gap:2px;box-shadow:var(--shadow)}
 .k-clock .time{font-family:var(--mono);font-weight:600;font-size:clamp(52px,17vw,88px);line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.k-clock .time small{font-size:.42em;color:#FF6A52;font-weight:500;margin-left:4px}
-.k-clock .date{color:#C9D0EE;font-size:16px;text-transform:capitalize}
+.k-clock .time small{font-size:.42em;color:var(--orange);font-weight:500;margin-left:4px}
+.k-clock .date{color:#CFCFE6;font-size:16px;text-transform:capitalize}
 .k-title{font-size:22px}
 .k-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
 .k-person{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:8px;min-height:96px;align-content:space-between}

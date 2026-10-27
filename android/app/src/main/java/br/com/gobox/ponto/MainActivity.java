@@ -21,7 +21,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        getWindow().setStatusBarColor(Color.parseColor("#0B1A66"));
+        getWindow().setStatusBarColor(Color.parseColor("#333366"));
         appUrl = getString(R.string.app_url);
 
         web = new WebView(this);
@@ -57,8 +57,8 @@ public class MainActivity extends Activity {
     private void showOffline() {
         String html = "<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'>"
             + "<style>body{font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;"
-            + "height:100vh;margin:0;padding:24px;box-sizing:border-box;text-align:center;color:#0E1A4F}"
-            + "h1{font-size:24px}a{display:inline-block;margin-top:16px;background:#0B1A66;color:#fff;padding:16px 28px;"
+            + "height:100vh;margin:0;padding:24px;box-sizing:border-box;text-align:center;color:#24244A}"
+            + "h1{font-size:24px}a{display:inline-block;margin-top:16px;background:#333366;color:#fff;padding:16px 28px;"
             + "border-radius:14px;text-decoration:none;font-size:18px;font-weight:600}</style></head><body>"
             + "<h1>Sem conexão</h1><p>Não foi possível abrir o ponto. Verifique o Wi-Fi ou os dados móveis do celular.</p>"
             + "<a href='" + appUrl + "'>Tentar de novo</a></body></html>";
