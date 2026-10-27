@@ -240,7 +240,7 @@ function renderEquipe() {
       <div class="codebox"><span class="muted">Código</span> <b class="num">${esc(e.codigo || "—")}</b></div>
       <div class="muted">${esc(e.cargo || "Sem cargo")}</div>
       <div class="muted" style="font-size:13px">${esc(semanaTxt(e))}</div>
-      <div class="row"><button class="btn sm" data-act="emp-edit" data-fid="${esc(e.id)}">Editar</button><button class="btn sm ghost" data-act="emp-hist" data-fid="${esc(e.id)}">Ver histórico</button></div>
+      <div class="row"><button class="btn sm" data-act="emp-edit" data-fid="${esc(e.id)}">Editar</button><button class="btn sm ghost" data-act="emp-hist" data-fid="${esc(e.id)}">Ver histórico</button><span style="flex:1"></span><button class="btn sm danger" data-act="emp-del" data-fid="${esc(e.id)}">Excluir</button></div>
     </div>`).join("")
     : `<div class="card"><h3>Comece pela equipe</h3><p class="muted" style="margin:0">Cadastre cada funcionário. Ele recebe um código de 4 números e usa esse código para bater o ponto no celular.</p><div><button class="btn primary" data-act="emp-new">Adicionar funcionário</button></div></div>`;
 }
@@ -279,10 +279,52 @@ async function empSave(fid, btn) {
   if (!Object.values(jornadaSemana).some(Boolean)) return err.textContent = "Informe as horas de pelo menos um dia.";
   btn.disabled = true;
   try {
-    if (fid) await updateDoc(empRef(fid), { nome, cargo, jornadaSemana, codigo, ativo: $("#f-ativo").checked });
+    if (fid) { const ativo = $("#f-ativo").checked, b = writeBatch(db); b.update(empRef(fid), { nome, cargo, jornadaSemana, codigo, ativo }); if (!ativo) tirarDoRodizio(b, fid); await b.commit(); }
     else await setDoc(doc(collection(db, "funcionarios")), { nome, cargo, jornadaSemana, codigo, ativo: true, status: "fora", criado: Date.now(), inicio: today() });
     closeModal(); toast(fid ? "Funcionário atualizado" : `${nome} foi adicionado com o código ${codigo}`);
   } catch (e) { btn.disabled = false; err.textContent = errMsg(e); }
+}
+
+/* ---------- Excluir funcionário ---------- */
+/* Tira alguém do rodízio de sábado (os demais continuam girando entre si) */
+function tirarDoRodizio(b, fid) {
+  const rod = S.cfg.rodizio;
+  if (rod && Array.isArray(rod.ordem) && rod.ordem.includes(fid)) b.set(doc(db, "config", "geral"), { rodizio: { ...rod, ordem: rod.ordem.filter(f => f !== fid) } }, { merge: true });
+}
+function empDelForm(fid) {
+  const e = S.emps[fid]; if (!e) return;
+  openModal(`<h2>Excluir ${esc(e.nome)}</h2>
+    <p style="margin:0">Escolha o que fazer com este funcionário:</p>
+    <div class="del-opt">
+      <b>Só desativar</b>
+      <span class="muted">Some do celular, da escala e do rodízio, e o código para de funcionar. O histórico de ponto continua no Relatório. Dá para reativar depois em Editar.</span>
+      ${e.ativo === false ? `<span class="muted"><i>Este funcionário já está desativado.</i></span>` : `<div><button class="btn" data-act="emp-off" data-fid="${esc(fid)}">Desativar</button></div>`}
+    </div>
+    <div class="del-opt danger">
+      <b>Excluir de vez</b>
+      <span class="muted">Apaga o perfil e <b>todo o histórico de ponto</b> deste funcionário. Não dá para desfazer. Se precisar guardar os registros, baixe a planilha no Relatório antes.</span>
+      <label class="field">Para confirmar, digite o nome: <b>${esc(e.nome)}</b><input id="del-nome" autocomplete="off"></label>
+      <div><button class="btn danger" data-act="emp-del-ok" data-fid="${esc(fid)}">Excluir de vez</button></div>
+    </div>
+    <div class="form-err" id="del-err" role="alert"></div>
+    <div class="foot"><button class="btn" data-act="modal-close">Cancelar</button></div>`);
+}
+async function empDelete(fid, btn) {
+  const e = S.emps[fid], err = $("#del-err");
+  if (!e) return;
+  if ($("#del-nome").value.trim().toLowerCase() !== String(e.nome || "").trim().toLowerCase()) return err.textContent = "O nome digitado não confere.";
+  btn.disabled = true; err.textContent = "";
+  try {
+    const dias = await getDocs(collection(db, "funcionarios", fid, "dias"));
+    const refs = dias.docs.map(d => d.ref);
+    for (let i = 0; i < refs.length; i += 400) { const b = writeBatch(db); refs.slice(i, i + 400).forEach(r => b.delete(r)); await b.commit(); }
+    const b = writeBatch(db);
+    b.delete(empRef(fid));
+    tirarDoRodizio(b, fid);
+    await b.commit();
+    delete S.rep.open[fid]; S.rep.data = null;
+    closeModal(); toast(`${e.nome} foi excluído`);
+  } catch (x) { btn.disabled = false; err.textContent = errMsg(x); }
 }
 
 /* ---------- Acessos (logins) ---------- */
@@ -664,6 +706,9 @@ document.addEventListener("click", async ev => {
     case "emp-new": empForm(null); break;
     case "emp-edit": empForm(fid); break;
     case "emp-save": empSave(fid || null, el); break;
+    case "emp-del": empDelForm(fid); break;
+    case "emp-off": el.disabled = true; try { const b = writeBatch(db); b.update(empRef(fid), { ativo: false }); tirarDoRodizio(b, fid); await b.commit(); closeModal(); toast("Funcionário desativado. O histórico continua guardado."); } catch (x) { el.disabled = false; toast(errMsg(x), true); } break;
+    case "emp-del-ok": empDelete(fid, el); break;
     case "emp-hist": S.tab = "relatorio"; showTab(); $("#r-fid").value = fid; S.rep.open[fid] = true; loadRep(); break;
     case "u-new": userForm(el.dataset.role); break;
     case "u-save": userSave(el.dataset.role, el); break;
