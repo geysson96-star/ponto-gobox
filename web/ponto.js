@@ -3,7 +3,7 @@ import {
   configured, auth, db, onAuthStateChanged, signInWithEmailAndPassword, signOut,
   doc, collection, getDoc, onSnapshot, writeBatch, batchDay,
   $, esc, pad, dayKey, today, hm, dur, fmtDay, longDate, LABEL, SHORT, STATUS,
-  derive, isOpen, isStale, minHoje, empStatus, errMsg, toast, notConfigured, previsto, mesDe, horasTxt
+  derive, isOpen, isStale, minHoje, empStatus, errMsg, toast, notConfigured, previsto, mesDe, horasTxt, setRodizio, TURNO
 } from "./common.js";
 
 const root = $("#root");
@@ -32,7 +32,7 @@ else onAuthStateChanged(auth, async user => {
     const o = {}; snap.forEach(d => { o[d.id] = { id: d.id, ...d.data() }; });
     S.emps = o; S.ready = true; renderBody();
   }, () => toast("Não foi possível ler a equipe. Verifique a internet.", true)));
-  S.unsub.push(onSnapshot(doc(db, "config", "geral"), s => { S.cfg = s.exists() ? s.data() : {}; const b = $("#k-brand"); if (b) b.textContent = S.cfg.nome || "Ponto"; }, () => {}));
+  S.unsub.push(onSnapshot(doc(db, "config", "geral"), s => { S.cfg = s.exists() ? s.data() : {}; setRodizio(S.cfg.rodizio); renderBody(); const b = $("#k-brand"); if (b) b.textContent = S.cfg.nome || "Ponto"; }, () => {}));
   const mes = mesDe(today());
   S.unsub.push(onSnapshot(doc(db, "escala", mes), s => { S.escalas[mes] = s.exists() ? s.data() : {}; renderBody(); }, () => {}));
   requestWake();
@@ -124,7 +124,7 @@ function renderBody() {
       <div class="k-who"><h2>Olá, ${esc((e.nome || "").split(" ")[0])}</h2><span class="pill ${stale ? "alerta" : st}">${stale ? "Sem saída" : STATUS[st]}</span></div>
       <div class="k-actions">${acts}</div>
       <div class="k-today"><div><div class="muted">Hoje</div>${marcs.length ? `<div class="chips" style="margin-top:4px">${marcs.map(m => `<span class="chip t-${m.t}">${SHORT[m.t]} <b>${hm(m.ts)}</b></span>`).join("")}</div>` : `<div>Nenhum registro ainda</div>`}</div>
-        <div style="text-align:right"><div class="muted">Trabalhado</div><div class="big" data-live="${esc(e.id)}">${dur(minHoje(e))}</div><div class="muted" style="font-size:13px">${(p => p.min ? "jornada hoje " + horasTxt(p.min) : (p.tipo === "feriado" ? "hoje é feriado" : "hoje é folga"))(previsto(e, today(), S.escalas))}</div></div></div>
+        <div style="text-align:right"><div class="muted">Trabalhado</div><div class="big" data-live="${esc(e.id)}">${dur(minHoje(e))}</div><div class="muted" style="font-size:13px">${(p => p.min ? "jornada hoje " + horasTxt(p.min) + (p.turno ? " (" + TURNO[p.turno].toLowerCase() + ")" : "") : (p.tipo === "feriado" ? "hoje é feriado" : "hoje é folga"))(previsto(e, today(), S.escalas))}</div></div></div>
       <button class="btn ghost" data-act="back">Não sou eu, voltar</button>
     </div>`;
     return;

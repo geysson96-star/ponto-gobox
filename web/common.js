@@ -91,10 +91,28 @@ export function semanaDe(e) {
   return { ...PADRAO_SEMANA };
 }
 export const mesDe = dia => dia.slice(0, 7);
+/* Rodízio de sábado: config/geral.rodizio = { ativo, ordem: [fid...], inicio: "AAAA-MM-DD" (um sábado), manhaMin, tardeMin }
+   No sábado N (contado a partir de "inicio"), a pessoa na posição i da ordem pega o turno (i + N) mod n:
+   posição 0 = manhã, 1 = tarde, as demais folgam. Assim todos giram e trabalham as mesmas horas. */
+let ROD = null;
+export const setRodizio = r => { ROD = r && r.ativo && Array.isArray(r.ordem) && r.ordem.length && r.inicio ? r : null; };
+export function turnoRodizio(fid, dia, rod = ROD) {
+  if (!rod || keyToDate(dia).getDay() !== 6 || dia < rod.inicio) return null;
+  const i = rod.ordem.indexOf(fid); if (i < 0) return null;
+  const n = rod.ordem.length;
+  const semanas = Math.round((keyToDate(dia) - keyToDate(rod.inicio)) / 6048e5);
+  const pos = (((i - semanas) % n) + n) % n;
+  if (pos === 0) return { turno: "manha", min: Number(rod.manhaMin) || 240 };
+  if (pos === 1) return { turno: "tarde", min: Number(rod.tardeMin) || 240 };
+  return { turno: "folga", min: 0 };
+}
+export const TURNO = { manha: "Manhã", tarde: "Tarde", folga: "Folga" };
 /* Horas previstas num dia, considerando o ajuste da escala quando existir */
 export function previsto(e, dia, escalas) {
   const ov = escalas && escalas[mesDe(dia)] && escalas[mesDe(dia)][e.id] && escalas[mesDe(dia)][e.id][dia.slice(8)];
   if (ov && ov.tipo) return { min: ov.tipo === "trabalho" ? (Number(ov.min) || 0) : 0, tipo: ov.tipo, ajustado: true };
+  const r = turnoRodizio(e.id, dia);
+  if (r) return { min: r.min, tipo: r.min ? "trabalho" : "folga", turno: r.turno, ajustado: false };
   const m = semanaDe(e)[keyToDate(dia).getDay()] || 0;
   return { min: m, tipo: m ? "trabalho" : "folga", ajustado: false };
 }

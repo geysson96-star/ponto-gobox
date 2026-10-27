@@ -4,7 +4,7 @@ import {
   doc, collection, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, writeBatch, batchDay, deleteField,
   $, esc, pad, dayKey, today, keyToDate, hm, dur, hmm, saldoTxt, fmtDay, longDate, DOWC, DOWL, MES,
   LABEL, SHORT, STATUS, DIAS_PADRAO, derive, isOpen, isStale, minHoje, empStatus, extrasDia, errMsg, toast, notConfigured,
-  PADRAO_SEMANA, semanaDe, previsto, mesDe, horasTxt
+  PADRAO_SEMANA, semanaDe, previsto, mesDe, horasTxt, setRodizio, turnoRodizio, TURNO
 } from "./common.js";
 
 const root = $("#root");
@@ -129,8 +129,10 @@ function renderShell() {
       <h2 id="esc-mes" style="font-size:20px;min-width:170px;text-align:center;text-transform:capitalize"></h2>
       <button class="btn" data-act="esc-next" aria-label="Próximo mês">›</button>
       <span style="flex:1"></span>
-      <span class="esc-leg"><i class="c-aj"></i>Ajustado <i class="c-fe"></i>Feriado <i class="c-fo"></i>Folga</span>
+      <span class="esc-leg"><b class="t-m">M</b>Manhã <b class="t-t">T</b>Tarde <i class="c-aj"></i>Ajustado <i class="c-fe"></i>Feriado <i class="c-fo"></i>Folga</span>
+      <button class="btn primary" data-act="rod-open">Rodízio de sábado</button>
     </div>
+    <div id="rod-box"></div>
     <div class="panel"><div class="table-wrap" id="esc-out"></div></div>
     <p class="muted" style="font-size:13px;margin:10px 2px 0">Clique num dia para mudar as horas de um funcionário. Clique no número do dia no topo para aplicar a todos (por exemplo, um feriado). Os dias sem ajuste seguem a jornada padrão de cada funcionário, definida na aba Equipe.</p>
   </section>
@@ -165,7 +167,7 @@ function startData() {
   S.unsub.push(onSnapshot(collection(db, "funcionarios"), snap => {
     const o = {}; snap.forEach(d => { o[d.id] = { id: d.id, ...d.data() }; }); S.emps = o; refresh();
   }, e => toast(errMsg(e), true)));
-  S.unsub.push(onSnapshot(doc(db, "config", "geral"), s => { S.cfg = s.exists() ? s.data() : {}; refresh(); }, () => {}));
+  S.unsub.push(onSnapshot(doc(db, "config", "geral"), s => { S.cfg = s.exists() ? s.data() : {}; setRodizio(S.cfg.rodizio); refresh(); }, () => {}));
   S.unsub.push(onSnapshot(collection(db, "usuarios"), snap => {
     const o = {}; snap.forEach(d => { o[d.id] = { id: d.id, ...d.data() }; }); S.users = o; if (S.tab === "acessos") renderAcessos();
   }, () => {}));
@@ -332,7 +334,7 @@ async function cfgSave(btn) {
   const nome = $("#c-nome").value.trim(), t = parseInt($("#c-tol").value, 10);
   if (!(t >= 0 && t <= 60)) return $("#c-err").textContent = "A tolerância deve ficar entre 0 e 60 minutos.";
   btn.disabled = true;
-  try { await setDoc(doc(db, "config", "geral"), { nome, tolerancia: t }); closeModal(); toast("Configurações salvas"); }
+  try { await setDoc(doc(db, "config", "geral"), { nome, tolerancia: t }, { merge: true }); closeModal(); toast("Configurações salvas"); }
   catch (e) { btn.disabled = false; $("#c-err").textContent = errMsg(e); }
 }
 
@@ -461,15 +463,15 @@ function renderEscala() {
   if (!list.length) { out.innerHTML = `<div class="empty">Cadastre funcionários na aba Equipe para montar a escala.</div>`; return; }
   const nDias = new Date(y, m, 0).getDate(), td = today();
   const dias = Array.from({ length: nDias }, (_, i) => `${mes}-${pad(i + 1)}`);
-  const doMes = S.escalas[mes] || {};
+  renderRodBox(mes);
   out.innerHTML = `<table class="esc"><thead><tr><th class="esc-nome">Funcionário</th>${dias.map(d => { const w = keyToDate(d).getDay(); return `<th class="esc-d ${w === 0 || w === 6 ? "fds" : ""} ${d === td ? "hoje" : ""}"><button data-act="esc-col" data-dia="${d}" title="Aplicar a todos em ${fmtDay(d)}">${DOWC[w][0]}<b>${Number(d.slice(8))}</b></button></th>`; }).join("")}<th class="r">Total</th></tr></thead><tbody>${list.map(e => {
     let tot = 0;
     const cells = dias.map(d => {
       const p = previsto(e, d, S.escalas); tot += p.min;
       const w = keyToDate(d).getDay();
-      const cls = [p.ajustado ? "aj" : "", p.tipo === "feriado" ? "fe" : (!p.min ? "fo" : ""), w === 0 || w === 6 ? "fds" : "", d === td ? "hoje" : ""].join(" ");
-      const txt = p.tipo === "feriado" ? "F" : (p.min ? horasTxt(p.min).replace(/h$/, "") : "–");
-      return `<td class="esc-c ${cls}"><button data-act="esc-cell" data-fid="${esc(e.id)}" data-dia="${d}" title="${esc(e.nome)} · ${fmtDay(d)}: ${p.tipo === "feriado" ? "feriado" : p.min ? horasTxt(p.min) : "folga"}${p.ajustado ? " (ajustado)" : ""}">${txt}</button></td>`;
+      const cls = [p.turno ? "tu-" + p.turno : "", p.ajustado ? "aj" : "", p.tipo === "feriado" ? "fe" : (!p.min ? "fo" : ""), w === 0 || w === 6 ? "fds" : "", d === td ? "hoje" : ""].join(" ");
+      const txt = p.tipo === "feriado" ? "F" : p.turno === "manha" ? "M" : p.turno === "tarde" ? "T" : (p.min ? horasTxt(p.min).replace(/h$/, "") : "–");
+      return `<td class="esc-c ${cls}"><button data-act="esc-cell" data-fid="${esc(e.id)}" data-dia="${d}" title="${esc(e.nome)} · ${fmtDay(d)}: ${p.tipo === "feriado" ? "feriado" : p.min ? horasTxt(p.min) + (p.turno ? " (" + TURNO[p.turno].toLowerCase() + ")" : "") : "folga"}${p.ajustado ? " (ajustado)" : ""}">${txt}</button></td>`;
     }).join("");
     return `<tr><td class="esc-nome"><div class="nm">${esc(e.nome)}</div><div class="cg">${esc(e.codigo || "")}</div></td>${cells}<td class="r num"><b>${dur(tot)}</b></td></tr>`;
   }).join("")}</tbody></table>`;
@@ -522,6 +524,85 @@ async function escSet(el) {
   el.disabled = true;
   try { await escSalvar(fids, dia, val); closeModal(); toast(fid ? "Escala atualizada" : "Escala atualizada para todos"); if (S.rep.data) renderRep(); }
   catch (x) { el.disabled = false; $("#esc-err").textContent = errMsg(x); }
+}
+
+/* ---------- Rodízio de sábado ---------- */
+const sabados = (de, n) => { const out = []; let d = keyToDate(de); while (d.getDay() !== 6) d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1); for (let i = 0; i < n; i++) out.push(dayKey(new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7 * i))); return out; };
+function sabadosDoMes(mes) { const [y, m] = mes.split("-").map(Number); return sabados(`${mes}-01`, 6).filter(d => Number(d.slice(5, 7)) === m); }
+function renderRodBox(mes) {
+  const box = $("#rod-box"); if (!box) return;
+  const r = S.cfg.rodizio;
+  if (!r || !r.ativo) { box.innerHTML = ""; return; }
+  const sabs = sabadosDoMes(mes), nomes = r.ordem.map(f => S.emps[f]).filter(Boolean);
+  const horas = {}; nomes.forEach(e => horas[e.id] = 0);
+  box.innerHTML = `<div class="rod-box"><div class="rod-h"><b>Rodízio de sábado ativo</b><span class="muted">manhã ${horasTxt(r.manhaMin)} · tarde ${horasTxt(r.tardeMin)} · desde ${fmtDay(r.inicio)}</span></div>
+    <div class="table-wrap"><table><thead><tr><th>Sábado</th><th>Manhã</th><th>Tarde</th><th>Folga</th></tr></thead><tbody>${sabs.map(d => {
+      const t = { manha: [], tarde: [], folga: [] };
+      nomes.forEach(e => { const p = previsto(e, d, S.escalas); const k = p.turno || (p.min ? "manha" : "folga"); (t[k] || t.folga).push(e.nome + (p.ajustado ? " *" : "")); horas[e.id] += p.min; });
+      return `<tr><td class="num">${fmtDay(d)}</td><td>${esc(t.manha.join(", ") || "—")}</td><td>${esc(t.tarde.join(", ") || "—")}</td><td class="muted">${esc(t.folga.join(", ") || "—")}</td></tr>`;
+    }).join("")}</tbody></table></div>
+    <div class="rod-tot">Sábados no mês: ${nomes.map(e => `<span class="chip">${esc(e.nome)} <b>${dur(horas[e.id])}</b></span>`).join(" ")}</div></div>`;
+}
+function rodForm() {
+  const r = S.cfg.rodizio || {};
+  const ativos = empsSorted().map(e => e.id);
+  const ordem = (r.ordem || []).filter(f => S.emps[f]);
+  ativos.forEach(f => { if (!ordem.includes(f) && !(r.ordem || []).length) ordem.push(f); });
+  S.rodDraft = { ordem, fora: ativos.filter(f => !ordem.includes(f)) };
+  const prox = sabados(today(), 1)[0];
+  openModal(`<h2>Rodízio de sábado</h2>
+    <p class="muted" style="margin:0">Todo sábado, o primeiro da vez trabalha de manhã, o segundo à tarde e os outros folgam. A cada semana a ordem gira, então todos trabalham as mesmas horas ao longo do rodízio.</p>
+    <div class="field">Ordem do primeiro sábado<div id="rod-list" class="rod-list"></div></div>
+    <div class="grid2">
+      <label class="field">Primeiro sábado do rodízio<input type="date" id="rod-ini" value="${esc(r.inicio || prox)}"></label>
+      <div class="grid2" style="gap:8px">
+        <label class="field">Horas manhã<input type="number" id="rod-m" min="0.5" max="12" step="0.5" value="${(r.manhaMin || 240) / 60}"></label>
+        <label class="field">Horas tarde<input type="number" id="rod-t" min="0.5" max="12" step="0.5" value="${(r.tardeMin || 240) / 60}"></label>
+      </div>
+    </div>
+    <div class="field">Próximos sábados<div id="rod-prev" class="table-wrap"></div></div>
+    <p class="muted" style="margin:0;font-size:12.5px">Os ajustes que você fizer num dia específico da escala (troca, folga, feriado) continuam valendo por cima do rodízio.</p>
+    <div class="form-err" id="rod-err" role="alert"></div>
+    <div class="foot">${r.ativo ? `<button class="btn ghost" data-act="rod-off">Desligar rodízio</button>` : ""}<button class="btn" data-act="modal-close">Cancelar</button><button class="btn primary" data-act="rod-save">Salvar rodízio</button></div>`);
+  ["rod-ini", "rod-m", "rod-t"].forEach(id => $("#" + id).addEventListener("input", rodRender));
+  rodRender();
+}
+function rodDraftCfg() {
+  const ini = $("#rod-ini").value, m = parseFloat(String($("#rod-m").value).replace(",", ".")), t = parseFloat(String($("#rod-t").value).replace(",", "."));
+  return { ativo: true, ordem: S.rodDraft.ordem, inicio: ini, manhaMin: Math.round((m || 0) * 60), tardeMin: Math.round((t || 0) * 60) };
+}
+function rodRender() {
+  const d = S.rodDraft;
+  $("#rod-list").innerHTML = d.ordem.map((f, i) => `<div class="rod-item"><span class="rod-n">${i + 1}º</span><b>${esc(S.emps[f]?.nome || "")}</b>
+      <span class="muted" style="font-size:12.5px">${i === 0 ? "manhã no 1º sábado" : i === 1 ? "tarde no 1º sábado" : "folga no 1º sábado"}</span><span style="flex:1"></span>
+      <button class="btn sm ghost" data-act="rod-up" data-fid="${esc(f)}" ${i ? "" : "disabled"} aria-label="Subir">↑</button>
+      <button class="btn sm ghost" data-act="rod-down" data-fid="${esc(f)}" ${i < d.ordem.length - 1 ? "" : "disabled"} aria-label="Descer">↓</button>
+      <button class="btn sm ghost" data-act="rod-toggle" data-fid="${esc(f)}">Tirar</button></div>`).join("")
+    + d.fora.map(f => `<div class="rod-item off"><b>${esc(S.emps[f]?.nome || "")}</b><span class="muted" style="font-size:12.5px">fora do rodízio</span><span style="flex:1"></span><button class="btn sm" data-act="rod-toggle" data-fid="${esc(f)}">Incluir</button></div>`).join("");
+  const cfg = rodDraftCfg();
+  if (!cfg.inicio || cfg.ordem.length < 2) { $("#rod-prev").innerHTML = `<div class="muted" style="padding:8px 0">Escolha a data e pelo menos 2 pessoas.</div>`; return; }
+  const sabs = sabados(cfg.inicio, 6);
+  $("#rod-prev").innerHTML = `<table><thead><tr><th>Sábado</th><th>Manhã</th><th>Tarde</th><th>Folga</th></tr></thead><tbody>${sabs.map(dia => {
+    const t = { manha: [], tarde: [], folga: [] };
+    cfg.ordem.forEach(f => { const r = turnoRodizio(f, dia, cfg); t[r.turno].push(S.emps[f]?.nome || ""); });
+    return `<tr><td class="num">${fmtDay(dia)}</td><td>${esc(t.manha.join(", "))}</td><td>${esc(t.tarde.join(", "))}</td><td class="muted">${esc(t.folga.join(", ") || "—")}</td></tr>`;
+  }).join("")}</tbody></table>`;
+}
+function rodMove(fid, dir) { const o = S.rodDraft.ordem, i = o.indexOf(fid), j = i + dir; if (i < 0 || j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]]; rodRender(); }
+function rodToggle(fid) { const d = S.rodDraft; if (d.ordem.includes(fid)) { d.ordem = d.ordem.filter(f => f !== fid); d.fora.push(fid); } else { d.fora = d.fora.filter(f => f !== fid); d.ordem.push(fid); } rodRender(); }
+async function rodSave(btn, ativo) {
+  const err = $("#rod-err");
+  let rod;
+  if (ativo) {
+    rod = rodDraftCfg();
+    if (!rod.inicio) return err.textContent = "Escolha o primeiro sábado.";
+    if (keyToDate(rod.inicio).getDay() !== 6) return err.textContent = "A data inicial precisa ser um sábado.";
+    if (rod.ordem.length < 2) return err.textContent = "Coloque pelo menos 2 pessoas no rodízio.";
+    if (!(rod.manhaMin > 0 && rod.tardeMin > 0)) return err.textContent = "Informe as horas da manhã e da tarde.";
+  } else rod = { ...(S.cfg.rodizio || {}), ativo: false };
+  btn.disabled = true;
+  try { await setDoc(doc(db, "config", "geral"), { rodizio: rod }, { merge: true }); closeModal(); toast(ativo ? "Rodízio de sábado salvo" : "Rodízio desligado"); }
+  catch (x) { btn.disabled = false; err.textContent = errMsg(x); }
 }
 
 /* ---------- Ajuste de dia ---------- */
@@ -597,6 +678,11 @@ document.addEventListener("click", async ev => {
     case "esc-cell": escForm(el.dataset.fid, el.dataset.dia); break;
     case "esc-col": escForm(null, el.dataset.dia); break;
     case "esc-set": escSet(el); break;
+    case "rod-open": rodForm(); break;
+    case "rod-up": case "rod-down": rodMove(el.dataset.fid, a === "rod-up" ? -1 : 1); break;
+    case "rod-toggle": rodToggle(el.dataset.fid); break;
+    case "rod-save": rodSave(el, true); break;
+    case "rod-off": rodSave(el, false); break;
     case "esc-folga": escSalvar([fid], el.dataset.dia, { tipo: "folga", min: 0 }).then(() => { toast("Dia abonado como folga"); loadRep(); }); break;
     case "day-save": daySave(fid, el.dataset.dia, el); break;
     case "mrow-rm": el.closest(".mrow").remove(); break;

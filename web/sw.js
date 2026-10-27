@@ -1,5 +1,5 @@
 // Guarda a tela de ponto no celular para abrir mesmo sem internet.
-const CACHE = "ponto-gobox-v2";
+const CACHE = "ponto-gobox-v3";
 const ESSENCIAIS = ["ponto.html", "ponto.js", "common.js", "config.js", "style.css", "logo.png", "cube.png"];
 
 self.addEventListener("install", e => {

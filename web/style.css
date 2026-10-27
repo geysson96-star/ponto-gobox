@@ -214,3 +214,16 @@ table.esc thead .esc-nome{background:var(--sunk)}
 .esc-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .esc-opt{justify-content:flex-start;min-height:48px}
 @media (max-width:480px){.weekgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+/* rodízio de sábado */
+.esc-leg b{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:3px;font-size:10px;margin-right:2px}
+.esc-leg .t-m,.esc-c.tu-manha button{background:#E8E8F3;color:var(--navy)}
+.esc-leg .t-t,.esc-c.tu-tarde button{background:#FFE6DB;color:#B8461C}
+.rod-box{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--orange);border-radius:12px;padding:12px 14px;margin-bottom:14px;display:grid;gap:8px}
+.rod-h{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.rod-box table td,.rod-box table th,#rod-prev td,#rod-prev th{padding:6px 10px}
+.rod-tot{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.rod-list{display:grid;gap:6px;margin-top:6px}
+.rod-item{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:6px 8px;color:var(--ink);font-weight:400;flex-wrap:wrap}
+.rod-item.off{background:var(--sunk)}
+.rod-n{font-weight:700;color:var(--orange);min-width:22px}
