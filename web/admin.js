@@ -5,7 +5,7 @@ import {
   $, esc, pad, dayKey, today, keyToDate, hm, dur, hmm, saldoTxt, fmtDay, longDate, DOWC, DOWL, MES,
   LABEL, SHORT, STATUS, DIAS_PADRAO, derive, isOpen, isStale, minHoje, empStatus, extrasDia, errMsg, toast, notConfigured,
   PADRAO_SEMANA, semanaDe, previsto, mesDe, horasTxt, setRodizio, turnoRodizio, TURNO, agora, agoraMs, sincronizarRelogio
-} from "./common.js";
+} from "./common.js?v=__V__";
 
 const root = $("#root");
 const S = { me: null, emps: {}, cfg: {}, users: {}, tab: "agora", unsub: [], rep: { data: null, open: {}, seq: 0 }, escalas: {}, escSubs: {}, escMes: null };

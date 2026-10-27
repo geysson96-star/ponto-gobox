@@ -39,6 +39,8 @@ jobs:
         run: |
           mkdir -p _site
           cp -r web/* _site/
+          V=$(echo "$GITHUB_SHA" | cut -c1-8)
+          sed -i "s/__V__/$V/g" _site/*.html _site/*.js
           cp android/app/build/outputs/apk/release/app-release.apk _site/ponto-gobox.apk
 
       - name: Guardar o APK na branch apk

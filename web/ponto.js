@@ -4,7 +4,7 @@ import {
   doc, collection, getDoc, onSnapshot, writeBatch, batchDay,
   $, esc, pad, dayKey, today, hm, dur, fmtDay, longDate, LABEL, SHORT, STATUS,
   derive, isOpen, isStale, minHoje, empStatus, errMsg, toast, notConfigured, previsto, mesDe, horasTxt, setRodizio, TURNO, agora, agoraMs, relogio, sincronizarRelogio
-} from "./common.js";
+} from "./common.js?v=__V__";
 
 const root = $("#root");
 const S = {
