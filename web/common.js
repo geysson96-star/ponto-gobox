@@ -6,7 +6,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager, memoryLocalCache,
-  doc, collection, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, writeBatch
+  doc, collection, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, writeBatch, deleteField
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig } from "./config.js";
 
@@ -21,7 +21,7 @@ if (app) {
 export const db = _db;
 export {
   onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
-  doc, collection, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, writeBatch
+  doc, collection, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, writeBatch, deleteField
 };
 
 /* Cria um login novo sem desconectar o administrador */
@@ -76,16 +76,40 @@ export const isStale = e => isOpen(e) && e.dia && e.dia !== today();
 export const minHoje = e => (e && e.dia === today()) ? derive(e.hoje, { now: Date.now(), incompleto: e.incompleto }).liveMin : 0;
 export const empStatus = e => isOpen(e) ? e.status : "fora";
 
-/* Horas extras: em dia de trabalho, o que passa da jornada (50%); em folga/domingo, tudo (100%).
-   Diferenças até a tolerância (padrão 10 min, CLT art. 58 §1º) não contam. */
-export function extrasDia(e, dia, min, tol) {
-  const jm = e.jornadaMin || 480;
-  const dias = Array.isArray(e.diasTrab) ? e.diasTrab : DIAS_PADRAO;
-  const util = dias.includes(keyToDate(dia).getDay());
-  if (!util) return { util, ex50: 0, ex100: min, deb: 0 };
-  const diff = min - jm;
-  return { util, ex50: diff > tol ? diff : 0, ex100: 0, deb: diff < -tol ? -diff : 0 };
+/* ---------- Jornada e escala ----------
+   Cada funcionário tem uma jornada padrão por dia da semana (minutos; 0 = folga).
+   A escala do mês (documento escala/AAAA-MM) guarda ajustes por dia: { [fid]: { "DD": {tipo, min} } }
+   tipo: "trabalho" (min = horas previstas), "folga" ou "feriado". */
+export const PADRAO_SEMANA = { 0: 0, 1: 480, 2: 480, 3: 480, 4: 480, 5: 480, 6: 240 };
+export function semanaDe(e) {
+  if (e && e.jornadaSemana) { const o = {}; for (let i = 0; i < 7; i++) o[i] = Number(e.jornadaSemana[i]) || 0; return o; }
+  if (e && (Array.isArray(e.diasTrab) || e.jornadaMin)) {
+    const dias = Array.isArray(e.diasTrab) ? e.diasTrab : DIAS_PADRAO, jm = e.jornadaMin || 480, o = {};
+    for (let i = 0; i < 7; i++) o[i] = dias.includes(i) ? jm : 0;
+    return o;
+  }
+  return { ...PADRAO_SEMANA };
 }
+export const mesDe = dia => dia.slice(0, 7);
+/* Horas previstas num dia, considerando o ajuste da escala quando existir */
+export function previsto(e, dia, escalas) {
+  const ov = escalas && escalas[mesDe(dia)] && escalas[mesDe(dia)][e.id] && escalas[mesDe(dia)][e.id][dia.slice(8)];
+  if (ov && ov.tipo) return { min: ov.tipo === "trabalho" ? (Number(ov.min) || 0) : 0, tipo: ov.tipo, ajustado: true };
+  const m = semanaDe(e)[keyToDate(dia).getDay()] || 0;
+  return { min: m, tipo: m ? "trabalho" : "folga", ajustado: false };
+}
+/* Horas extras: o que passa do previsto (50%). Em dia sem jornada: domingo e feriado contam 100%, demais folgas 50%.
+   Diferenças até a tolerância (padrão 10 min, CLT art. 58 §1º) não contam. */
+export function extrasDia(e, dia, min, tol, escalas) {
+  const p = previsto(e, dia, escalas);
+  if (!p.min) {
+    const cem = p.tipo === "feriado" || keyToDate(dia).getDay() === 0;
+    return { util: false, prev: p, ex50: cem ? 0 : min, ex100: cem ? min : 0, deb: 0 };
+  }
+  const diff = min - p.min;
+  return { util: true, prev: p, ex50: diff > tol ? diff : 0, ex100: 0, deb: diff < -tol ? -diff : 0 };
+}
+export const horasTxt = min => { min = Math.round(min || 0); const h = Math.floor(min / 60), m = min % 60; return m ? `${h}h${pad(m)}` : `${h}h`; };
 
 /* Grava um dia (e atualiza o resumo do funcionário quando é o dia mais recente) numa única operação */
 export function batchDay(b, e, dia, marc, { incompleto = false, editado = false } = {}) {

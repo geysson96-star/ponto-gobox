@@ -21,6 +21,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Escala mensal: ajustes de horas por funcionário e dia
+    match /escala/{mes} {
+      allow read: if isAdmin() || isTerminal();
+      allow write: if isAdmin();
+    }
+
     // Logins do sistema (administradores e celulares)
     match /usuarios/{uid} {
       allow read: if isAdmin() || (signed() && request.auth.uid == uid);
