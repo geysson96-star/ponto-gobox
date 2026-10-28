@@ -2,7 +2,7 @@
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, initializeAuth, inMemoryPersistence, onAuthStateChanged, signInWithEmailAndPassword,
-  signOut, createUserWithEmailAndPassword, sendPasswordResetEmail
+  signOut, createUserWithEmailAndPassword, sendPasswordResetEmail, deleteUser
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager, memoryLocalCache,
@@ -32,6 +32,25 @@ export async function createLogin(email, senha) {
     const cred = await createUserWithEmailAndPassword(a, email, senha);
     await signOut(a);
     return cred.user.uid;
+  } finally { deleteApp(sec).catch(() => {}); }
+}
+
+/* Confere e-mail e senha de um login já existente (sem desconectar o administrador) e devolve o uid */
+export async function uidDoLogin(email, senha) {
+  const sec = initializeApp(firebaseConfig, "chk-" + Date.now());
+  try {
+    const a = initializeAuth(sec, { persistence: inMemoryPersistence });
+    const cred = await signInWithEmailAndPassword(a, email, senha);
+    const uid = cred.user.uid; await signOut(a); return uid;
+  } finally { deleteApp(sec).catch(() => {}); }
+}
+/* Apaga de vez um login (libera o e-mail para ser usado de novo). Precisa da senha desse login. */
+export async function apagarLogin(email, senha) {
+  const sec = initializeApp(firebaseConfig, "del-" + Date.now());
+  try {
+    const a = initializeAuth(sec, { persistence: inMemoryPersistence });
+    const cred = await signInWithEmailAndPassword(a, email, senha);
+    const uid = cred.user.uid; await deleteUser(cred.user); return uid;
   } finally { deleteApp(sec).catch(() => {}); }
 }
 

@@ -1,6 +1,6 @@
 // Ponto GoBox — painel do administrador (computador).
 import {
-  configured, auth, db, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, createLogin,
+  configured, auth, db, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, createLogin, uidDoLogin, apagarLogin,
   doc, collection, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, writeBatch, batchDay, deleteField,
   $, esc, pad, dayKey, today, keyToDate, hm, dur, hmm, saldoTxt, fmtDay, longDate, DOWC, DOWL, MES,
   LABEL, SHORT, STATUS, DIAS_PADRAO, derive, isOpen, isStale, minHoje, empStatus, extrasDia, errMsg, toast, notConfigured,
@@ -353,15 +353,42 @@ async function userSave(role, btn) {
   if (senha.length < 6) return err.textContent = "A senha precisa ter pelo menos 6 caracteres.";
   btn.disabled = true;
   try {
-    const uid = await createLogin(email, senha);
+    let uid, reativado = false;
+    try { uid = await createLogin(email, senha); }
+    catch (e) {
+      if (!String(e && e.code).includes("email-already-in-use")) throw e;
+      // O e-mail já existe (por exemplo, um acesso removido antes). Com a mesma senha de antes, reaproveitamos esse login.
+      try { uid = await uidDoLogin(email, senha); reativado = true; }
+      catch { btn.disabled = false; err.innerHTML = `Este e-mail já foi usado num acesso anterior. Digite a <b>mesma senha</b> que ele tinha para reativá-lo, ou use outro e-mail.`; return; }
+      if (S.users[uid]) { btn.disabled = false; err.textContent = "Este e-mail já tem um acesso ativo na lista."; return; }
+    }
     await setDoc(doc(db, "usuarios", uid), { role, email, nome, criado: Date.now() });
-    closeModal(); toast(role === "admin" ? "Administrador criado" : "Acesso do celular criado. Use esse e-mail e senha no app.");
+    closeModal(); toast(reativado ? "Acesso reativado com o mesmo e-mail." : role === "admin" ? "Administrador criado" : "Acesso do celular criado. Use esse e-mail e senha no app.");
   } catch (e) { btn.disabled = false; err.textContent = errMsg(e); }
 }
 function userDelForm(uid) {
   const u = S.users[uid];
   openModal(`<h2>Remover acesso</h2><p style="margin:0">${esc(u.nome || u.email)} (${esc(u.email)}) não vai mais conseguir entrar${u.role === "terminal" ? ", e o celular conectado com esse acesso para de registrar ponto" : ""}.</p>
-    <div class="foot"><button class="btn" data-act="modal-close">Cancelar</button><button class="btn primary" data-act="u-del-ok" data-uid="${esc(uid)}">Remover</button></div>`);
+    <label class="field">Senha deste acesso<input id="ud-senha" type="text" autocomplete="off" placeholder="A senha usada para entrar com ${esc(u.email)}"></label>
+    <p class="muted" style="margin:0;font-size:13px">Com a senha, o login é apagado de vez e o e-mail fica livre para criar um acesso novo. Sem a senha, o acesso é removido, mas para usar o mesmo e-mail de novo será preciso digitar a senha antiga.</p>
+    <div class="form-err" id="ud-err" role="alert"></div>
+    <div class="foot"><button class="btn" data-act="modal-close">Cancelar</button><button class="btn ghost" data-act="u-del-ok" data-uid="${esc(uid)}" data-modo="sem">Remover sem a senha</button><button class="btn primary" data-act="u-del-ok" data-uid="${esc(uid)}" data-modo="com">Remover e liberar e-mail</button></div>`);
+}
+
+async function userDelete(uid, comSenha, btn) {
+  const u = S.users[uid], err = $("#ud-err"); if (!u) return;
+  const senha = $("#ud-senha").value;
+  if (comSenha && !senha) return err.textContent = "Digite a senha deste acesso, ou use Remover sem a senha.";
+  btn.disabled = true; err.textContent = "";
+  try {
+    if (comSenha) {
+      try { const got = await uidDoLogin(u.email, senha); if (got !== uid) throw new Error("outro"); }
+      catch { btn.disabled = false; err.textContent = "Senha incorreta para este acesso."; return; }
+    }
+    await deleteDoc(doc(db, "usuarios", uid));
+    if (comSenha) await apagarLogin(u.email, senha);
+    closeModal(); toast(comSenha ? "Acesso apagado. O e-mail está livre para um acesso novo." : "Acesso removido");
+  } catch (x) { btn.disabled = false; err.textContent = errMsg(x); }
 }
 
 /* ---------- Configurações ---------- */
@@ -714,7 +741,7 @@ document.addEventListener("click", async ev => {
     case "u-new": userForm(el.dataset.role); break;
     case "u-save": userSave(el.dataset.role, el); break;
     case "u-del": userDelForm(el.dataset.uid); break;
-    case "u-del-ok": el.disabled = true; try { await deleteDoc(doc(db, "usuarios", el.dataset.uid)); closeModal(); toast("Acesso removido"); } catch (x) { el.disabled = false; toast(errMsg(x), true); } break;
+    case "u-del-ok": userDelete(el.dataset.uid, el.dataset.modo === "com", el); break;
     case "rep-toggle": S.rep.open[fid] = !S.rep.open[fid]; renderRep(); break;
     case "r-mes": case "r-mesant": { const [x, y] = monthRange(a === "r-mes" ? 0 : -1); $("#r-de").value = x; $("#r-ate").value = y; loadRep(); break; }
     case "r-csv": exportCsv(); break;
