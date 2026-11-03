@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel · GoBox</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/assets/cubo.png">
+<link rel="stylesheet" href="/base.css">
+<link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body class="admin">
+
+<!-- Login -->
+<section id="tela-login" class="tela-login" hidden>
+  <form id="form-login" class="cartao-login">
+    <div class="marca">
+      <img src="/assets/cubo.png" alt="" class="marca-cubo">
+      <img src="/assets/wordmark.png" alt="" class="marca-nome">
+    </div>
+    <h1>Painel administrativo</h1>
+    <label for="usuario">Usuário</label>
+    <input id="usuario" name="usuario" type="text" autocomplete="username" required>
+    <label for="senha">Senha</label>
+    <input id="senha" name="senha" type="password" autocomplete="current-password" required>
+    <p id="erro-login" class="mensagem-erro" role="alert"></p>
+    <button type="submit" class="botao-principal botao-grande">Entrar</button>
+  </form>
+</section>
+
+<!-- Painel -->
+<div id="tela-painel" class="layout" hidden>
+  <nav class="lateral" aria-label="Menu do painel">
+    <div class="marca">
+      <img src="/assets/cubo.png" alt="" class="marca-cubo">
+      <img src="/assets/wordmark.png" alt="" class="marca-nome">
+      <span class="etiqueta-admin">Admin</span>
+    </div>
+    <div class="menu">
+      <button type="button" class="item-menu" data-aba="pacotes" aria-current="page">Pacotes</button>
+      <button type="button" class="item-menu" data-aba="importacoes">Importações</button>
+      <button type="button" class="item-menu" data-aba="configuracoes">Configurações</button>
+    </div>
+    <div class="rodape-menu">
+      <div><strong>Administrador</strong><span>Sessão protegida</span></div>
+      <button type="button" id="botao-sair" class="botao-texto">Sair</button>
+    </div>
+  </nav>
+
+  <main class="principal">
+    <!-- Aba Pacotes -->
+    <section id="aba-pacotes" class="aba">
+      <div class="cabecalho">
+        <div>
+          <h1>Pacotes</h1>
+          <p class="descricao">Base local usada pela consulta pública. Os dados não são em tempo real: valem até a última importação de cada empresa.</p>
+        </div>
+        <div class="acoes">
+          <button type="button" id="botao-robo" class="botao-secundario" hidden>Sincronizar portais agora</button>
+          <button type="button" id="botao-verificar-entrada" class="botao-secundario">Verificar pasta de entrada</button>
+          <button type="button" class="botao-principal botao-medio" data-abrir-importacao="">Importar relatório</button>
+        </div>
+      </div>
+      <p id="info-robo" class="descricao" hidden></p>
+      <p id="aviso-geral" class="aviso-geral" role="status" hidden></p>
+      <section id="cartoes-fontes" class="cartoes-fontes" aria-label="Situação de cada empresa"></section>
+
+      <section class="tabela-bloco" aria-label="Lista de pacotes">
+        <div class="filtros">
+          <div class="chips" role="group" aria-label="Filtrar por empresa">
+            <button type="button" class="chip" data-fonte="" aria-pressed="true">Todas</button>
+            <button type="button" class="chip" data-fonte="shopee" aria-pressed="false">Shopee SPX</button>
+            <button type="button" class="chip" data-fonte="ml" aria-pressed="false">Mercado Livre</button>
+            <button type="button" class="chip" data-fonte="correios" aria-pressed="false">Correios</button>
+          </div>
+          <div class="filtros-direita">
+            <div class="campo">
+              <label for="filtro-situacao">Situação</label>
+              <select id="filtro-situacao">
+                <option value="ativos">Na agência</option>
+                <option value="inativos">Já saíram</option>
+                <option value="todos">Todos</option>
+              </select>
+            </div>
+            <div class="campo">
+              <label for="filtro-busca">Buscar por código</label>
+              <input id="filtro-busca" type="search" placeholder="Digite o código" maxlength="64">
+            </div>
+          </div>
+        </div>
+        <div class="rolagem">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Código</th>
+                <th scope="col">Empresa</th>
+                <th scope="col">Situação</th>
+                <th scope="col">Recebido</th>
+                <th scope="col">Saída</th>
+                <th scope="col">Última atualização</th>
+              </tr>
+            </thead>
+            <tbody id="corpo-pacotes"></tbody>
+          </table>
+        </div>
+        <div class="paginacao">
+          <span id="info-paginacao"></span>
+          <div>
+            <button type="button" id="pagina-anterior" class="botao-secundario">Anterior</button>
+            <button type="button" id="pagina-proxima" class="botao-secundario">Próxima</button>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <!-- Aba Importações -->
+    <section id="aba-importacoes" class="aba" hidden>
+      <div class="cabecalho">
+        <div>
+          <h1>Importações</h1>
+          <p class="descricao">Histórico das últimas 100 importações. Importações aguardando confirmação ainda não alteraram a consulta.</p>
+        </div>
+        <div class="acoes">
+          <div class="campo">
+            <label for="filtro-importacoes">Empresa</label>
+            <select id="filtro-importacoes">
+              <option value="">Todas</option>
+              <option value="shopee">Shopee SPX</option>
+              <option value="ml">Mercado Livre</option>
+              <option value="correios">Correios</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="tabela-bloco">
+        <div class="rolagem">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Início</th>
+                <th scope="col">Empresa</th>
+                <th scope="col">Origem</th>
+                <th scope="col">Situação</th>
+                <th scope="col">Códigos</th>
+                <th scope="col">Novos / atualizados / removidos</th>
+                <th scope="col">Detalhe</th>
+                <th scope="col"><span class="oculto">Ações</span></th>
+              </tr>
+            </thead>
+            <tbody id="corpo-importacoes"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Aba Configurações -->
+    <section id="aba-configuracoes" class="aba" hidden>
+      <div class="cabecalho">
+        <div>
+          <h1>Configurações</h1>
+          <p class="descricao">Regras de leitura dos relatórios de cada empresa. Senhas e chaves nunca ficam aqui: só no servidor.</p>
+        </div>
+      </div>
+      <div id="lista-configuracoes" class="lista-configuracoes"></div>
+    </section>
+  </main>
+</div>
+
+<!-- Diálogo de importação -->
+<dialog id="dialogo-importacao" class="dialogo" aria-labelledby="titulo-importacao">
+  <form id="form-importacao" method="dialog">
+    <h2 id="titulo-importacao">Importar relatório</h2>
+    <div id="passo-arquivo">
+      <label for="importacao-fonte">Empresa</label>
+      <select id="importacao-fonte" required>
+        <option value="">Escolha…</option>
+        <option value="shopee">Shopee SPX</option>
+        <option value="ml">Mercado Livre</option>
+        <option value="correios">Correios</option>
+      </select>
+      <label for="importacao-arquivo">Arquivo exportado do portal (.csv ou .xlsx)</label>
+      <input id="importacao-arquivo" type="file" accept=".csv,.tsv,.txt,.xlsx" required>
+    </div>
+    <div id="passo-previa" hidden></div>
+    <p id="erro-importacao" class="mensagem-erro" role="alert"></p>
+    <div class="botoes-dialogo">
+      <button type="button" id="importacao-fechar" class="botao-secundario">Cancelar</button>
+      <button type="button" id="importacao-ler" class="botao-principal botao-medio">Ler arquivo</button>
+      <button type="button" id="importacao-confirmar" class="botao-principal botao-medio" hidden>Confirmar importação</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="/admin/admin.js"></script>
+</body>
+</html>

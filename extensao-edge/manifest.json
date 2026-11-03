@@ -1,0 +1,63 @@
+{
+  "manifest_version": 3,
+  "name": "GoBox Sincronizador",
+  "version": "1.2.1",
+  "description": "Envia para o site da GoBox os pacotes (código, situação e horários) lidos dos portais Shopee SPX, Mercado Livre Places e Correios Atende que você já usa.",
+  "icons": {
+    "16": "icones/16.png",
+    "48": "icones/48.png",
+    "128": "icones/128.png"
+  },
+  "action": {
+    "default_title": "GoBox Sincronizador",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://sp.spx.shopee.com.br/*",
+    "https://places.mercadolivre.com.br/*",
+    "https://correiosatende.correios.com.br/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://sp.spx.shopee.com.br/*"
+      ],
+      "js": [
+        "comum.js",
+        "conteudo-shopee.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://places.mercadolivre.com.br/*"
+      ],
+      "js": [
+        "comum.js",
+        "conteudo-ml.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://correiosatende.correios.com.br/*"
+      ],
+      "js": [
+        "comum.js",
+        "conteudo-correios.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

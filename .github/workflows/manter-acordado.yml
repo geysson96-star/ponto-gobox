@@ -1,0 +1,18 @@
+# O plano gratuito do Render "dorme" após 15 minutos sem acesso.
+# Este agendamento gratuito do GitHub acessa o site a cada 10 minutos
+# para ele continuar acordado (e com os dados) também à noite.
+name: Manter site acordado
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acessar /saude
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          if [ -z "$SITE_URL" ]; then echo "Defina a variável SITE_URL no repositório"; exit 0; fi
+          curl -fsS --max-time 90 "$SITE_URL/saude" || true

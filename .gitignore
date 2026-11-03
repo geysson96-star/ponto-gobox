@@ -1,0 +1,17 @@
+node_modules/
+# Credenciais e configuração real
+.env
+.env.*
+!.env.example
+# Banco de dados e relatórios (contêm códigos de clientes)
+data/
+*.sqlite
+*.sqlite-*
+# Relatórios exportados soltos
+*.xlsx
+*.csv
+!test/**/*.csv
+!exemplos/*.csv
+.DS_Store
+ACESSO-TESTE.txt
+extensao-edge/config-local.json

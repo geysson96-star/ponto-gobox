@@ -1,0 +1,17 @@
+ARQUIVOS DE EXEMPLO (dados 100% fictícios, só para testar)
+
+1. No painel (http://localhost:3000/admin/), clique em "Importar relatório".
+2. Escolha a empresa e o arquivo correspondente desta pasta:
+     shopee-exemplo.csv        -> Shopee SPX
+     mercadolivre-exemplo.csv  -> Mercado Livre
+     correios-exemplo.csv      -> Correios
+3. Clique em "Ler arquivo", confira a prévia e clique em "Confirmar importação".
+4. Na página pública (http://localhost:3000), teste:
+     BRTESTE00001   -> Pacote encontrado.
+     xx000000001br  -> Pacote encontrado. (maiúsculas/minúsculas não importam)
+     BRTESTE0000    -> Pacote não encontrado. (código incompleto)
+     40000000002    -> Pacote encontrado.
+
+Teste da pasta de entrada:
+  Copie um destes arquivos para data\entrada\shopee (ou \ml, \correios).
+  Em até 1 minuto ele é importado sozinho (o arquivo some da pasta) e aparece em "Importações".

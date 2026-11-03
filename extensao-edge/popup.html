@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>GoBox Sincronizador</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <img src="icones/48.png" alt="" width="28" height="28">
+    <strong>GoBox <span>Sincronizador</span></strong>
+  </header>
+
+  <section id="lista-status" aria-label="Situação de cada portal"></section>
+
+  <button type="button" id="agora" class="principal">Sincronizar agora</button>
+  <p class="ajuda">Funciona com as abas da Shopee SPX, do Mercado Livre Places e do Correios Atende abertas e logadas. Lê de novo a cada 10 minutos.</p>
+
+  <details id="config">
+    <summary>Configurar</summary>
+    <label for="servidor">Endereço do site</label>
+    <input id="servidor" type="url" placeholder="http://localhost:3000">
+    <label for="chave">Chave da extensão</label>
+    <input id="chave" type="password" placeholder="Cole aqui a chave gerada no painel" autocomplete="off">
+    <label for="mcu">Correios: código da agência (MCU)</label>
+    <input id="mcu" type="text" inputmode="numeric" maxlength="8" placeholder="Detectado sozinho ao abrir o Correios Atende">
+    <label class="linha"><input id="trocar-ponto" type="checkbox"> Shopee: selecionar sozinho o ponto da agência (se o portal estiver no "Admin")</label>
+    <button type="button" id="salvar">Salvar e testar</button>
+    <p id="msg-config" role="status"></p>
+  </details>
+
+  <script src="popup.js"></script>
+</body>
+</html>

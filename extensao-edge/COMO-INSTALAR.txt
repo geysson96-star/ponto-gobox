@@ -1,0 +1,31 @@
+EXTENSÃO GOBOX PARA O MICROSOFT EDGE
+
+Instalar (uma vez só)
+1. No Edge, abra: edge://extensions
+2. Ligue "Modo de desenvolvedor" (chave no canto esquerdo ou no topo).
+3. Clique em "Carregar sem compactação" e escolha ESTA pasta (extensao-edge).
+4. Clique no ícone de quebra-cabeça da barra do Edge e fixe o "GoBox Sincronizador".
+
+Conectar ao site
+1. Abra o site (iniciar.bat) e entre no painel: http://localhost:3000/admin/
+2. Vá em Configurações > Extensão do Edge > "Gerar chave da extensão" > Copiar.
+3. Clique no ícone da GoBox no Edge > Configurar > cole a chave > "Salvar e testar".
+   Deve aparecer "Conectado ao site da GoBox".
+
+Uso diário
+- Abra a Shopee SPX e o Mercado Livre Places no Edge, como você já faz, logado.
+- A extensão lê os pacotes da agência ao abrir a página e de novo a cada 10 minutos
+  enquanto as abas estiverem abertas. O botão "Sincronizar agora" faz na hora.
+- O site precisa estar aberto (iniciar.bat) para receber.
+- Só os códigos dos pacotes são enviados. Nome, telefone e o resto ficam no portal.
+
+Shopee e o ponto "Admin"
+- Se o portal estiver no ponto "Admin", as listas ficam vazias. Com a opção
+  "selecionar sozinho o ponto da agência" ligada (padrão), a extensão troca para
+  o ponto da agência antes de ler. Se o portal pedir para atualizar a página,
+  é por isso. Para desligar: ícone GoBox > Configurar.
+
+Avisos
+- A extensão usa os mesmos endereços que a página do portal usa, não uma
+  integração oficial: pode ir contra os termos de uso e pode parar de funcionar
+  se o portal mudar. O ícone mostra "!" quando algo falha.

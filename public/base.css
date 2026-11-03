@@ -1,0 +1,57 @@
+/* Identidade GoBox: fundo branco, azul-marinho e vermelho-alaranjado da marca. */
+:root {
+  --azul: #001866;
+  --azul-escuro: #000F45;
+  --azul-claro: #E6E9F3;
+  --laranja: #FF1F06;
+  --laranja-texto: #C41A05;
+  --laranja-claro: #FFECE8;
+  --texto: #1D1D1F;
+  --texto-2: #3A3A3C;
+  --texto-suave: #6E6E73;
+  --borda: #D2D2D7;
+  --borda-clara: #E5E5EA;
+  --superficie: #F5F5F7;
+  --branco: #FFFFFF;
+  --ok-fundo: #E8F5EC; --ok-texto: #1E7B3C;
+  --alerta-fundo: #FFF4E0; --alerta-texto: #8A4B00;
+  --erro-fundo: #FDECEC; --erro-texto: #B42318;
+  --fonte: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font-family: var(--fonte);
+  color: var(--texto);
+  background: var(--branco);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.4;
+}
+a { color: var(--azul); }
+a:hover { color: var(--azul-escuro); }
+img { max-width: 100%; }
+button, input, select { font: inherit; }
+:focus-visible { outline: 3px solid rgba(0, 24, 102, 0.45); outline-offset: 2px; }
+input[type="text"], input[type="search"], input[type="password"], input[type="number"], select {
+  border: 1.5px solid var(--borda);
+  border-radius: 12px;
+  background: var(--branco);
+  color: var(--texto);
+}
+input:focus, select:focus { outline: none; border-color: var(--azul); box-shadow: 0 0 0 4px rgba(0, 24, 102, 0.15); }
+input::placeholder { color: var(--texto-suave); }
+.botao-principal {
+  border: none;
+  border-radius: 12px;
+  background: var(--azul);
+  color: var(--branco);
+  font-weight: 600;
+  cursor: pointer;
+}
+.botao-principal:hover { background: var(--azul-escuro); }
+.botao-principal:disabled { opacity: 0.6; cursor: progress; }
+.marca { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+.marca-cubo { height: 36px; width: auto; display: block; }
+.marca-nome { height: 28px; width: auto; display: block; }
+.oculto { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

@@ -1,0 +1,23 @@
+body { width: 320px; margin: 0; padding: 16px; font: 14px/1.4 -apple-system, "Segoe UI", sans-serif; color: #1D1D1F; background: #fff; }
+header { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 16px; }
+header strong { color: #001866; }
+header span { color: #FF1F06; }
+.fonte { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #F5F5F7; margin-bottom: 8px; }
+.fonte .nome { font-weight: 600; }
+.fonte .det { font-size: 12px; color: #6E6E73; margin-top: 2px; }
+.pilula { font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+.ok { background: #E8F5EC; color: #1E7B3C; }
+.alerta { background: #FFF4E0; color: #8A4B00; }
+.erro { background: #FDECEC; color: #B42318; }
+.nada { background: #fff; color: #3A3A3C; }
+button { font: inherit; cursor: pointer; border-radius: 10px; }
+.principal { width: 100%; height: 40px; border: none; background: #001866; color: #fff; font-weight: 600; margin-top: 4px; }
+.principal:hover { background: #000F45; }
+.ajuda { font-size: 12px; color: #6E6E73; margin: 8px 0 12px; }
+details { border-top: 1px solid #E5E5EA; padding-top: 10px; }
+summary { cursor: pointer; font-weight: 600; color: #001866; }
+label { display: block; font-size: 12px; font-weight: 600; margin: 10px 0 4px; }
+label.linha { display: flex; gap: 6px; align-items: flex-start; font-weight: 500; }
+input[type=url], input[type=password], input[type=text] { width: 100%; box-sizing: border-box; height: 36px; padding: 0 10px; border: 1.5px solid #D2D2D7; border-radius: 8px; font: inherit; }
+#salvar { margin-top: 10px; height: 36px; padding: 0 14px; border: 1px solid #D2D2D7; background: #fff; font-weight: 600; }
+#msg-config { font-size: 12px; min-height: 1em; }

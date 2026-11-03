@@ -1,0 +1,29 @@
+{
+  "name": "gobox-consulta",
+  "version": "1.0.0",
+  "description": "Consulta de pacotes da GoBox (Shopee SPX, Mercado Livre, Correios)",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "senha": "node scripts/gerar-hash-senha.js",
+    "test": "node --test",
+    "configurar": "node scripts/configurar.js",
+    "robo:login": "node scripts/robo-login.js"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "csv-parse": "^7.0.3",
+    "exceljs": "^4.4.0",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.3",
+    "helmet": "^8.3.0",
+    "multer": "^2.5.0",
+    "playwright-core": "^1.64.1"
+  },
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  }
+}

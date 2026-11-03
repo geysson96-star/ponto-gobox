@@ -1,0 +1,27 @@
+# Publicação no Render (plano gratuito).
+services:
+  - type: web
+    name: gobox-consulta
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /saude
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: TRUST_PROXY
+        value: "true"
+      - key: INBOX_INTERVAL_MINUTES
+        value: "0"
+      - key: ROBO_ATIVO
+        value: "false"
+      - key: ADMIN_USER
+        sync: false
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+      - key: EXTENSAO_CHAVE
+        sync: false
