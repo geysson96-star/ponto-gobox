@@ -1,0 +1,14 @@
+# Mantém o site de consulta da GoBox (Render, plano gratuito) acordado.
+# O Render grátis "dorme" após 15 minutos sem acesso; este agendamento
+# gratuito do GitHub acessa o site a cada 10 minutos.
+name: Manter site GoBox acordado
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acessar o site
+        run: curl -fsS --max-time 90 https://gobox-consulta.onrender.com/saude || true
