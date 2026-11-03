@@ -90,6 +90,19 @@
     resultado.append(p);
   }
 
+  // Última atualização dos dados (vem do site; atualiza a cada minuto).
+  const ultima = document.getElementById('ultima-atualizacao');
+  async function carregarUltima() {
+    try {
+      const d = await fetch('/api/atualizacao').then((r) => r.json());
+      const txt = dataHora(d.ultimaAtualizacao);
+      ultima.hidden = !txt;
+      if (txt) ultima.textContent = `Última atualização: ${txt}`;
+    } catch { /* sem conexão: mantém o que já estava */ }
+  }
+  carregarUltima();
+  setInterval(carregarUltima, 60_000);
+
   input.addEventListener('input', () => { resultado.innerHTML = ''; });
 
   form.addEventListener('submit', async (ev) => {
@@ -111,6 +124,7 @@
       const dados = await resp.json().catch(() => ({}));
       if (resp.ok && typeof dados.encontrado === 'boolean') {
         mostrarCartao(dados);
+        carregarUltima();
       } else if (resp.status === 429 || resp.status === 400) {
         mostrarAviso(dados.erro || 'Não foi possível consultar agora. Tente novamente.');
       } else {

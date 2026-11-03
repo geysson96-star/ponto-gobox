@@ -121,3 +121,9 @@ test('detalhes: Mercado Livre (estoque) marca quem sumiu como retirado/coletado'
   assert.equal((await c('48300000002')).status, 'Coletado pela transportadora');
   assert.equal((await c('48000000001')).situacao, 'na_agencia');
 });
+
+test('página pública mostra a última atualização', async () => {
+  const d = await (await fetch(`${base}/api/atualizacao`)).json();
+  assert.ok(d.ultimaAtualizacao);
+  assert.deepEqual(Object.keys(d), ['ultimaAtualizacao']);
+});
