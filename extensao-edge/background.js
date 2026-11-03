@@ -5,7 +5,7 @@
 const NOMES = { shopee: 'Shopee SPX', ml: 'Mercado Livre', correios: 'Correios' };
 
 async function config() {
-  const { servidor = 'http://localhost:3000', chave = '' } = await chrome.storage.local.get(['servidor', 'chave']);
+  const { servidor = 'https://gobox-consulta.onrender.com', chave = '' } = await chrome.storage.local.get(['servidor', 'chave']);
   return { servidor: servidor.replace(/\/+$/, ''), chave };
 }
 
