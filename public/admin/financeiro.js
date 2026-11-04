@@ -26,8 +26,8 @@
 
   const NOME = { shopee: 'Shopee SPX', ml: 'Mercado Livre', correios: 'Correios' };
   const ITENS = {
-    shopee: [['expedidos', 'Expedidos (drop-off)', 'Vendedor deixa o pacote. Faixas por quantidade no mês.'],
-      ['retiradas', 'Retiradas do comprador', 'Mesmas faixas, contadas à parte.'],
+    shopee: [['expedidos', 'Total expedido', 'Drop-offs coletados pela Shopee no mês. Faixas por quantidade.'],
+      ['retiradas', 'Retiradas do comprador', 'Retiradas feitas no mês. Mesmas faixas, contadas à parte.'],
       ['devolucoes', 'Devoluções do comprador', 'R$ 0,80 cada. O portal não mostra: lance em Ajuste.']],
     ml: [['delivery', 'Delivery', 'R$ 2,60 por pacote'], ['pickup', 'Pick Up', 'R$ 0,65 por pacote'],
       ['falhas', 'Falhas de entrega', 'R$ 0,65 cada. Lance em Ajuste.'], ['nex', 'NEx', 'R$ 10,00 por rota. Lance em Ajuste.']],
@@ -160,7 +160,7 @@
       return q ? `${num(ini)} a ${num(ini + q - 1)}: ${brl(r)}` : `acima de ${num(ini - 1)}: ${brl(r)}`;
     }).join(' · ');
     $('#fin-regras').replaceChildren(
-      el('p', {}, el('strong', {}, 'Shopee. '), `Expedidos (menos devoluções) e retiradas, cada um pela tabela de faixas no mês: ${faixas}. Devoluções ${brl(v.devolucaoShopee)} cada. A medalha soma um percentual e um bônus fixo ao total.`),
+      el('p', {}, el('strong', {}, 'Shopee. '), `Conta o que saiu no mês: total expedido (menos devoluções) e retiradas feitas, cada um pela tabela de faixas: ${faixas}. Devoluções ${brl(v.devolucaoShopee)} cada. A medalha soma um percentual e um bônus fixo ao total.`),
       el('p', {}, el('strong', {}, 'Mercado Livre. '), `Delivery ${brl(v.ml.delivery)}, Pick Up ${brl(v.ml.pickup)}, falhas ${brl(v.ml.falhas)}, NEx ${brl(v.ml.nex)} por rota. Fecha por quinzena. O site conta Pick Up (retiradas) e Delivery (os demais pacotes) automaticamente.`),
       el('p', {}, el('strong', {}, 'Correios. '), `${brl(v.correios)} por pacote.`),
       el('p', { class: 'nota' }, 'Ajuste soma ou subtrai da contagem automática. Use para lançar o que o portal não mostra, ou para igualar ao número oficial da empresa.'));

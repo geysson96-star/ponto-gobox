@@ -23,10 +23,15 @@ test('Financeiro: conta por mês e quinzena, sem dobrar códigos do mesmo pacote
   const ins = db.prepare(`INSERT INTO packages (source, code, external_id, active, first_seen_at, last_updated_at, tipo, recebido_em)
                           VALUES (?, ?, ?, 1, ?, ?, ?, ?)`);
   const t = '2026-11-04T12:00:00.000Z';
-  ins.run('shopee', 'BR111', 'SPX1', t, t, 'drop_off', '2026-11-02T10:00:00.000Z');
-  ins.run('shopee', 'SPX1', 'SPX1', t, t, 'drop_off', '2026-11-02T10:00:00.000Z'); // mesmo pacote, outro código
-  ins.run('shopee', 'BR222', null, t, t, 'retirada', '2026-11-03T10:00:00.000Z');
-  ins.run('shopee', 'BR333', null, t, t, 'drop_off', '2026-10-31T10:00:00.000Z'); // outubro
+  const sh = db.prepare(`INSERT INTO packages (source, code, external_id, active, first_seen_at, last_updated_at, tipo, situacao, recebido_em, saida_em)
+                         VALUES ('shopee', ?, ?, 1, ?, ?, ?, ?, ?, ?)`);
+  // Shopee conta pela SAÍDA no mês.
+  sh.run('BR111', 'SPX1', t, t, 'drop_off', 'enviado', '2026-10-30T10:00:00.000Z', '2026-11-02T10:00:00.000Z'); // chegou em outubro, expedido em novembro
+  sh.run('SPX1', 'SPX1', t, t, 'drop_off', 'enviado', '2026-10-30T10:00:00.000Z', '2026-11-02T10:00:00.000Z'); // mesmo pacote, outro código
+  sh.run('BR444', null, t, t, 'drop_off', 'na_agencia', '2026-11-03T10:00:00.000Z', null); // ainda na agência: não conta
+  sh.run('BR222', null, t, t, 'retirada', 'retirado', '2026-11-01T10:00:00.000Z', '2026-11-03T10:00:00.000Z');
+  sh.run('BR555', null, t, t, 'retirada', 'na_agencia', '2026-11-02T10:00:00.000Z', null); // aguardando retirada: não conta
+  sh.run('BR333', null, t, t, 'drop_off', 'enviado', '2026-10-29T10:00:00.000Z', '2026-10-31T10:00:00.000Z'); // expedido em outubro
   ins.run('ml', 'ML1', null, t, t, 'envio', '2026-11-10T10:00:00.000Z');
   ins.run('ml', 'ML2', null, t, t, 'retirada', '2026-11-20T10:00:00.000Z');
   ins.run('ml', 'ML3', null, t, t, 'envio', '2026-11-16T02:30:00.000Z'); // 15/11 23:30 na Bahia: 1ª quinzena

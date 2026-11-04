@@ -104,7 +104,9 @@
     // achar pacotes que chegaram no mês passado e ainda estão aqui.
     const dia1 = diasDesdeDia1();
     const naAgencia = await listar('dropoff', Math.max(30, dia1), '2,5,6');
-    const enviados = await listar('dropoff', Math.max(3, dia1), '3');
+    // Expedidos: busca pela data de chegada, com 10 dias a mais, para pegar também
+    // o que chegou no fim do mês passado e foi expedido neste mês.
+    const enviados = await listar('dropoff', Math.max(3, dia1 + 10), '3');
     for (const it of [...enviados, ...naAgencia]) {
       const st = Number(it.status);
       const dados = st === 3
@@ -117,7 +119,7 @@
     }
 
     // Self-Collection, todos os status: do dia 1 do mês (no mínimo 30 dias) até agora.
-    for (const it of await listar('collection', Math.max(30, dia1), null)) {
+    for (const it of await listar('collection', Math.max(30, dia1 + 10), null)) {
       const [situacao, rotulo] = situacaoRetirada(Number(it.status));
       const dados = {
         situacao, rotulo, tipo: 'retirada',

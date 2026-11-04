@@ -1,8 +1,9 @@
 'use strict';
 // Painel financeiro: quanto a GoBox ganhou no mês com cada empresa.
 //
-// Os pacotes contam no mês em que CHEGARAM na agência (recebido_em; se o portal
-// não informa, a primeira vez que o site viu o pacote). Itens que os portais não
+// Shopee: conta o total EXPEDIDO no mês (drop-offs coletados pela Shopee) e as
+// retiradas feitas no mês, pela data de saída. Mercado Livre e Correios: pelo mês
+// em que o pacote chegou na agência (recebido_em; ou a primeira vez que o site o viu). Itens que os portais não
 // mostram (devoluções da Shopee, falhas e rotas NEx do Mercado Livre) entram como
 // ajuste manual no painel. Os ajustes também corrigem as contagens automáticas.
 
@@ -153,18 +154,30 @@ function salvarMedalha(db, mes, entrada) {
 // e o código de rastreio); external_id junta os dois para não contar em dobro.
 function contar(db, mes) {
   const { ini, meio, fim } = limitesDoMes(mes);
-  const quando = 'COALESCE(recebido_em, first_seen_at)';
+  const chegada = 'COALESCE(recebido_em, first_seen_at)';
   const rows = db.prepare(
-    `SELECT source, tipo, ${quando} AS em, COALESCE(external_id, code) AS chave, code
-     FROM packages WHERE ${quando} >= ? AND ${quando} < ?`
-  ).all(ini, fim);
+    `SELECT source, tipo, situacao, ${chegada} AS chegada, saida_em, COALESCE(external_id, code) AS chave, code
+     FROM packages
+     WHERE (${chegada} >= ? AND ${chegada} < ?) OR (saida_em >= ? AND saida_em < ?)`
+  ).all(ini, fim, ini, fim);
   const vistos = new Set();
   const lista = [];
   for (const r of rows) {
+    // Shopee: conta o que SAIU no mês (total expedido e retiradas feitas), pela data de saída.
+    // Mercado Livre e Correios: contam pela data de chegada na agência.
+    let em;
+    if (r.source === 'shopee') {
+      const saiu = r.tipo === 'retirada' ? r.situacao === 'retirado' : (r.situacao === 'enviado' || r.situacao === 'saiu');
+      if (!saiu || !r.saida_em) continue;
+      em = r.saida_em;
+    } else {
+      em = r.chegada;
+    }
+    if (!(em >= ini && em < fim)) continue;
     const k = `${r.source}|${r.chave}`;
     if (vistos.has(k)) continue;
     vistos.add(k);
-    lista.push(r);
+    lista.push({ ...r, em });
   }
   lista.sort((a, b) => (a.em < b.em ? -1 : a.em > b.em ? 1 : 0));
 
