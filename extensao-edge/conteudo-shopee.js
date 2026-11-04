@@ -48,19 +48,29 @@
     if (r.retcode !== 0) throw new Error('Shopee: não consegui selecionar o ponto da agência.');
   }
 
+  // O portal aceita no máximo 30 dias por busca: períodos maiores são lidos em partes.
   async function listar(tipoLista, dias, status) {
     const agora = Math.floor(Date.now() / 1000);
+    const inicio = agora - Math.ceil(dias * DIA);
+    const itens = [];
+    for (let fim = agora; fim > inicio; fim -= 30 * DIA) {
+      itens.push(...await listarPeriodo(tipoLista, Math.max(inicio, fim - 30 * DIA), fim, status));
+    }
+    return itens;
+  }
+
+  async function listarPeriodo(tipoLista, de, ate, status) {
     const itens = [];
     let total = Infinity;
     for (let p = 1; itens.length < total && p <= 100; p += 1) {
       const filtro = status ? `&status=${encodeURIComponent(status)}` : '';
-      const r = await goboxBuscarJson(`/sp-api/point/order/${tipoLista}/list?inbound_time_start=${agora - dias * DIA}` +
-        `&inbound_time_end=${agora}&pageno=${p}&count=500${filtro}`);
+      const r = await goboxBuscarJson(`/sp-api/point/order/${tipoLista}/list?inbound_time_start=${de}` +
+        `&inbound_time_end=${ate}&pageno=${p}&count=500${filtro}`);
       if (r.retcode !== 0) {
         if (/login|cookie|token|auth|session/i.test(String(r.message || ''))) {
           throw new GoboxSessaoExpirada('Shopee: sessão expirada. Faça login de novo.');
         }
-        throw new Error(`Shopee: o portal respondeu com erro (${r.retcode}).`);
+        throw new Error(`Shopee: o portal respondeu com erro (${r.retcode}${r.message ? `: ${String(r.message).slice(0, 80)}` : ""}).`);
       }
       const lote = (r.data && r.data.list) || [];
       total = Number((r.data && r.data.total) ?? lote.length);

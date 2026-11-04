@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "GoBox Sincronizador",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Envia para o site da GoBox os pacotes (código, situação e horários) lidos dos portais Shopee SPX, Mercado Livre Places e Correios Atende que você já usa.",
   "icons": {
     "16": "icones/16.png",
