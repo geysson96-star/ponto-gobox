@@ -67,7 +67,7 @@
   function textoBase(fonte, item, quinzena) {
     if (fonte === 'ml' && dados.ml[quinzena].fonte === 'oficial') {
       const q = dados.ml[quinzena];
-      const est = item === 'delivery' ? q.estimadoDia.delivery : item === 'pickup' ? q.estimadoDia.pickup : 0;
+      const est = !q.estimadoDia.incluido ? 0 : item === 'delivery' ? q.estimadoDia.delivery : item === 'pickup' ? q.estimadoDia.pickup : 0;
       const of = q.quantidades[item] - est - dados.ajustes.ml[quinzena][item];
       return est ? `Oficial ${num(of)} + hoje ${num(est)}` : `Oficial ${num(of)}`;
     }
@@ -95,6 +95,17 @@
       campoAjuste(fonte, item, quinzena));
   }
 
+  function estimadoShopee() {
+    const s = dados.shopee;
+    const e = s.estimado;
+    if (!e) return null;
+    return el('div', { class: 'fin-origem' },
+      el('div', {}, el('span', {}, 'Pago (expedido e retiradas feitas)'), el('strong', {}, brl(s.pago))),
+      el('div', { class: e.incluido ? '' : 'fin-desligado' },
+        el('span', {}, `Recebimento estimado · recebidos no mês: ${num(e.recebidos)} drop-offs, ${num(e.retiradasRecebidas)} retiradas · ainda na agência: ${num(e.aguardandoColeta)} + ${num(e.aguardandoRetirada)}`),
+        el('strong', {}, e.incluido ? `+${brl(e.valor)}` : brl(e.valor))),
+      chaveEstimado('shopee', 'm', e.incluido));
+  }
   function cartaoShopee() {
     const s = dados.shopee;
     const sel = el('select', { id: 'fin-medalha', 'aria-label': 'Medalha do mês' },
@@ -114,6 +125,7 @@
         el('div', {}, el('h2', {}, el('span', { class: 'fin-ponto shopee' }), NOME.shopee),
           el('div', { class: 'nota' }, s.portal ? `Totais do portal, lidos em ${new Date(s.portal.lidoEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : 'Mês inteiro, contado pelos pacotes')),
         el('div', { class: 'fin-cartao-total' }, brl(s.total))),
+      estimadoShopee(),
       ITENS.shopee.map((i) => linha('shopee', i)),
       el('div', { class: 'fin-medalha' },
         el('label', { for: 'fin-medalha' }, 'Medalha do mês'), sel,
@@ -121,6 +133,18 @@
           el('label', { for: 'fin-med-pct' }, 'Acréscimo'), pct, '%',
           el('label', { for: 'fin-med-fixo' }, '+ R$'), fixo),
         el('p', { class: 'nota' }, `Sem medalha ${brl(s.base)} · bônus ${m.nome} ${brl(s.bonusMedalha)}`)));
+  }
+  // Chave para incluir ou não o estimado do dia no total do Mercado Livre.
+  function chaveEstimado(fonte, q, ligado) {
+    const id = `fin-estimado-${fonte}-${q}`;
+    const input = el('input', { id, type: 'checkbox', role: 'switch', checked: ligado });
+    input.addEventListener('change', async () => {
+      input.disabled = true;
+      try { dados = await api(`/financeiro/${dados.mes}/estimado`, { method: 'PUT', body: { fonte, ligado: input.checked } }); desenhar(); }
+      catch (e) { input.checked = !input.checked; input.disabled = false; window.alert(e.message); }
+    });
+    return el('label', { class: 'fin-chave', for: id }, input, el('span', { class: 'fin-chave-trilho', 'aria-hidden': 'true' }),
+      ligado ? 'Estimado entra na conta' : 'Estimado fora da conta (só o oficial)');
   }
   function cartaoMl() {
     const qa = dados.mes === dados.mesAtual ? dados.quinzenaAtual : 'q2';
@@ -133,7 +157,10 @@
       if (e.sacas) partes.push(`${num(e.sacas)} ${e.sacas === 1 ? 'saca' : 'sacas'}`);
       return el('div', { class: 'fin-origem' },
         el('div', {}, el('span', {}, 'Oficial do Mercado Livre'), el('strong', {}, brl(m.oficial.total))),
-        el('div', {}, el('span', {}, `Estimado desde ${dataBr(e.desde)} · ${partes.join(' · ')}`), el('strong', {}, `+${brl(e.valor)}`)),
+        el('div', { class: e.incluido ? '' : 'fin-desligado' },
+          el('span', {}, `Estimado desde ${dataBr(e.desde)} · ${partes.join(' · ')}`),
+          el('strong', {}, e.incluido ? `+${brl(e.valor)}` : brl(e.valor))),
+        chaveEstimado('ml', q, e.incluido),
         el('p', { class: 'nota' }, `Lido do portal em ${dataBr(m.oficial.lidoEm)}.${e.sacas ? ' Sacas aparecem para controle; os pacotes delas entram quando forem lidos no estoque.' : ''}`));
     };
     const blocos = [['q1', `1 a 15`], ['q2', `16 a ${dados.ultimoDia}`]].map(([q, rot]) =>

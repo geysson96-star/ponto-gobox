@@ -105,10 +105,12 @@
   // Totais do mês direto do portal, pela data de SAÍDA: total expedido (drop-offs
   // coletados, status 3) e retiradas feitas (status 6). Uma consulta cada, sem baixar
   // a lista inteira (o portal não devolve mais de 10.000 pacotes por busca).
-  async function totalDoMes(tipoLista, status) {
+  // campo: 'outbound' (saída) ou 'inbound' (chegada); status vazio = todos.
+  async function totalDoMes(tipoLista, status, campo = 'outbound') {
     const { dia1, agora } = inicioDoMes();
-    const r = await goboxBuscarJson(`/sp-api/point/order/${tipoLista}/list?outbound_time_start=${dia1}` +
-      `&outbound_time_end=${agora}&status=${status}&pageno=1&count=1`);
+    const filtro = status ? `&status=${status}` : '';
+    const r = await goboxBuscarJson(`/sp-api/point/order/${tipoLista}/list?${campo}_time_start=${dia1}` +
+      `&${campo}_time_end=${agora}${filtro}&pageno=1&count=1`);
     if (r.retcode !== 0) throw new ErroPortal(`Shopee: não consegui ler o total do mês (${r.retcode}).`);
     return Number(r.data && r.data.total) || 0;
   }
@@ -153,7 +155,10 @@
       financeiro = {
         mes: inicioDoMes().mes,
         expedidos: await totalDoMes('dropoff', 3),
-        retiradas: await totalDoMes('collection', 6)
+        retiradas: await totalDoMes('collection', 6),
+        // Total recebido no mês (qualquer status), para o recebimento estimado.
+        recebidos: await totalDoMes('dropoff', '', 'inbound'),
+        retiradasRecebidas: await totalDoMes('collection', '', 'inbound')
       };
     } catch { /* sem os totais: o painel conta pela lista */ }
     return { pacotes: [...pacotes.values()], modo: 'eventos', financeiro };

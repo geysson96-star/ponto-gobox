@@ -95,3 +95,32 @@ test('Financeiro: Shopee usa os totais do portal quando a extensão manda', () =
   assert.ok(r.shopee.portal);
   assert.throws(() => f.salvarTotaisShopee(db, { mes: 'x', expedidos: 1, retiradas: 1 }));
 });
+
+test('Financeiro: chave tira o estimado do dia da conta do Mercado Livre', () => {
+  const db = openDb(':memory:');
+  f.salvarOficialMl(db, { de: '2026-11-01T00:00:00Z', ate: '2026-11-15T00:00:00Z', atualizadoEm: '2026-11-04',
+    itens: [{ tipo: 'dc', quantidade: 227, total: 590.2 }, { tipo: 'total', quantidade: 227, total: 590.2 }] });
+  db.prepare(`INSERT INTO packages (source, code, active, first_seen_at, last_updated_at, tipo, volume, recebido_em)
+              VALUES ('ml', 'B1', 1, ?, ?, 'delivery', 'shipment', '2026-11-04T13:00:00.000Z')`).run('2026-11-04T13:00:00.000Z', '2026-11-04T13:00:00.000Z');
+  assert.equal(f.resumo(db, '2026-11').ml.q1.total, 592.8);
+  f.salvarEstimadoMl(db, false);
+  const r = f.resumo(db, '2026-11');
+  assert.equal(r.ml.q1.total, 590.2);
+  assert.equal(r.ml.q1.estimadoDia.valor, 2.6);
+  assert.equal(r.ml.q1.estimadoDia.incluido, false);
+});
+
+test('Financeiro: recebimento estimado da Shopee pelo total recebido, com chave', () => {
+  const db = openDb(':memory:');
+  f.salvarTotaisShopee(db, { mes: '2026-11', expedidos: 400, retiradas: 80, recebidos: 600, retiradasRecebidas: 100 });
+  let r = f.resumo(db, '2026-11');
+  // Pago: 400 x 0,70 + 80 x 0,70 = 336. Estimado: 500 x 0,70 + 100 x 0,60 + 100 x 0,70 = 480 -> +144.
+  assert.equal(r.shopee.pago, 336);
+  assert.equal(r.shopee.estimado.valor, 144);
+  assert.equal(r.shopee.estimado.aguardandoColeta, 200);
+  assert.equal(r.shopee.total, 480);
+  f.salvarEstimado(db, 'shopee', false);
+  r = f.resumo(db, '2026-11');
+  assert.equal(r.shopee.total, 336);
+  assert.equal(r.shopee.estimado.incluido, false);
+});

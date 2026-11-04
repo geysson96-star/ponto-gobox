@@ -101,8 +101,20 @@ function configuracao(db) {
   const medalhas = {};
   for (const [id, p] of Object.entries(MEDALHAS_PADRAO)) medalhas[id] = { ...p, ...((c.medalhas || {})[id] || {}) };
   const medalhaPorMes = c.medalhaPorMes || {};
-  return { medalhas, medalhaPorMes };
+  const incluirEstimadoMl = c.incluirEstimadoMl !== false; // ligado por padrão
+  const incluirEstimadoShopee = c.incluirEstimadoShopee !== false;
+  return { medalhas, medalhaPorMes, incluirEstimadoMl, incluirEstimadoShopee };
 }
+// Liga ou desliga o recebimento estimado (Mercado Livre ou Shopee) na conta.
+function salvarEstimado(db, fonte, ligado) {
+  const c = ler(db, 'config', {});
+  if (fonte === 'ml') c.incluirEstimadoMl = Boolean(ligado);
+  else if (fonte === 'shopee') c.incluirEstimadoShopee = Boolean(ligado);
+  else throw new Error('Empresa inválida.');
+  gravar(db, 'config', c);
+  return Boolean(ligado);
+}
+const salvarEstimadoMl = (db, ligado) => salvarEstimado(db, 'ml', ligado);
 function ajustesVazios() {
   return { shopee: { expedidos: 0, retiradas: 0, devolucoes: 0 },
     ml: { q1: { delivery: 0, pickup: 0, falhas: 0, nex: 0 }, q2: { delivery: 0, pickup: 0, falhas: 0, nex: 0 } },
@@ -232,7 +244,7 @@ function salvarTotaisShopee(db, d) {
   const expedidos = n(d && d.expedidos);
   const retiradas = n(d && d.retiradas);
   if (!mes || expedidos === null || retiradas === null) throw new Error('Totais da Shopee em formato inesperado.');
-  const reg = { mes, expedidos, retiradas, lidoEm: new Date().toISOString() };
+  const reg = { mes, expedidos, retiradas, recebidos: n(d.recebidos), retiradasRecebidas: n(d.retiradasRecebidas), lidoEm: new Date().toISOString() };
   gravar(db, `shopee_portal:${mes}`, reg);
   return reg;
 }
@@ -281,7 +293,7 @@ function chegadasMl(db, desde, ate) {
   return c;
 }
 
-function quinzenaMl(db, mes, qk, contagem, ajuste) {
+function quinzenaMl(db, mes, qk, contagem, ajuste, incluirEstimado = true) {
   const { ini, meio, fim } = limitesDoMes(mes);
   const qIni = qk === 'q1' ? ini : meio;
   const qFim = qk === 'q1' ? meio : fim;
@@ -299,14 +311,15 @@ function quinzenaMl(db, mes, qk, contagem, ajuste) {
   const chegou = chegadasMl(db, corte, qFim);
   const estimado = {
     desde: corte, delivery: chegou.delivery, pickup: chegou.pickup, sacas: chegou.sacas,
-    valor: centavos(chegou.delivery * VALORES_ML.delivery + chegou.pickup * VALORES_ML.pickup)
+    valor: centavos(chegou.delivery * VALORES_ML.delivery + chegou.pickup * VALORES_ML.pickup),
+    incluido: incluirEstimado
   };
   const qtd = {};
   const itens = {};
   let total = 0;
   for (const k of ITENS.ml) {
     const of = oficial.itens[k] || { quantidade: 0, total: 0 };
-    const est = k === 'delivery' ? chegou.delivery : k === 'pickup' ? chegou.pickup : 0;
+    const est = !incluirEstimado ? 0 : k === 'delivery' ? chegou.delivery : k === 'pickup' ? chegou.pickup : 0;
     qtd[k] = Math.max(0, of.quantidade + est + ajuste[k]);
     const v = of.total + (est + ajuste[k]) * VALORES_ML[k];
     itens[k] = centavos(Math.max(0, v));
@@ -332,9 +345,27 @@ function resumo(db, mes = mesAtual()) {
   const ajustes = ajustesDoMes(db, mes);
   const q = somar(auto, ajustes);
 
-  const shopee = calcularShopee(q.shopee, cfg.medalhas[medalhaId]);
-  const q1 = quinzenaMl(db, mes, 'q1', auto.ml.q1, ajustes.ml.q1);
-  const q2 = quinzenaMl(db, mes, 'q2', auto.ml.q2, ajustes.ml.q2);
+  const shopeePago = calcularShopee(q.shopee, cfg.medalhas[medalhaId]);
+  // Recebimento estimado da Shopee: o total RECEBIDO no mês, como se tudo já tivesse saído.
+  let estimadoShopee = null;
+  if (portalShopee && portalShopee.recebidos !== null && portalShopee.recebidos !== undefined) {
+    const qEst = {
+      expedidos: Math.max(q.shopee.expedidos, portalShopee.recebidos + ajustes.shopee.expedidos),
+      retiradas: Math.max(q.shopee.retiradas, (portalShopee.retiradasRecebidas ?? 0) + ajustes.shopee.retiradas),
+      devolucoes: q.shopee.devolucoes
+    };
+    const calc = calcularShopee(qEst, cfg.medalhas[medalhaId]);
+    estimadoShopee = {
+      recebidos: portalShopee.recebidos, retiradasRecebidas: portalShopee.retiradasRecebidas ?? 0,
+      aguardandoColeta: qEst.expedidos - q.shopee.expedidos, aguardandoRetirada: qEst.retiradas - q.shopee.retiradas,
+      valor: centavos(Math.max(0, calc.total - shopeePago.total)), totalComEstimado: calc.total,
+      incluido: cfg.incluirEstimadoShopee
+    };
+  }
+  const shopee = { ...shopeePago, pago: shopeePago.total, estimado: estimadoShopee,
+    total: estimadoShopee && estimadoShopee.incluido ? centavos(shopeePago.total + estimadoShopee.valor) : shopeePago.total };
+  const q1 = quinzenaMl(db, mes, 'q1', auto.ml.q1, ajustes.ml.q1, cfg.incluirEstimadoMl);
+  const q2 = quinzenaMl(db, mes, 'q2', auto.ml.q2, ajustes.ml.q2, cfg.incluirEstimadoMl);
   const ml = { q1, q2, total: centavos(q1.total + q2.total) };
   q.ml.q1 = q1.quantidades;
   q.ml.q2 = q2.quantidades;
@@ -357,6 +388,6 @@ function resumo(db, mes = mesAtual()) {
 }
 
 module.exports = {
-  resumo, salvarAjustes, salvarMedalha, salvarOficialMl, salvarTotaisShopee, mesAtual, limitesDoMes,
+  resumo, salvarAjustes, salvarMedalha, salvarEstimado, salvarEstimadoMl, salvarOficialMl, salvarTotaisShopee, mesAtual, limitesDoMes,
   calcularShopee, calcularMlQuinzena, porFaixas, valorDoPacote, MEDALHAS_PADRAO
 };

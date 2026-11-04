@@ -179,3 +179,13 @@ td.codigo { font-family: var(--mono); font-size: 13px; font-weight: 600; color: 
 .fin-origem strong { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .fin-origem .nota { margin: 0; }
 p.fin-origem { margin: 0; }
+
+.fin-chave { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; font-weight: 600; align-self: flex-start; }
+.fin-chave input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.fin-chave-trilho { position: relative; width: 40px; height: 24px; border-radius: 999px; background: var(--borda); transition: background .2s; flex: none; }
+.fin-chave-trilho::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--branco); box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: transform .2s; }
+.fin-chave input:checked + .fin-chave-trilho { background: var(--ok-texto); }
+.fin-chave input:checked + .fin-chave-trilho::after { transform: translateX(16px); }
+.fin-chave input:focus-visible + .fin-chave-trilho { outline: 3px solid rgba(0, 24, 102, 0.45); outline-offset: 2px; }
+.fin-desligado { color: var(--texto-suave); text-decoration: line-through; }
+@media (prefers-reduced-motion: reduce) { .fin-chave-trilho, .fin-chave-trilho::after { transition: none; } }

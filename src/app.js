@@ -218,6 +218,13 @@ function createApp({ config, db, robo = null }) {
       res.json(financeiro.resumo(db, req.params.mes));
     } catch (e) { res.status(400).json({ erro: e.message }); }
   });
+  admin.put('/financeiro/:mes/estimado', requireAdmin, (req, res) => {
+    try {
+      financeiro.resumo(db, req.params.mes);
+      financeiro.salvarEstimado(db, String((req.body && req.body.fonte) || ''), Boolean(req.body && req.body.ligado));
+      res.json(financeiro.resumo(db, req.params.mes));
+    } catch (e) { res.status(400).json({ erro: e.message }); }
+  });
   admin.put('/financeiro/:mes/medalha', requireAdmin, (req, res) => {
     try {
       financeiro.resumo(db, req.params.mes);
