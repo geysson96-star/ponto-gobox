@@ -1,6 +1,6 @@
 // Guarda a tela de ponto no celular para abrir mesmo sem internet.
-const CACHE = "ponto-gobox-v4";
-const ESSENCIAIS = ["ponto.html", "logo.png", "cube.png"];
+const CACHE = "ponto-gobox-v5";
+const ESSENCIAIS = ["ponto.html", "logo.png", "cube.png", "gobox-logo.js"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ESSENCIAIS)).then(() => self.skipWaiting()));

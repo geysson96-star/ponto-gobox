@@ -59,6 +59,7 @@ body,button,input,select{font-variant-numeric:tabular-nums}
 .k-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .k-logo{height:40px;width:auto;display:block}
 .a-logo{height:64px;width:auto;display:block}
+gobox-logo.a-logo{width:84px;height:auto}
 .a-brandbox{display:flex;align-items:center;gap:14px}
 .a-brandbox .lbl{border-left:2px solid var(--line);padding-left:14px}
 .k-brand{font-family:var(--display);font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

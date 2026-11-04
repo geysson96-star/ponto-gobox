@@ -50,7 +50,7 @@ async function renderLogin(msg = "") {
   let precisaSetup = false;
   try { precisaSetup = !(await getDoc(doc(db, "config", "setup"))).exists(); } catch {}
   root.innerHTML = `<div class="login">
-    <img src="logo.png" alt="GoBox" style="width:240px;margin:0 auto">
+    <gobox-logo style="width:240px;margin:0 auto;display:block"></gobox-logo>
     <div class="k-card">
       <h2 class="k-title">${precisaSetup ? "Criar o administrador" : "Entrar no painel"}</h2>
       ${precisaSetup ? `<p class="muted" style="margin:0">Primeiro acesso. Esta será a conta principal de administrador da GoBox.</p>` : ""}
@@ -93,7 +93,7 @@ async function renderLogin(msg = "") {
 function renderShell() {
   root.innerHTML = `<main class="wrap">
   <header class="a-head">
-    <div class="a-brandbox"><img class="a-logo" alt="GoBox" src="logo.png">
+    <div class="a-brandbox"><gobox-logo class="a-logo"></gobox-logo>
       <div class="lbl"><h1>Controle de ponto</h1><div class="sub" id="a-date"></div></div></div>
     <div class="right">
       <span class="a-clock" id="a-time">--:--</span>

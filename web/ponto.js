@@ -41,7 +41,7 @@ else onAuthStateChanged(auth, async user => {
 /* ---------- login do celular (feito uma vez pelo administrador) ---------- */
 function renderLogin(msg = "") {
   root.innerHTML = `<div class="login">
-    <img src="logo.png" alt="GoBox" style="width:220px;margin:0 auto">
+    <gobox-logo style="width:220px;margin:0 auto;display:block"></gobox-logo>
     <div class="k-card">
       <h2 class="k-title">Conectar este celular</h2>
       <p class="muted" style="margin:0">Entre com o acesso do celular criado pelo administrador no painel. Isso é feito só uma vez.</p>
