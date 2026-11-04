@@ -30,7 +30,8 @@ function createApp({ config, db, robo = null }) {
         'script-src': ["'self'"],
         'style-src': ["'self'"],
         'form-action': ["'self'"],
-        'frame-ancestors': ["'none'"]
+        'frame-ancestors': ["'none'"],
+        'frame-src': ["'self'"]
       }
     },
     strictTransportSecurity: config.COOKIE_SECURE ? undefined : false
@@ -39,6 +40,26 @@ function createApp({ config, db, robo = null }) {
   app.use((req, res, next) => (req.path.startsWith('/api/extensao/') ? next() : jsonPequeno(req, res, next)));
 
   const publicDir = path.join(config.ROOT, 'public');
+
+  // Painel do ponto (aba Ponto do admin): fala direto com o Firebase do Ponto GoBox
+  // e abre dentro do painel (iframe da mesma origem).
+  app.use('/admin/ponto', (req, res, next) => {
+    res.setHeader('Content-Security-Policy', [
+      "default-src 'self'",
+      "script-src 'self' https://www.gstatic.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com",
+      "img-src 'self' data:",
+      "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://www.gstatic.com",
+      "frame-src 'self' https://*.firebaseapp.com",
+      "frame-ancestors 'self'",
+      "form-action 'self'",
+      "base-uri 'self'",
+      "object-src 'none'"
+    ].join('; '));
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    next();
+  });
 
   // ---------------- Extensão do Edge ----------------
   // A extensão roda no navegador do administrador, lê as listas dos portais

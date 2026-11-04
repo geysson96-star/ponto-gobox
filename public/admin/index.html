@@ -39,6 +39,7 @@
     <div class="menu">
       <button type="button" class="item-menu" data-aba="pacotes" aria-current="page">Pacotes</button>
       <button type="button" class="item-menu" data-aba="financeiro">Financeiro</button>
+      <button type="button" class="item-menu" data-aba="ponto">Ponto</button>
       <button type="button" class="item-menu" data-aba="importacoes">Importações</button>
       <button type="button" class="item-menu" data-aba="configuracoes">Configurações</button>
     </div>
@@ -149,6 +150,11 @@
         <summary>Como cada valor é calculado</summary>
         <div id="fin-regras"></div>
       </details>
+    </section>
+
+    <!-- Aba Ponto (painel do Ponto GoBox, dados no Firebase) -->
+    <section id="aba-ponto" class="aba aba-ponto" hidden>
+      <iframe id="ponto-frame" class="ponto-frame" title="Controle de ponto" loading="lazy"></iframe>
     </section>
 
     <!-- Aba Importações -->

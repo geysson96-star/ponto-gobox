@@ -189,3 +189,7 @@ p.fin-origem { margin: 0; }
 .fin-chave input:focus-visible + .fin-chave-trilho { outline: 3px solid rgba(0, 24, 102, 0.45); outline-offset: 2px; }
 .fin-desligado { color: var(--texto-suave); text-decoration: line-through; }
 @media (prefers-reduced-motion: reduce) { .fin-chave-trilho, .fin-chave-trilho::after { transition: none; } }
+
+/* Aba Ponto */
+.aba-ponto { gap: 0; }
+.ponto-frame { width: 100%; height: calc(100vh - 72px); height: calc(100dvh - 72px); min-height: 560px; border: 0; border-radius: 20px; background: var(--branco); display: block; }
