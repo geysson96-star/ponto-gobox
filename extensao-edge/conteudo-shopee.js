@@ -72,6 +72,15 @@
 
   const seg = (t) => (t ? Number(t) : null);
 
+  // Dias desde a meia-noite do dia 1 do mês atual (horário da Bahia, UTC-3) até agora,
+  // para o painel financeiro receber o mês inteiro, do dia 1 até a atualização.
+  function diasDesdeDia1() {
+    const FUSO = 3 * 3600 * 1000;
+    const local = new Date(Date.now() - FUSO);
+    const dia1 = Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), 1) + FUSO;
+    return Math.ceil((Date.now() - dia1) / (DIA * 1000)) + 1; // +1 dia de folga
+  }
+
   async function ler() {
     await garantirPonto();
     const pacotes = new Map();
@@ -80,10 +89,12 @@
       if (c) pacotes.set(c, { codigo: c, ...dados });
     };
 
-    // Drop-off na agência (últimos 30 dias) e enviados (últimos 35 dias, para o
-    // painel financeiro contar o mês inteiro mesmo se o banco do site recomeçar).
-    const naAgencia = await listar('dropoff', 30, '2,5,6');
-    const enviados = await listar('dropoff', 35, '3');
+    // Do dia 1 do mês até agora, em todas as listas (o painel financeiro precisa do
+    // mês inteiro). Na agência e retiradas: no mínimo 30 dias, para a consulta pública
+    // achar pacotes que chegaram no mês passado e ainda estão aqui.
+    const dia1 = diasDesdeDia1();
+    const naAgencia = await listar('dropoff', Math.max(30, dia1), '2,5,6');
+    const enviados = await listar('dropoff', Math.max(3, dia1), '3');
     for (const it of [...enviados, ...naAgencia]) {
       const st = Number(it.status);
       const dados = st === 3
@@ -95,8 +106,8 @@
       if (it.scan_tracking_number && it.scan_tracking_number !== it.shipment_id) guardar(it.scan_tracking_number, dados);
     }
 
-    // Self-Collection, todos os status dos últimos 30 dias.
-    for (const it of await listar('collection', 30, null)) {
+    // Self-Collection, todos os status: do dia 1 do mês (no mínimo 30 dias) até agora.
+    for (const it of await listar('collection', Math.max(30, dia1), null)) {
       const [situacao, rotulo] = situacaoRetirada(Number(it.status));
       const dados = {
         situacao, rotulo, tipo: 'retirada',
