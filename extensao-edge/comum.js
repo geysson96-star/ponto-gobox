@@ -19,7 +19,14 @@ async function goboxBuscarJson(url, opcoes = {}) {
     init.headers['Content-Type'] = 'application/json';
     init.body = JSON.stringify(opcoes.body);
   }
-  const resp = await fetch(url, init);
+  // Uma nova tentativa quando a conexão falha no meio (ex.: "Failed to fetch").
+  let resp;
+  try {
+    resp = await fetch(url, init);
+  } catch {
+    await new Promise((r) => setTimeout(r, 3000));
+    resp = await fetch(url, init);
+  }
   if (resp.status === 401 || resp.status === 403) throw new GoboxSessaoExpirada('Sessão expirada no portal: faça login de novo.');
   const texto = await resp.text();
   try {

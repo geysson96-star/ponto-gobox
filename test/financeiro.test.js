@@ -83,3 +83,15 @@ test('Financeiro: Mercado Livre usa o acumulado oficial e soma o estimado do dia
   assert.equal(q1.quantidades.delivery, 228);
   assert.equal(r.ml.q2.fonte, 'contagem');
 });
+
+test('Financeiro: Shopee usa os totais do portal quando a extensão manda', () => {
+  const db = openDb(':memory:');
+  f.salvarTotaisShopee(db, { mes: '2026-11', expedidos: 4565, retiradas: 97 });
+  const r = f.resumo(db, '2026-11');
+  assert.equal(r.quantidades.shopee.expedidos, 4565);
+  assert.equal(r.quantidades.shopee.retiradas, 97);
+  // 4565: 500x0,70 + 500x0,60 + 3565x0,50 = 2432,50; 97 retiradas x 0,70 = 67,90
+  assert.equal(r.shopee.total, 2500.4);
+  assert.ok(r.shopee.portal);
+  assert.throws(() => f.salvarTotaisShopee(db, { mes: 'x', expedidos: 1, retiradas: 1 }));
+});

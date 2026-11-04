@@ -48,13 +48,23 @@
     if (r.retcode !== 0) throw new Error('Shopee: não consegui selecionar o ponto da agência.');
   }
 
-  // O portal aceita no máximo 30 dias por busca: períodos maiores são lidos em partes.
+  // O portal não devolve mais de 10.000 pacotes por busca (erro 500 depois disso):
+  // lê em partes de 1 dia e, se uma parte falhar, de 6 em 6 horas.
+  class ErroPortal extends Error {}
   async function listar(tipoLista, dias, status) {
     const agora = Math.floor(Date.now() / 1000);
     const inicio = agora - Math.ceil(dias * DIA);
     const itens = [];
-    for (let fim = agora; fim > inicio; fim -= 30 * DIA) {
-      itens.push(...await listarPeriodo(tipoLista, Math.max(inicio, fim - 30 * DIA), fim, status));
+    for (let fim = agora; fim > inicio; fim -= DIA) {
+      const de = Math.max(inicio, fim - DIA);
+      try {
+        itens.push(...await listarPeriodo(tipoLista, de, fim, status));
+      } catch (e) {
+        if (!(e instanceof ErroPortal)) throw e;
+        for (let f2 = fim; f2 > de; f2 -= DIA / 4) {
+          itens.push(...await listarPeriodo(tipoLista, Math.max(de, f2 - DIA / 4), f2, status));
+        }
+      }
     }
     return itens;
   }
@@ -70,7 +80,7 @@
         if (/login|cookie|token|auth|session/i.test(String(r.message || ''))) {
           throw new GoboxSessaoExpirada('Shopee: sessão expirada. Faça login de novo.');
         }
-        throw new Error(`Shopee: o portal respondeu com erro (${r.retcode}${r.message ? `: ${String(r.message).slice(0, 80)}` : ""}).`);
+        throw new ErroPortal(`Shopee: o portal respondeu com erro (${r.retcode}${r.message ? `: ${String(r.message).slice(0, 80)}` : ""}).`);
       }
       const lote = (r.data && r.data.list) || [];
       total = Number((r.data && r.data.total) ?? lote.length);
@@ -82,13 +92,25 @@
 
   const seg = (t) => (t ? Number(t) : null);
 
-  // Dias desde a meia-noite do dia 1 do mês atual (horário da Bahia, UTC-3) até agora,
-  // para o painel financeiro receber o mês inteiro, do dia 1 até a atualização.
-  function diasDesdeDia1() {
-    const FUSO = 3 * 3600 * 1000;
-    const local = new Date(Date.now() - FUSO);
-    const dia1 = Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), 1) + FUSO;
-    return Math.ceil((Date.now() - dia1) / (DIA * 1000)) + 1; // +1 dia de folga
+  // Início do mês atual (meia-noite do dia 1, horário da Bahia, UTC-3), em segundos.
+  function inicioDoMes() {
+    const FUSO = 3 * 3600;
+    const agora = Math.floor(Date.now() / 1000);
+    const local = new Date((agora - FUSO) * 1000);
+    const dia1 = Math.floor(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), 1) / 1000) + FUSO;
+    const mes = `${local.getUTCFullYear()}-${String(local.getUTCMonth() + 1).padStart(2, '0')}`;
+    return { dia1, agora, mes };
+  }
+
+  // Totais do mês direto do portal, pela data de SAÍDA: total expedido (drop-offs
+  // coletados, status 3) e retiradas feitas (status 6). Uma consulta cada, sem baixar
+  // a lista inteira (o portal não devolve mais de 10.000 pacotes por busca).
+  async function totalDoMes(tipoLista, status) {
+    const { dia1, agora } = inicioDoMes();
+    const r = await goboxBuscarJson(`/sp-api/point/order/${tipoLista}/list?outbound_time_start=${dia1}` +
+      `&outbound_time_end=${agora}&status=${status}&pageno=1&count=1`);
+    if (r.retcode !== 0) throw new ErroPortal(`Shopee: não consegui ler o total do mês (${r.retcode}).`);
+    return Number(r.data && r.data.total) || 0;
   }
 
   async function ler() {
@@ -99,14 +121,10 @@
       if (c) pacotes.set(c, { codigo: c, ...dados });
     };
 
-    // Do dia 1 do mês até agora, em todas as listas (o painel financeiro precisa do
-    // mês inteiro). Na agência e retiradas: no mínimo 30 dias, para a consulta pública
-    // achar pacotes que chegaram no mês passado e ainda estão aqui.
-    const dia1 = diasDesdeDia1();
-    const naAgencia = await listar('dropoff', Math.max(30, dia1), '2,5,6');
-    // Expedidos: busca pela data de chegada, com 10 dias a mais, para pegar também
-    // o que chegou no fim do mês passado e foi expedido neste mês.
-    const enviados = await listar('dropoff', Math.max(3, dia1 + 10), '3');
+    // Lista para a consulta pública: na agência (30 dias) e expedidos recentes (3 dias).
+    // O financeiro usa os totais do mês (abaixo), não esta lista.
+    const naAgencia = await listar('dropoff', 30, '2,5,6');
+    const enviados = await listar('dropoff', 3, '3');
     for (const it of [...enviados, ...naAgencia]) {
       const st = Number(it.status);
       const dados = st === 3
@@ -119,7 +137,7 @@
     }
 
     // Self-Collection, todos os status: do dia 1 do mês (no mínimo 30 dias) até agora.
-    for (const it of await listar('collection', Math.max(30, dia1 + 10), null)) {
+    for (const it of await listar('collection', 30, null)) {
       const [situacao, rotulo] = situacaoRetirada(Number(it.status));
       const dados = {
         situacao, rotulo, tipo: 'retirada',
@@ -130,7 +148,15 @@
       guardar(it.shipment_id || it.scan_tracking_number, dados);
       if (it.scan_tracking_number && it.scan_tracking_number !== it.shipment_id) guardar(it.scan_tracking_number, dados);
     }
-    return { pacotes: [...pacotes.values()], modo: 'eventos' };
+    let financeiro = null;
+    try {
+      financeiro = {
+        mes: inicioDoMes().mes,
+        expedidos: await totalDoMes('dropoff', 3),
+        retiradas: await totalDoMes('collection', 6)
+      };
+    } catch { /* sem os totais: o painel conta pela lista */ }
+    return { pacotes: [...pacotes.values()], modo: 'eventos', financeiro };
   }
 
   goboxAgendar('shopee', ler);

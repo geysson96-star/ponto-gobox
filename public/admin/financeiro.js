@@ -72,6 +72,7 @@
       return est ? `Oficial ${num(of)} + hoje ${num(est)}` : `Oficial ${num(of)}`;
     }
     const auto = fonte === 'ml' ? dados.automatico.ml[quinzena][item] : dados.automatico[fonte][item];
+    if (fonte === 'shopee' && dados.shopee.portal && item !== 'devolucoes') return `Portal ${num(auto)}`;
     return `Automático ${num(auto)}`;
   }
   function campoAjuste(fonte, item, quinzena) {
@@ -110,7 +111,8 @@
     }
     return el('article', { class: 'fin-cartao' },
       el('div', { class: 'fin-cartao-topo' },
-        el('div', {}, el('h2', {}, el('span', { class: 'fin-ponto shopee' }), NOME.shopee), el('div', { class: 'nota' }, 'Mês inteiro')),
+        el('div', {}, el('h2', {}, el('span', { class: 'fin-ponto shopee' }), NOME.shopee),
+          el('div', { class: 'nota' }, s.portal ? `Totais do portal, lidos em ${new Date(s.portal.lidoEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : 'Mês inteiro, contado pelos pacotes')),
         el('div', { class: 'fin-cartao-total' }, brl(s.total))),
       ITENS.shopee.map((i) => linha('shopee', i)),
       el('div', { class: 'fin-medalha' },

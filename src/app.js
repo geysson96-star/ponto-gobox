@@ -106,6 +106,10 @@ function createApp({ config, db, robo = null }) {
       if (fonte === 'ml' && b.financeiro) {
         try { financeiro.salvarOficialMl(db, b.financeiro); } catch { /* formato inesperado: ignora */ }
       }
+      // Shopee: total expedido e retiradas do mês, direto do portal.
+      if (fonte === 'shopee' && b.financeiro) {
+        try { financeiro.salvarTotaisShopee(db, b.financeiro); } catch { /* formato inesperado: ignora */ }
+      }
       const modo = b.modo === 'eventos' ? 'eventos' : 'estoque';
       const prep = prepareFromCodes(db, { sourceId: fonte, codes: codigos, origin: 'extensao', label: 'extensão do Edge', modo });
       if (needsConfirmation(prep)) {

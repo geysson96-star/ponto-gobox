@@ -225,6 +225,18 @@ function somar(a, b) {
   return v;
 }
 
+// ---------- Shopee: totais do mês lidos do portal ----------
+function salvarTotaisShopee(db, d) {
+  const mes = d && typeof d.mes === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(d.mes) ? d.mes : null;
+  const n = (v) => { const x = Math.trunc(Number(v)); return Number.isFinite(x) && x >= 0 && x <= 1e7 ? x : null; };
+  const expedidos = n(d && d.expedidos);
+  const retiradas = n(d && d.retiradas);
+  if (!mes || expedidos === null || retiradas === null) throw new Error('Totais da Shopee em formato inesperado.');
+  const reg = { mes, expedidos, retiradas, lidoEm: new Date().toISOString() };
+  gravar(db, `shopee_portal:${mes}`, reg);
+  return reg;
+}
+
 // ---------- Mercado Livre: acumulado oficial + estimado do dia ----------
 // A extensão lê a tela "Recebimento estimado" do Places (valores já calculados pelo
 // Mercado Livre). O que chegou depois da última atualização oficial é estimado aqui,
@@ -311,6 +323,12 @@ function resumo(db, mes = mesAtual()) {
   const cfg = configuracao(db);
   const medalhaId = cfg.medalhaPorMes[mes] || 'bronze';
   const { auto, lista } = contar(db, mes);
+  // Shopee: quando a extensão mandou os totais do portal, eles valem (mais exatos).
+  const portalShopee = ler(db, `shopee_portal:${mes}`, null);
+  if (portalShopee) {
+    auto.shopee.expedidos = portalShopee.expedidos;
+    auto.shopee.retiradas = portalShopee.retiradas;
+  }
   const ajustes = ajustesDoMes(db, mes);
   const q = somar(auto, ajustes);
 
@@ -329,7 +347,7 @@ function resumo(db, mes = mesAtual()) {
     mes, ultimoDia, mesAtual: mesAtual(), quinzenaAtual: new Date(Date.now() + FUSO_MS).getUTCDate() <= 15 ? 'q1' : 'q2',
     total: centavos(shopee.total + ml.total + correios.total), pacotes,
     quantidades: q, automatico: auto, ajustes,
-    shopee: { ...shopee, medalha: medalhaId },
+    shopee: { ...shopee, medalha: medalhaId, portal: portalShopee ? { lidoEm: portalShopee.lidoEm } : null },
     ml, correios,
     medalhas: cfg.medalhas,
     valores: { faixasShopee: FAIXAS_SHOPEE.map(([qtd, v]) => [qtd === Infinity ? null : qtd, v]), devolucaoShopee: DEVOLUCAO_SHOPEE, ml: VALORES_ML, correios: VALOR_CORREIOS },
@@ -339,6 +357,6 @@ function resumo(db, mes = mesAtual()) {
 }
 
 module.exports = {
-  resumo, salvarAjustes, salvarMedalha, salvarOficialMl, mesAtual, limitesDoMes,
+  resumo, salvarAjustes, salvarMedalha, salvarOficialMl, salvarTotaisShopee, mesAtual, limitesDoMes,
   calcularShopee, calcularMlQuinzena, porFaixas, valorDoPacote, MEDALHAS_PADRAO
 };
