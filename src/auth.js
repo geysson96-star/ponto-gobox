@@ -65,12 +65,13 @@ function createSession(db, config, res) {
   const expires = new Date(Date.now() + config.SESSION_HOURS * 3600 * 1000).toISOString();
   db.prepare('DELETE FROM sessions WHERE expires_at < ?').run(created);
   db.prepare('INSERT INTO sessions (token_hash, created_at, expires_at) VALUES (?, ?, ?)').run(sha256(token), created, expires);
+  require('./eventos').emit('estado');
   res.setHeader('Set-Cookie', `${COOKIE}=${token}; ${cookieAttrs(config, config.SESSION_HOURS * 3600)}`);
 }
 
 function destroySession(db, config, req, res) {
   const token = parseCookies(req.headers.cookie)[COOKIE];
-  if (token) db.prepare('DELETE FROM sessions WHERE token_hash = ?').run(sha256(token));
+  if (token) { db.prepare('DELETE FROM sessions WHERE token_hash = ?').run(sha256(token)); require('./eventos').emit('estado'); }
   res.setHeader('Set-Cookie', `${COOKIE}=; ${cookieAttrs(config, 0)}`);
 }
 

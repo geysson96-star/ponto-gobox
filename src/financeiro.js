@@ -1,4 +1,5 @@
 'use strict';
+const eventos = require('./eventos');
 // Painel financeiro: quanto a GoBox ganhou no mês com cada empresa.
 //
 // Shopee: conta o total EXPEDIDO no mês (drop-offs coletados pela Shopee) e as
@@ -95,6 +96,7 @@ function gravar(db, chave, valor) {
   garantirTabela(db);
   db.prepare(`INSERT INTO financeiro (chave, json) VALUES (?, ?)
               ON CONFLICT(chave) DO UPDATE SET json = excluded.json`).run(chave, JSON.stringify(valor));
+  eventos.emit('estado');
 }
 function configuracao(db) {
   const c = ler(db, 'config', {});

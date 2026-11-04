@@ -8,6 +8,7 @@
 const { SOURCES } = require('./sources');
 const { extractCodes, ImportError } = require('./parse');
 const { nowIso, getSettings } = require('./db');
+const eventos = require('./eventos');
 
 function safeLabel(name) {
   // Guarda só um rótulo curto do arquivo para o histórico.
@@ -203,6 +204,7 @@ function applyImport(db, importId) {
     ).run(ts, deactivated, importId);
   });
   run();
+  eventos.emit('pacotes', imp.source); // salva a cópia no Firebase
   return db.prepare('SELECT * FROM imports WHERE id = ?').get(importId);
 }
 

@@ -49,6 +49,11 @@ module.exports = {
   // Acesso de administrador do Ponto GoBox (Firebase), para a aba Ponto entrar sozinha.
   PONTO_EMAIL: process.env.PONTO_EMAIL || '',
   PONTO_SENHA: process.env.PONTO_SENHA || '',
+  // Firebase do Ponto GoBox, onde o site guarda uma cópia dos dados (identificadores públicos).
+  FIREBASE_API_KEY: process.env.FIREBASE_API_KEY || 'AIzaSyB-mJhve5x2iSie_Sp2W5Y6gsBn7DUj0ko',
+  FIREBASE_PROJETO: process.env.FIREBASE_PROJETO || 'ponto-gobox',
+  // Pacotes que já saíram ficam guardados por este número de dias.
+  RETENCAO_DIAS: int('RETENCAO_DIAS', 60),
   SESSION_HOURS: int('SESSION_HOURS', 12),
   COOKIE_SECURE: bool('COOKIE_SECURE', NODE_ENV === 'production'),
   TRUST_PROXY: bool('TRUST_PROXY', false),

@@ -2,6 +2,7 @@
 // Chave de acesso da extensão do Edge. Guardada só como hash SHA-256.
 const crypto = require('node:crypto');
 const { nowIso } = require('./db');
+const eventos = require('./eventos');
 
 const CHAVE_SETTINGS = '__extensao';
 
@@ -17,6 +18,7 @@ function ler(db) {
 function gravar(db, dados) {
   db.prepare(`INSERT INTO settings (source, json) VALUES (?, ?)
               ON CONFLICT(source) DO UPDATE SET json = excluded.json`).run(CHAVE_SETTINGS, JSON.stringify(dados));
+  eventos.emit('estado');
 }
 
 function gerarChave(db) {

@@ -137,6 +137,7 @@ function saveSettings(db, source, patch) {
   const next = { ...current, ...patch };
   db.prepare(`INSERT INTO settings (source, json) VALUES (?, ?)
               ON CONFLICT(source) DO UPDATE SET json = excluded.json`).run(source, JSON.stringify(next));
+  require('./eventos').emit('estado');
   return next;
 }
 

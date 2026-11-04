@@ -52,7 +52,22 @@ if (config.NODE_ENV !== 'production') {
   }
 }
 
-const server = app.listen(config.PORT, () => {
+// Cópia dos dados no Firebase: restaura antes de atender e salva a cada mudança.
+const persistencia = require('./persistencia').criar({ db, config });
+let server;
+(async () => {
+  if (persistencia.ativo) {
+    const r = await Promise.race([
+      persistencia.restaurar(),
+      new Promise((ok) => setTimeout(() => ok({ erro: 'demorou mais de 25 s' }), 25_000))
+    ]);
+    if (r.erro) console.warn(`[persistência] não restaurei tudo: ${r.erro}`);
+    else console.log(`[persistência] restaurado do Firebase: estado ${r.estado ? 'sim' : 'vazio'}, pacotes ${JSON.stringify(r.pacotes)}`);
+    persistencia.ligar();
+  } else {
+    console.log('[persistência] desligada (sem PONTO_EMAIL/PONTO_SENHA).');
+  }
+  server = app.listen(config.PORT, () => {
   console.log(`GoBox consulta rodando em http://localhost:${config.PORT}`);
   console.log(`Pasta de entrada: ${config.INBOX_DIR}`);
   if (robo) {
@@ -61,10 +76,13 @@ const server = app.listen(config.PORT, () => {
   } else {
     console.log('Robô desligado (ROBO_ATIVO=false).');
   }
-});
+  });
+})();
 
 async function shutdown() {
   if (robo) await robo.parar();
+  await persistencia.esvaziar().catch(() => {});
+  if (!server) process.exit(0);
   server.close(() => {
     db.close();
     process.exit(0);
