@@ -2,43 +2,47 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Consulta de pacotes · GoBox</title>
 <meta name="description" content="Consulte se o seu pacote já está na GoBox.">
 <meta name="robots" content="noindex">
+<meta name="theme-color" content="#FFFFFF">
 <link rel="icon" href="/assets/cubo.png">
 <link rel="stylesheet" href="/base.css">
 <link rel="stylesheet" href="/consulta.css">
+<script src="/gobox-logo.js" defer></script>
 </head>
 <body>
 <div class="pagina">
-  <header class="topo">
-    <a class="marca" href="/" aria-label="GoBox — início">
-      <img src="/assets/cubo.png" alt="" class="marca-cubo">
-      <img src="/assets/wordmark.png" alt="" class="marca-nome">
-    </a>
-  </header>
+  <main class="centro" id="centro">
+    <h1 class="oculto">Consulta de pacotes GoBox</h1>
+    <gobox-logo class="logo" id="logo" tabindex="0" title="GoBox"></gobox-logo>
 
-  <main class="centro">
-    <div class="conteudo">
-      <p class="selo"><span class="selo-ponto" aria-hidden="true"></span>Consulta de pacotes</p>
-      <h1>Seu pacote já está na GoBox?</h1>
-      <p class="subtitulo">Digite o código de envio ou de rastreio para consultar.</p>
+    <form id="form-consulta" class="formulario" novalidate role="search">
+      <label for="codigo" class="oculto">Código de envio ou rastreio</label>
+      <div class="barra">
+        <svg class="lupa" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="codigo" name="codigo" type="search" inputmode="text" autocomplete="off"
+               autocapitalize="characters" spellcheck="false" maxlength="64"
+               placeholder="Código do pacote" required>
+        <button type="submit" id="botao-consultar" class="botao-principal">Consultar</button>
+      </div>
+      <p class="dica">Vale o código da Shopee, do Mercado Livre ou dos Correios.</p>
+    </form>
 
-      <form id="form-consulta" class="formulario" novalidate>
-        <label for="codigo">Código de envio ou rastreio</label>
-        <div class="linha-busca">
-          <input id="codigo" name="codigo" type="text" inputmode="text" autocomplete="off"
-                 autocapitalize="characters" spellcheck="false" maxlength="64"
-                 placeholder="Ex.: XX000000000BR" required>
-          <button type="submit" id="botao-consultar" class="botao-principal">Consultar</button>
-        </div>
-      </form>
+    <ul class="fontes" id="fontes" aria-label="Situação dos sistemas consultados">
+      <li class="fonte"><i></i>Shopee SPX</li>
+      <li class="fonte"><i></i>Mercado Livre Places</li>
+      <li class="fonte"><i></i>Correios</li>
+    </ul>
 
-      <div id="resultado" class="resultado" role="status" aria-live="polite"></div>
-      <p id="ultima-atualizacao" class="ultima-atualizacao" hidden></p>
-    </div>
+    <div id="resultado" class="resultado" role="status" aria-live="polite"></div>
   </main>
+
+  <footer class="rodape">
+    <span>GoBox · Centro de distribuição e ponto de coleta</span>
+    <span>Av. José David dos Santos, 1455</span>
+  </footer>
 </div>
 <script src="/consulta.js"></script>
 </body>

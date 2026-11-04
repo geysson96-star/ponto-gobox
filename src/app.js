@@ -153,6 +153,15 @@ function createApp({ config, db, robo = null }) {
     });
   });
 
+  // Situação pública das fontes (só nome, estado e hora da última atualização),
+  // mostrada abaixo da busca na página de consulta.
+  app.get('/api/status', publicLimiter, (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.json({
+      fontes: allSourceStatus(db).map((f) => ({ id: f.id, nome: f.name, situacao: f.state, ultima: f.lastSuccessAt }))
+    });
+  });
+
   // ---------------- Área administrativa ----------------
   const admin = express.Router();
   admin.use(auth.sameOrigin);

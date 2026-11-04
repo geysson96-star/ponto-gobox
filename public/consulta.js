@@ -4,6 +4,14 @@
   const input = document.getElementById('codigo');
   const botao = document.getElementById('botao-consultar');
   const resultado = document.getElementById('resultado');
+  const centro = document.getElementById('centro');
+  const logo = document.getElementById('logo');
+  const listaFontes = document.getElementById('fontes');
+
+  // Logo: toque ou Enter repete a animação de entrada.
+  const repetir = () => { if (typeof logo.play === 'function') logo.play(); };
+  logo.addEventListener('click', repetir);
+  logo.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); repetir(); } });
 
   const ICONES = {
     ok: '<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -19,6 +27,41 @@
     const dia = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     return `${dia} às ${hora}`;
+  }
+
+  // Texto curto da última atualização de cada fonte: "às 14:32", "ontem 18:05" ou "02/11".
+  function quando(iso) {
+    const d = new Date(iso);
+    if (!iso || Number.isNaN(d.getTime())) return null;
+    const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const dia = new Date(d); dia.setHours(0, 0, 0, 0);
+    const dif = Math.round((hoje - dia) / 86400000);
+    if (dif === 0) return `às ${hora}`;
+    if (dif === 1) return `ontem ${hora}`;
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  }
+
+  // Situação das fontes (Shopee, Mercado Livre, Correios) abaixo da busca.
+  async function carregarFontes() {
+    try {
+      const resp = await fetch('/api/status', { cache: 'no-store' });
+      if (!resp.ok) return;
+      const { fontes } = await resp.json();
+      if (!Array.isArray(fontes) || !fontes.length) return;
+      listaFontes.innerHTML = '';
+      for (const f of fontes) {
+        const li = document.createElement('li');
+        li.className = `fonte ${f.situacao || ''}`;
+        li.append(document.createElement('i'), document.createTextNode(f.nome));
+        const q = quando(f.ultima);
+        const s = document.createElement('small');
+        s.textContent = f.situacao === 'sem_dados' ? 'sem dados' : (q ? `atualizado ${q}` : '');
+        if (s.textContent) li.append(s);
+        li.title = f.situacao === 'desatualizado' ? 'Faz algum tempo desde a última atualização.' : '';
+        listaFontes.append(li);
+      }
+    } catch { /* sem conexão: mantém a lista simples */ }
   }
 
   // Título e detalhes conforme a situação informada pelo site.
@@ -80,6 +123,7 @@
       cartao.append(dl);
     }
     resultado.append(cartao);
+    centro.classList.add('com-resultado');
   }
 
   function mostrarAviso(msg) {
@@ -90,20 +134,10 @@
     resultado.append(p);
   }
 
-  // Última atualização dos dados (vem do site; atualiza a cada minuto).
-  const ultima = document.getElementById('ultima-atualizacao');
-  async function carregarUltima() {
-    try {
-      const d = await fetch('/api/atualizacao').then((r) => r.json());
-      const txt = dataHora(d.ultimaAtualizacao);
-      ultima.hidden = !txt;
-      if (txt) ultima.textContent = `Última atualização: ${txt}`;
-    } catch { /* sem conexão: mantém o que já estava */ }
-  }
-  carregarUltima();
-  setInterval(carregarUltima, 60_000);
-
-  input.addEventListener('input', () => { resultado.innerHTML = ''; });
+  input.addEventListener('input', () => {
+    resultado.innerHTML = '';
+    if (!input.value.trim()) centro.classList.remove('com-resultado');
+  });
 
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
@@ -124,7 +158,7 @@
       const dados = await resp.json().catch(() => ({}));
       if (resp.ok && typeof dados.encontrado === 'boolean') {
         mostrarCartao(dados);
-        carregarUltima();
+        carregarFontes();
       } else if (resp.status === 429 || resp.status === 400) {
         mostrarAviso(dados.erro || 'Não foi possível consultar agora. Tente novamente.');
       } else {
@@ -137,4 +171,7 @@
       botao.textContent = 'Consultar';
     }
   });
+
+  carregarFontes();
+  setInterval(carregarFontes, 60_000);
 }());
