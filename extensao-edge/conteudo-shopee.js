@@ -106,6 +106,33 @@
   // coletados, status 3) e retiradas feitas (status 6). Uma consulta cada, sem baixar
   // a lista inteira (o portal não devolve mais de 10.000 pacotes por busca).
   // campo: 'outbound' (saída) ou 'inbound' (chegada); status vazio = todos.
+  // Totais do mês do relatório oficial (Report Center > Reports), do dia 1 até hoje:
+  //  - Drop-off  "Total Outbounded"                    -> total expedido
+  //  - Drop-off  "Total Inbounded"                     -> total recebido (recebimento estimado)
+  //  - Self-collection "Total Inbounded"               -> retiradas do comprador (Total de recebidos)
+  //  - Self-collection "Total Outbounded (Buyer Collected)" -> devoluções do comprador (Total de saídas)
+  async function totaisDoRelatorio() {
+    const FUSO = 3 * 3600;
+    const { dia1, mes } = inicioDoMes();
+    const local = new Date((Math.floor(Date.now() / 1000) - FUSO) * 1000);
+    const fimHoje = Math.floor(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() + 1) / 1000) + FUSO - 1;
+    const q = `period_time=${dia1},${fimHoje}&period_time_start=${dia1}&period_time_end=${fimHoje}`;
+    const r = await goboxBuscarJson(`/sp-api/point/dop/report/total?${q}`);
+    if (r.retcode !== 0 || !r.data) throw new ErroPortal(`Shopee: relatório indisponível (${r.retcode}).`);
+    const n = (v) => Number(v) || 0;
+    const d = r.data;
+    return {
+      mes,
+      expedidos: n(d.outbound_count),
+      recebidos: n(d.inbound_count),
+      retiradas: n(d.collection_inbound_count),
+      retiradasRecebidas: n(d.collection_inbound_count),
+      devolucoes: n(d.collection_outbound_count),
+      devolucoesRecebidas: n(d.collection_outbound_count),
+      fonte: 'relatorio'
+    };
+  }
+
   // extra: filtro adicional, ex. '&tags=3' (etiqueta Return/Refund = devolução do comprador).
   async function totalDoMes(tipoLista, status, campo = 'outbound', extra = '') {
     const { dia1, agora } = inicioDoMes();
@@ -153,18 +180,19 @@
     }
     let financeiro = null;
     try {
-      financeiro = {
-        mes: inicioDoMes().mes,
-        expedidos: await totalDoMes('dropoff', 3),
-        retiradas: await totalDoMes('collection', 6),
-        // Total recebido no mês (qualquer status), para o recebimento estimado.
-        recebidos: await totalDoMes('dropoff', '', 'inbound'),
-        retiradasRecebidas: await totalDoMes('collection', '', 'inbound'),
-        // Devoluções do comprador: drop-offs com a etiqueta Return/Refund (conta SPX Reverse Logistics).
-        devolucoes: await totalDoMes('dropoff', 3, 'outbound', '&tags=3'),
-        devolucoesRecebidas: await totalDoMes('dropoff', '', 'inbound', '&tags=3')
-      };
-    } catch { /* sem os totais: o painel conta pela lista */ }
+      financeiro = await totaisDoRelatorio();
+    } catch {
+      try {
+        // Plano B: totais pelas listas, se o relatório não responder.
+        financeiro = {
+          mes: inicioDoMes().mes,
+          expedidos: await totalDoMes('dropoff', 3),
+          retiradas: await totalDoMes('collection', '', 'inbound'),
+          recebidos: await totalDoMes('dropoff', '', 'inbound'),
+          retiradasRecebidas: await totalDoMes('collection', '', 'inbound')
+        };
+      } catch { /* sem os totais: o painel conta pela lista */ }
+    }
     return { pacotes: [...pacotes.values()], modo: 'eventos', financeiro };
   }
 
