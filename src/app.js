@@ -95,11 +95,16 @@ function createApp({ config, db, robo = null }) {
           codigos.set(n, {
             situacao: item.situacao, rotulo: item.rotulo, tipo: item.tipo,
             recebidoEm: item.recebidoEm, saidaEm: item.saidaEm,
-            idFonte: typeof item.idFonte === 'string' && item.idFonte.length <= 64 ? item.idFonte : null
+            idFonte: typeof item.idFonte === 'string' && item.idFonte.length <= 64 ? item.idFonte : null,
+            volume: item.volume
           });
         } else {
           codigos.set(n, null);
         }
+      }
+      // Mercado Livre: acumulado oficial da quinzena (tela "Recebimento estimado").
+      if (fonte === 'ml' && b.financeiro) {
+        try { financeiro.salvarOficialMl(db, b.financeiro); } catch { /* formato inesperado: ignora */ }
       }
       const modo = b.modo === 'eventos' ? 'eventos' : 'estoque';
       const prep = prepareFromCodes(db, { sourceId: fonte, codes: codigos, origin: 'extensao', label: 'extensão do Edge', modo });

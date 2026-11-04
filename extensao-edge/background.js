@@ -26,7 +26,7 @@ async function enviar(msg) {
   }
   let corpo;
   if (msg.erro) corpo = { fonte: msg.fonte, erro: msg.erro };
-  else if (Array.isArray(msg.pacotes)) corpo = { fonte: msg.fonte, pacotes: msg.pacotes, modo: msg.modo };
+  else if (Array.isArray(msg.pacotes)) corpo = { fonte: msg.fonte, pacotes: msg.pacotes, modo: msg.modo, financeiro: msg.financeiro || null };
   else corpo = { fonte: msg.fonte, codigos: msg.codigos };
   try {
     const resp = await fetch(`${servidor}/api/extensao/sincronizar`, {

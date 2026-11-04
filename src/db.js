@@ -118,6 +118,7 @@ function migrate(db) {
   add('packages', 'tipo', 'TEXT');        // ex.: drop_off, retirada, envio
   add('packages', 'recebido_em', 'TEXT'); // quando o pacote chegou na agência (vindo do portal)
   add('packages', 'saida_em', 'TEXT');    // quando saiu (retirado/enviado), se o portal informa
+  add('packages', 'volume', 'TEXT');      // pacote (shipment) ou saca, quando o portal informa
   add('import_rows', 'dados', 'TEXT');    // detalhes do pacote (JSON) vindos do portal
 }
 

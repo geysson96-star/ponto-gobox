@@ -156,7 +156,7 @@ function contar(db, mes) {
   const { ini, meio, fim } = limitesDoMes(mes);
   const chegada = 'COALESCE(recebido_em, first_seen_at)';
   const rows = db.prepare(
-    `SELECT source, tipo, situacao, ${chegada} AS chegada, saida_em, COALESCE(external_id, code) AS chave, code
+    `SELECT source, tipo, situacao, volume, ${chegada} AS chegada, saida_em, COALESCE(external_id, code) AS chave, code
      FROM packages
      WHERE (${chegada} >= ? AND ${chegada} < ?) OR (saida_em >= ? AND saida_em < ?)`
   ).all(ini, fim, ini, fim);
@@ -187,7 +187,9 @@ function contar(db, mes) {
       if (r.tipo === 'retirada') auto.shopee.retiradas += 1; else auto.shopee.expedidos += 1;
     } else if (r.source === 'ml') {
       const q = r.em < meio ? 'q1' : 'q2';
-      if (r.tipo === 'retirada') auto.ml[q].pickup += 1; else auto.ml[q].delivery += 1;
+      if (r.volume && r.volume !== 'shipment') continue; // saca: os pacotes dela contam
+      if (r.tipo === 'retirada') auto.ml[q].pickup += 1;
+      else if (r.tipo !== 'nex') auto.ml[q].delivery += 1; // NEx é pago por rota
     } else if (r.source === 'correios') {
       auto.correios.pacotes += 1;
     }
@@ -205,8 +207,10 @@ function ultimos(lista, limite = 12) {
       if (r.tipo === 'retirada') { n.ret += 1; item = 'Retirada'; valor = valorDoPacote(n.ret); }
       else { n.exp += 1; item = 'Expedido'; valor = valorDoPacote(n.exp); }
     } else if (r.source === 'ml') {
-      item = r.tipo === 'retirada' ? 'Pick Up' : 'Delivery';
-      valor = r.tipo === 'retirada' ? VALORES_ML.pickup : VALORES_ML.delivery;
+      if (r.volume && r.volume !== 'shipment') { item = 'Saca'; valor = 0; }
+      else if (r.tipo === 'nex') { item = 'NEx (pago por rota)'; valor = 0; }
+      else if (r.tipo === 'retirada') { item = 'Pick Up'; valor = VALORES_ML.pickup; }
+      else { item = 'Delivery'; valor = VALORES_ML.delivery; }
     } else if (r.source === 'correios') { item = 'Pacote'; valor = VALOR_CORREIOS; } else continue;
     saida.push({ fonte: r.source, item, codigo: r.code, em: r.em, valor });
   }
@@ -221,6 +225,87 @@ function somar(a, b) {
   return v;
 }
 
+// ---------- Mercado Livre: acumulado oficial + estimado do dia ----------
+// A extensão lê a tela "Recebimento estimado" do Places (valores já calculados pelo
+// Mercado Livre). O que chegou depois da última atualização oficial é estimado aqui,
+// pelos pacotes e sacas que entram no estoque da agência.
+const TIPOS_OFICIAIS_ML = { dc: 'delivery', pickup: 'pickup', rtn: 'falhas', nex_car: 'nex' };
+
+function salvarOficialMl(db, d) {
+  const data = (v) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : null);
+  const de = data(d && d.de);
+  const ate = data(d && d.ate);
+  if (!de || !ate || !Array.isArray(d.itens)) throw new Error('Acumulado do Mercado Livre em formato inesperado.');
+  const itens = {};
+  let total = 0;
+  for (const i of d.itens.slice(0, 20)) {
+    const k = TIPOS_OFICIAIS_ML[String(i.tipo)];
+    const qtd = Math.max(0, Math.trunc(Number(i.quantidade) || 0));
+    const valor = Math.max(0, Number(i.total) || 0);
+    if (String(i.tipo) === 'total') { total = valor; continue; }
+    if (k) itens[k] = { quantidade: qtd, total: centavos(valor) };
+  }
+  const reg = { de, ate, atualizadoEm: data(d.atualizadoEm) || de, itens, total: centavos(total), lidoEm: new Date().toISOString() };
+  gravar(db, `ml_oficial:${de}`, reg);
+  return reg;
+}
+
+// Pacotes e sacas do Mercado Livre que chegaram entre dois instantes.
+function chegadasMl(db, desde, ate) {
+  const rows = db.prepare(
+    `SELECT tipo, volume, COALESCE(external_id, code) AS chave
+     FROM packages WHERE source = 'ml' AND COALESCE(recebido_em, first_seen_at) >= ? AND COALESCE(recebido_em, first_seen_at) < ?`
+  ).all(desde, ate);
+  const vistos = new Set();
+  const c = { delivery: 0, pickup: 0, nex: 0, sacas: 0 };
+  for (const r of rows) {
+    if (vistos.has(r.chave)) continue;
+    vistos.add(r.chave);
+    if (r.volume && r.volume !== 'shipment') { c.sacas += 1; continue; }
+    if (r.tipo === 'retirada') c.pickup += 1;
+    else if (r.tipo === 'nex') c.nex += 1;
+    else c.delivery += 1;
+  }
+  return c;
+}
+
+function quinzenaMl(db, mes, qk, contagem, ajuste) {
+  const { ini, meio, fim } = limitesDoMes(mes);
+  const qIni = qk === 'q1' ? ini : meio;
+  const qFim = qk === 'q1' ? meio : fim;
+  const chave = `${mes}-${qk === 'q1' ? '01' : '16'}`;
+  const oficial = ler(db, `ml_oficial:${chave}`, null);
+  const somaAjuste = (q) => { const r = {}; for (const k of ITENS.ml) r[k] = Math.max(0, q[k] + ajuste[k]); return r; };
+
+  if (!oficial) {
+    const qtd = somaAjuste(contagem);
+    return { ...calcularMlQuinzena(qtd), quantidades: qtd, fonte: 'contagem', oficial: null, estimadoDia: null };
+  }
+  // O oficial vale até o início do dia da última atualização; dali em diante, estimado.
+  const [a, m, d] = oficial.atualizadoEm.split('-').map(Number);
+  const corte = new Date(Math.min(Math.max(Date.UTC(a, m - 1, d) - FUSO_MS, Date.parse(qIni)), Date.parse(qFim))).toISOString();
+  const chegou = chegadasMl(db, corte, qFim);
+  const estimado = {
+    desde: corte, delivery: chegou.delivery, pickup: chegou.pickup, sacas: chegou.sacas,
+    valor: centavos(chegou.delivery * VALORES_ML.delivery + chegou.pickup * VALORES_ML.pickup)
+  };
+  const qtd = {};
+  const itens = {};
+  let total = 0;
+  for (const k of ITENS.ml) {
+    const of = oficial.itens[k] || { quantidade: 0, total: 0 };
+    const est = k === 'delivery' ? chegou.delivery : k === 'pickup' ? chegou.pickup : 0;
+    qtd[k] = Math.max(0, of.quantidade + est + ajuste[k]);
+    const v = of.total + (est + ajuste[k]) * VALORES_ML[k];
+    itens[k] = centavos(Math.max(0, v));
+    total += Math.max(0, v);
+  }
+  return {
+    itens, total: centavos(total), quantidades: qtd, fonte: 'oficial',
+    oficial: { atualizadoEm: oficial.atualizadoEm, lidoEm: oficial.lidoEm, total: oficial.total }, estimadoDia: estimado
+  };
+}
+
 function resumo(db, mes = mesAtual()) {
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(mes)) throw new Error('Mês inválido.');
   const cfg = configuracao(db);
@@ -230,9 +315,11 @@ function resumo(db, mes = mesAtual()) {
   const q = somar(auto, ajustes);
 
   const shopee = calcularShopee(q.shopee, cfg.medalhas[medalhaId]);
-  const q1 = calcularMlQuinzena(q.ml.q1);
-  const q2 = calcularMlQuinzena(q.ml.q2);
+  const q1 = quinzenaMl(db, mes, 'q1', auto.ml.q1, ajustes.ml.q1);
+  const q2 = quinzenaMl(db, mes, 'q2', auto.ml.q2, ajustes.ml.q2);
   const ml = { q1, q2, total: centavos(q1.total + q2.total) };
+  q.ml.q1 = q1.quantidades;
+  q.ml.q2 = q2.quantidades;
   const correios = { total: centavos(q.correios.pacotes * VALOR_CORREIOS) };
   const pacotes = q.shopee.expedidos + q.shopee.retiradas + q.shopee.devolucoes
     + ['q1', 'q2'].reduce((s, k) => s + q.ml[k].delivery + q.ml[k].pickup + q.ml[k].falhas, 0)
@@ -252,6 +339,6 @@ function resumo(db, mes = mesAtual()) {
 }
 
 module.exports = {
-  resumo, salvarAjustes, salvarMedalha, mesAtual, limitesDoMes,
+  resumo, salvarAjustes, salvarMedalha, salvarOficialMl, mesAtual, limitesDoMes,
   calcularShopee, calcularMlQuinzena, porFaixas, valorDoPacote, MEDALHAS_PADRAO
 };

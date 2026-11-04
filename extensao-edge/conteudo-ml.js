@@ -13,14 +13,48 @@
     return Number.isNaN(d.getTime()) ? null : d.toISOString();
   }
 
+  // Tipo do serviço: pick_up (retirada), delivery (entrega) ou nex (rota NEx).
+  // volume: 'shipment' (pacote) ou outro valor, como uma saca.
   function descrever(it) {
+    const volume = it.volume_type ? String(it.volume_type).slice(0, 20) : null;
     if (it.type === 'pick_up') {
       return {
-        tipo: 'retirada',
+        tipo: 'retirada', volume,
         rotulo: it.subStatus === 'expired' ? 'Prazo de retirada vencido' : 'Disponível para retirada'
       };
     }
-    return { tipo: 'envio', rotulo: 'Na agência, aguardando coleta do Mercado Livre' };
+    return { tipo: it.type === 'nex' ? 'nex' : 'delivery', volume, rotulo: 'Na agência, aguardando coleta do Mercado Livre' };
+  }
+
+  // Acumulado oficial da quinzena (tela "Recebimento estimado") e faturas da quinzena
+  // já fechada. Os dados vêm no próprio HTML da página, como JSON.
+  function extrairJson(html, chave) {
+    const i = html.indexOf(`"${chave}":`);
+    if (i < 0) return null;
+    let j = i + chave.length + 3;
+    const ini = j;
+    let nivel = 0; let aspas = false; let esc = false;
+    for (; j < html.length; j += 1) {
+      const c = html[j];
+      if (aspas) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') aspas = false; continue; }
+      if (c === '"') aspas = true;
+      else if (c === '{' || c === '[') nivel += 1;
+      else if (c === '}' || c === ']') { nivel -= 1; if (nivel === 0) { j += 1; break; } }
+    }
+    try { return JSON.parse(html.slice(ini, j)); } catch { return null; }
+  }
+  async function lerFinanceiro() {
+    const pagina = await fetch('/finance', { credentials: 'include' }).then((r) => r.text());
+    const projecao = extrairJson(pagina, 'financeProjection');
+    const id = projecao && projecao.projectionIds && projecao.projectionIds.BIWEEKLY;
+    if (!id || !/^\d+$/.test(String(id))) return null;
+    const est = await fetch(`/finance/${id}/invoice-estimate?biweekly=${id}`, { credentials: 'include' }).then((r) => r.text());
+    const q = extrairJson(est, 'getBiweekly');
+    if (!q || !q.period || !Array.isArray(q.items)) return null;
+    return {
+      de: q.period.from, ate: q.period.to, atualizadoEm: q.updatedAt || null,
+      itens: q.items.map((i) => ({ tipo: String(i.type), quantidade: Number(i.quantity) || 0, total: Number(i.total) || 0 }))
+    };
   }
 
   async function ler() {
@@ -43,7 +77,9 @@
       if (proximo === cursor) break;
       cursor = proximo;
     }
-    return { pacotes: [...pacotes.values()], modo: 'estoque' };
+    let financeiro = null;
+    try { financeiro = await lerFinanceiro(); } catch { /* sem o acumulado: segue só com os pacotes */ }
+    return { pacotes: [...pacotes.values()], modo: 'estoque', financeiro };
   }
 
   goboxAgendar('ml', ler);

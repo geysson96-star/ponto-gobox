@@ -55,3 +55,31 @@ test('Financeiro: conta por mês e quinzena, sem dobrar códigos do mesmo pacote
   assert.equal(f.resumo(db, '2026-10').quantidades.shopee.expedidos, 1);
   assert.throws(() => f.resumo(db, '2026-13'));
 });
+
+test('Financeiro: Mercado Livre usa o acumulado oficial e soma o estimado do dia', () => {
+  const db = openDb(':memory:');
+  f.salvarOficialMl(db, {
+    de: '2026-11-01T00:00:00Z', ate: '2026-11-15T00:00:00Z', atualizadoEm: '2026-11-04',
+    itens: [{ tipo: 'rtn', quantidade: 4, total: 2.6 }, { tipo: 'nex_car', quantidade: 7, total: 70 },
+      { tipo: 'pickup', quantidade: 116, total: 75.4 }, { tipo: 'dc', quantidade: 227, total: 590.2 },
+      { tipo: 'total', quantidade: 354, total: 738.2 }]
+  });
+  const ins = db.prepare(`INSERT INTO packages (source, code, active, first_seen_at, last_updated_at, tipo, volume, recebido_em)
+                          VALUES ('ml', ?, 1, ?, ?, ?, ?, ?)`);
+  const t = '2026-11-04T12:00:00.000Z';
+  ins.run('A1', t, t, 'delivery', 'shipment', '2026-11-04T13:00:00.000Z'); // hoje: estimado
+  ins.run('A2', t, t, 'retirada', 'shipment', '2026-11-04T14:00:00.000Z'); // hoje: estimado
+  ins.run('A3', t, t, 'delivery', 'bag', '2026-11-04T14:30:00.000Z');      // saca: só controle
+  ins.run('A4', t, t, 'nex', 'shipment', '2026-11-04T15:00:00.000Z');      // NEx: pago por rota
+  ins.run('A5', t, t, 'delivery', 'shipment', '2026-11-03T20:00:00.000Z'); // ontem: já no oficial
+  const r = f.resumo(db, '2026-11');
+  const q1 = r.ml.q1;
+  assert.equal(q1.fonte, 'oficial');
+  assert.equal(q1.estimadoDia.delivery, 1);
+  assert.equal(q1.estimadoDia.pickup, 1);
+  assert.equal(q1.estimadoDia.sacas, 1);
+  assert.equal(q1.estimadoDia.valor, 3.25);
+  assert.equal(q1.total, 741.45); // 738,20 + 2,60 + 0,65
+  assert.equal(q1.quantidades.delivery, 228);
+  assert.equal(r.ml.q2.fonte, 'contagem');
+});

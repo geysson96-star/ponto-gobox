@@ -30,7 +30,7 @@
       ['retiradas', 'Retiradas do comprador', 'Retiradas feitas no mês. Mesmas faixas, contadas à parte.'],
       ['devolucoes', 'Devoluções do comprador', 'R$ 0,80 cada. O portal não mostra: lance em Ajuste.']],
     ml: [['delivery', 'Delivery', 'R$ 2,60 por pacote'], ['pickup', 'Pick Up', 'R$ 0,65 por pacote'],
-      ['falhas', 'Falhas de entrega', 'R$ 0,65 cada. Lance em Ajuste.'], ['nex', 'NEx', 'R$ 10,00 por rota. Lance em Ajuste.']],
+      ['falhas', 'Falhas de entrega', 'R$ 0,65 cada'], ['nex', 'NEx', 'R$ 10,00 por rota']],
     correios: [['pacotes', 'Pacotes', 'R$ 1,20 por pacote']]
   };
   const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
@@ -64,9 +64,18 @@
     if (fonte === 'ml') return dados.ml[quinzena].itens[item];
     return dados.correios.total;
   }
+  function textoBase(fonte, item, quinzena) {
+    if (fonte === 'ml' && dados.ml[quinzena].fonte === 'oficial') {
+      const q = dados.ml[quinzena];
+      const est = item === 'delivery' ? q.estimadoDia.delivery : item === 'pickup' ? q.estimadoDia.pickup : 0;
+      const of = q.quantidades[item] - est - dados.ajustes.ml[quinzena][item];
+      return est ? `Oficial ${num(of)} + hoje ${num(est)}` : `Oficial ${num(of)}`;
+    }
+    const auto = fonte === 'ml' ? dados.automatico.ml[quinzena][item] : dados.automatico[fonte][item];
+    return `Automático ${num(auto)}`;
+  }
   function campoAjuste(fonte, item, quinzena) {
     const a = fonte === 'ml' ? dados.ajustes.ml[quinzena][item] : dados.ajustes[fonte][item];
-    const auto = fonte === 'ml' ? dados.automatico.ml[quinzena][item] : dados.automatico[fonte][item];
     const id = `fin-aj-${fonte}-${quinzena || 'm'}-${item}`;
     const input = el('input', { id, type: 'number', step: '1', inputmode: 'numeric', value: String(a), 'aria-label': 'Ajuste' });
     input.dataset.fonte = fonte; input.dataset.item = item; if (quinzena) input.dataset.q = quinzena;
@@ -74,7 +83,7 @@
     input.addEventListener('blur', () => { editando = false; });
     input.addEventListener('change', salvarAjustes);
     return el('div', { class: 'fin-ajuste' },
-      el('span', { class: 'nota' }, `Automático ${num(auto)}`),
+      el('span', { class: 'nota' }, textoBase(fonte, item, quinzena)),
       el('label', { for: id }, 'Ajuste'), input);
   }
   function linha(fonte, [item, nome, desc], quinzena) {
@@ -113,9 +122,22 @@
   }
   function cartaoMl() {
     const qa = dados.mes === dados.mesAtual ? dados.quinzenaAtual : 'q2';
+    const dataBr = (iso) => new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const origem = (q) => {
+      const m = dados.ml[q];
+      if (m.fonte !== 'oficial') return el('p', { class: 'nota fin-origem' }, 'Sem o acumulado oficial desta quinzena: valor contado pelos pacotes que chegaram.');
+      const e = m.estimadoDia;
+      const partes = [`${num(e.delivery)} Delivery`, `${num(e.pickup)} Pick Up`];
+      if (e.sacas) partes.push(`${num(e.sacas)} ${e.sacas === 1 ? 'saca' : 'sacas'}`);
+      return el('div', { class: 'fin-origem' },
+        el('div', {}, el('span', {}, 'Oficial do Mercado Livre'), el('strong', {}, brl(m.oficial.total))),
+        el('div', {}, el('span', {}, `Estimado desde ${dataBr(e.desde)} · ${partes.join(' · ')}`), el('strong', {}, `+${brl(e.valor)}`)),
+        el('p', { class: 'nota' }, `Lido do portal em ${dataBr(m.oficial.lidoEm)}.${e.sacas ? ' Sacas aparecem para controle; os pacotes delas entram quando forem lidos no estoque.' : ''}`));
+    };
     const blocos = [['q1', `1 a 15`], ['q2', `16 a ${dados.ultimoDia}`]].map(([q, rot]) =>
       el('details', { class: 'fin-quinzena', open: q === qa },
         el('summary', {}, el('span', {}, `Quinzena ${rot}`), el('strong', {}, brl(dados.ml[q].total))),
+        origem(q),
         ITENS.ml.map((i) => linha('ml', i, q))));
     return el('article', { class: 'fin-cartao' },
       el('div', { class: 'fin-cartao-topo' },
@@ -161,7 +183,7 @@
     }).join(' · ');
     $('#fin-regras').replaceChildren(
       el('p', {}, el('strong', {}, 'Shopee. '), `Conta o que saiu no mês: total expedido (menos devoluções) e retiradas feitas, cada um pela tabela de faixas: ${faixas}. Devoluções ${brl(v.devolucaoShopee)} cada. A medalha soma um percentual e um bônus fixo ao total.`),
-      el('p', {}, el('strong', {}, 'Mercado Livre. '), `Delivery ${brl(v.ml.delivery)}, Pick Up ${brl(v.ml.pickup)}, falhas ${brl(v.ml.falhas)}, NEx ${brl(v.ml.nex)} por rota. Fecha por quinzena. O site conta Pick Up (retiradas) e Delivery (os demais pacotes) automaticamente.`),
+      el('p', {}, el('strong', {}, 'Mercado Livre. '), `Delivery ${brl(v.ml.delivery)}, Pick Up ${brl(v.ml.pickup)}, falhas ${brl(v.ml.falhas)}, NEx ${brl(v.ml.nex)} por rota. Fecha por quinzena. O painel usa o acumulado oficial da tela “Recebimento estimado” (lido pela extensão) e soma o estimado do que chegou depois da última atualização. Sem o oficial, conta os pacotes que chegaram.`),
       el('p', {}, el('strong', {}, 'Correios. '), `${brl(v.correios)} por pacote.`),
       el('p', { class: 'nota' }, 'Ajuste soma ou subtrai da contagem automática. Use para lançar o que o portal não mostra, ou para igualar ao número oficial da empresa.'));
   }

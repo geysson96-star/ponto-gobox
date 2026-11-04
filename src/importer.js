@@ -104,6 +104,7 @@ function limparDetalhes(json) {
     situacao: SITUACOES.has(d.situacao) ? d.situacao : null,
     rotulo: txt(d.rotulo, 80),
     tipo: txt(d.tipo, 30),
+    volume: txt(d.volume, 20),
     recebidoEm: data(d.recebidoEm),
     saidaEm: data(d.saidaEm)
   };
@@ -112,7 +113,7 @@ function limparDetalhes(json) {
 // Texto mostrado quando um pacote some da lista de estoque (modo 'estoque').
 function rotuloSaida(tipo) {
   if (tipo === 'retirada') return 'Retirado pelo comprador';
-  if (tipo === 'envio' || tipo === 'drop_off') return 'Coletado pela transportadora';
+  if (tipo === 'envio' || tipo === 'drop_off' || tipo === 'delivery' || tipo === 'nex') return 'Coletado pela transportadora';
   return 'Saiu da agência';
 }
 
@@ -159,8 +160,8 @@ function applyImport(db, importId) {
     // Upsert sem duplicatas: chave única (empresa, código).
     const upsert = db.prepare(
       `INSERT INTO packages (source, code, external_id, active, first_seen_at, last_updated_at, last_seen_import_id,
-                             situacao, rotulo, tipo, recebido_em, saida_em)
-       VALUES (@source, @code, @ext, 1, @ts, @ts, @imp, @situacao, @rotulo, @tipo, @recebido, @saida)
+                             situacao, rotulo, tipo, recebido_em, saida_em, volume)
+       VALUES (@source, @code, @ext, 1, @ts, @ts, @imp, @situacao, @rotulo, @tipo, @recebido, @saida, @volume)
        ON CONFLICT(source, code) DO UPDATE SET
          external_id = COALESCE(excluded.external_id, packages.external_id),
          active = 1,
@@ -169,6 +170,7 @@ function applyImport(db, importId) {
          situacao = COALESCE(excluded.situacao, 'na_agencia'),
          rotulo = excluded.rotulo,
          tipo = COALESCE(excluded.tipo, packages.tipo),
+         volume = COALESCE(excluded.volume, packages.volume),
          recebido_em = COALESCE(excluded.recebido_em, packages.recebido_em),
          saida_em = excluded.saida_em`
     );
@@ -178,7 +180,7 @@ function applyImport(db, importId) {
       upsert.run({
         source: imp.source, code: r.code, ext: r.external_id, ts, imp: importId,
         situacao: d.situacao || 'na_agencia', rotulo: d.rotulo || null, tipo: d.tipo || null,
-        recebido: d.recebidoEm || null, saida: d.saidaEm || null
+        recebido: d.recebidoEm || null, saida: d.saidaEm || null, volume: d.volume || null
       });
     }
 
