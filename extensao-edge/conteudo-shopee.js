@@ -80,14 +80,17 @@
       if (c) pacotes.set(c, { codigo: c, ...dados });
     };
 
-    // Drop-off na agência (últimos 30 dias) e enviados recentes (últimos 3 dias).
+    // Drop-off na agência (últimos 30 dias) e enviados (últimos 35 dias, para o
+    // painel financeiro contar o mês inteiro mesmo se o banco do site recomeçar).
     const naAgencia = await listar('dropoff', 30, '2,5,6');
-    const enviados = await listar('dropoff', 3, '3');
+    const enviados = await listar('dropoff', 35, '3');
     for (const it of [...enviados, ...naAgencia]) {
       const st = Number(it.status);
       const dados = st === 3
         ? { situacao: 'enviado', rotulo: 'Coletado pela Shopee', tipo: 'drop_off', recebidoEm: seg(it.inbound_time), saidaEm: seg(it.outbound_time) }
         : { situacao: 'na_agencia', rotulo: 'Na agência, aguardando coleta da Shopee', tipo: 'drop_off', recebidoEm: seg(it.inbound_time), saidaEm: null };
+      // O mesmo pacote pode ser guardado com dois códigos; idFonte junta os dois.
+      dados.idFonte = String(it.shipment_id || it.scan_tracking_number || '') || null;
       guardar(it.shipment_id || it.scan_tracking_number, dados);
       if (it.scan_tracking_number && it.scan_tracking_number !== it.shipment_id) guardar(it.scan_tracking_number, dados);
     }
@@ -98,7 +101,8 @@
       const dados = {
         situacao, rotulo, tipo: 'retirada',
         recebidoEm: seg(it.inbound_time),
-        saidaEm: situacao === 'retirado' || situacao === 'enviado' ? seg(it.outbound_time) : null
+        saidaEm: situacao === 'retirado' || situacao === 'enviado' ? seg(it.outbound_time) : null,
+        idFonte: String(it.shipment_id || it.scan_tracking_number || '') || null
       };
       guardar(it.shipment_id || it.scan_tracking_number, dados);
       if (it.scan_tracking_number && it.scan_tracking_number !== it.shipment_id) guardar(it.scan_tracking_number, dados);

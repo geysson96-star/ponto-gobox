@@ -14,6 +14,7 @@ const {
 const extensao = require('./extensao');
 const { processAll } = require('./inbox');
 const auth = require('./auth');
+const financeiro = require('./financeiro');
 
 function createApp({ config, db, robo = null }) {
   const app = express();
@@ -93,7 +94,8 @@ function createApp({ config, db, robo = null }) {
         if (item && typeof item === 'object') {
           codigos.set(n, {
             situacao: item.situacao, rotulo: item.rotulo, tipo: item.tipo,
-            recebidoEm: item.recebidoEm, saidaEm: item.saidaEm
+            recebidoEm: item.recebidoEm, saidaEm: item.saidaEm,
+            idFonte: typeof item.idFonte === 'string' && item.idFonte.length <= 64 ? item.idFonte : null
           });
         } else {
           codigos.set(n, null);
@@ -194,6 +196,26 @@ function createApp({ config, db, robo = null }) {
   admin.get('/me', (req, res) => res.json({ autenticado: auth.isAuthenticated(db, req) }));
 
   const requireAdmin = auth.requireAdmin(db);
+
+  // ---------- Financeiro ----------
+  admin.get('/financeiro', requireAdmin, (req, res) => {
+    try { res.json(financeiro.resumo(db, req.query.mes ? String(req.query.mes) : undefined)); }
+    catch (e) { res.status(400).json({ erro: e.message }); }
+  });
+  admin.put('/financeiro/:mes/ajustes', requireAdmin, (req, res) => {
+    try {
+      financeiro.resumo(db, req.params.mes); // valida o mês
+      financeiro.salvarAjustes(db, req.params.mes, req.body || {});
+      res.json(financeiro.resumo(db, req.params.mes));
+    } catch (e) { res.status(400).json({ erro: e.message }); }
+  });
+  admin.put('/financeiro/:mes/medalha', requireAdmin, (req, res) => {
+    try {
+      financeiro.resumo(db, req.params.mes);
+      financeiro.salvarMedalha(db, req.params.mes, req.body || {});
+      res.json(financeiro.resumo(db, req.params.mes));
+    } catch (e) { res.status(400).json({ erro: e.message }); }
+  });
 
   admin.get('/fontes', requireAdmin, (req, res) => {
     res.json({ fontes: allSourceStatus(db), agora: new Date().toISOString() });

@@ -38,6 +38,7 @@
     </div>
     <div class="menu">
       <button type="button" class="item-menu" data-aba="pacotes" aria-current="page">Pacotes</button>
+      <button type="button" class="item-menu" data-aba="financeiro">Financeiro</button>
       <button type="button" class="item-menu" data-aba="importacoes">Importações</button>
       <button type="button" class="item-menu" data-aba="configuracoes">Configurações</button>
     </div>
@@ -111,6 +112,43 @@
           </div>
         </div>
       </section>
+    </section>
+
+    <!-- Aba Financeiro -->
+    <section id="aba-financeiro" class="aba" hidden>
+      <div class="cabecalho">
+        <div>
+          <h1>Financeiro</h1>
+          <p class="descricao">Quanto a GoBox ganhou no mês com cada empresa. Os pacotes contam no mês em que chegaram na agência. O que os portais não mostram entra em “Ajustes”.</p>
+        </div>
+        <div class="acoes">
+          <label class="campo-mes" for="fin-mes">Mês
+            <select id="fin-mes"></select>
+          </label>
+        </div>
+      </div>
+
+      <section class="fin-total" aria-live="polite">
+        <div>
+          <div class="fin-rotulo">Total do mês, as três empresas</div>
+          <div class="fin-valor" id="fin-total">—</div>
+          <div class="fin-meta" id="fin-meta"></div>
+        </div>
+        <div class="fin-partes" id="fin-partes"></div>
+        <div class="fin-barra" id="fin-barra"></div>
+      </section>
+
+      <div class="fin-cartoes" id="fin-cartoes"></div>
+
+      <section class="tabela-bloco fin-ultimos">
+        <div class="fin-titulo-bloco"><h2>Últimos pacotes contados</h2><span class="nota" id="fin-atualizado"></span></div>
+        <ul id="fin-ultimos" class="fin-lista"></ul>
+      </section>
+
+      <details class="tabela-bloco fin-regras">
+        <summary>Como cada valor é calculado</summary>
+        <div id="fin-regras"></div>
+      </details>
     </section>
 
     <!-- Aba Importações -->
@@ -192,5 +230,6 @@
 </dialog>
 
 <script src="/admin/admin.js"></script>
+<script src="/admin/financeiro.js"></script>
 </body>
 </html>

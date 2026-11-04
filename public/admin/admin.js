@@ -108,6 +108,7 @@
     if (aba === 'pacotes') { carregarRobo(); carregarFontes(); carregarPacotes(); }
     if (aba === 'importacoes') carregarImportacoes();
     if (aba === 'configuracoes') carregarConfiguracoes();
+    if (window.goboxFinanceiro) window.goboxFinanceiro[aba === 'financeiro' ? 'abrir' : 'fechar']();
   }
   for (const b of $$('.item-menu')) b.addEventListener('click', () => trocarAba(b.dataset.aba));
 
