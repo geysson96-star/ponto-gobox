@@ -77,6 +77,18 @@ async function configurarSozinha() {
   } catch { /* sem arquivo: configurar pelo popup */ }
 }
 chrome.runtime.onInstalled.addListener(configurarSozinha);
+
+// Ao instalar ou recarregar a extensão, coloca a versão nova nas abas dos portais
+// que já estavam abertas (sem precisar apertar F5 em cada uma).
+chrome.runtime.onInstalled.addListener(async () => {
+  for (const cs of chrome.runtime.getManifest().content_scripts || []) {
+    let abas = [];
+    try { abas = await chrome.tabs.query({ url: cs.matches }); } catch { continue; }
+    for (const aba of abas) {
+      try { await chrome.scripting.executeScript({ target: { tabId: aba.id }, files: cs.js }); } catch { /* aba sem acesso: segue */ }
+    }
+  }
+});
 chrome.runtime.onStartup.addListener(configurarSozinha);
 configurarSozinha();
 
