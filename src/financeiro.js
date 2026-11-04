@@ -246,7 +246,10 @@ function salvarTotaisShopee(db, d) {
   const expedidos = n(d && d.expedidos);
   const retiradas = n(d && d.retiradas);
   if (!mes || expedidos === null || retiradas === null) throw new Error('Totais da Shopee em formato inesperado.');
-  const reg = { mes, expedidos, retiradas, recebidos: n(d.recebidos), retiradasRecebidas: n(d.retiradasRecebidas), lidoEm: new Date().toISOString() };
+  const reg = {
+    mes, expedidos, retiradas, recebidos: n(d.recebidos), retiradasRecebidas: n(d.retiradasRecebidas),
+    devolucoes: n(d.devolucoes), devolucoesRecebidas: n(d.devolucoesRecebidas), lidoEm: new Date().toISOString()
+  };
   gravar(db, `shopee_portal:${mes}`, reg);
   return reg;
 }
@@ -343,6 +346,7 @@ function resumo(db, mes = mesAtual()) {
   if (portalShopee) {
     auto.shopee.expedidos = portalShopee.expedidos;
     auto.shopee.retiradas = portalShopee.retiradas;
+    if (portalShopee.devolucoes !== null && portalShopee.devolucoes !== undefined) auto.shopee.devolucoes = portalShopee.devolucoes;
   }
   const ajustes = ajustesDoMes(db, mes);
   const q = somar(auto, ajustes);
@@ -354,7 +358,7 @@ function resumo(db, mes = mesAtual()) {
     const qEst = {
       expedidos: Math.max(q.shopee.expedidos, portalShopee.recebidos + ajustes.shopee.expedidos),
       retiradas: Math.max(q.shopee.retiradas, (portalShopee.retiradasRecebidas ?? 0) + ajustes.shopee.retiradas),
-      devolucoes: q.shopee.devolucoes
+      devolucoes: Math.max(q.shopee.devolucoes, (portalShopee.devolucoesRecebidas ?? 0) + ajustes.shopee.devolucoes)
     };
     const calc = calcularShopee(qEst, cfg.medalhas[medalhaId]);
     estimadoShopee = {
@@ -380,7 +384,7 @@ function resumo(db, mes = mesAtual()) {
     mes, ultimoDia, mesAtual: mesAtual(), quinzenaAtual: new Date(Date.now() + FUSO_MS).getUTCDate() <= 15 ? 'q1' : 'q2',
     total: centavos(shopee.total + ml.total + correios.total), pacotes,
     quantidades: q, automatico: auto, ajustes,
-    shopee: { ...shopee, medalha: medalhaId, portal: portalShopee ? { lidoEm: portalShopee.lidoEm } : null },
+    shopee: { ...shopee, medalha: medalhaId, portal: portalShopee ? { lidoEm: portalShopee.lidoEm, devolucoes: portalShopee.devolucoes !== null && portalShopee.devolucoes !== undefined } : null },
     ml, correios,
     medalhas: cfg.medalhas,
     valores: { faixasShopee: FAIXAS_SHOPEE.map(([qtd, v]) => [qtd === Infinity ? null : qtd, v]), devolucaoShopee: DEVOLUCAO_SHOPEE, ml: VALORES_ML, correios: VALOR_CORREIOS },

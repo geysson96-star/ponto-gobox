@@ -106,9 +106,10 @@
   // coletados, status 3) e retiradas feitas (status 6). Uma consulta cada, sem baixar
   // a lista inteira (o portal não devolve mais de 10.000 pacotes por busca).
   // campo: 'outbound' (saída) ou 'inbound' (chegada); status vazio = todos.
-  async function totalDoMes(tipoLista, status, campo = 'outbound') {
+  // extra: filtro adicional, ex. '&tags=3' (etiqueta Return/Refund = devolução do comprador).
+  async function totalDoMes(tipoLista, status, campo = 'outbound', extra = '') {
     const { dia1, agora } = inicioDoMes();
-    const filtro = status ? `&status=${status}` : '';
+    const filtro = (status ? `&status=${status}` : '') + extra;
     const r = await goboxBuscarJson(`/sp-api/point/order/${tipoLista}/list?${campo}_time_start=${dia1}` +
       `&${campo}_time_end=${agora}${filtro}&pageno=1&count=1`);
     if (r.retcode !== 0) throw new ErroPortal(`Shopee: não consegui ler o total do mês (${r.retcode}).`);
@@ -158,7 +159,10 @@
         retiradas: await totalDoMes('collection', 6),
         // Total recebido no mês (qualquer status), para o recebimento estimado.
         recebidos: await totalDoMes('dropoff', '', 'inbound'),
-        retiradasRecebidas: await totalDoMes('collection', '', 'inbound')
+        retiradasRecebidas: await totalDoMes('collection', '', 'inbound'),
+        // Devoluções do comprador: drop-offs com a etiqueta Return/Refund (conta SPX Reverse Logistics).
+        devolucoes: await totalDoMes('dropoff', 3, 'outbound', '&tags=3'),
+        devolucoesRecebidas: await totalDoMes('dropoff', '', 'inbound', '&tags=3')
       };
     } catch { /* sem os totais: o painel conta pela lista */ }
     return { pacotes: [...pacotes.values()], modo: 'eventos', financeiro };

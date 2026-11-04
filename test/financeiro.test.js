@@ -124,3 +124,13 @@ test('Financeiro: recebimento estimado da Shopee pelo total recebido, com chave'
   assert.equal(r.shopee.total, 336);
   assert.equal(r.shopee.estimado.incluido, false);
 });
+
+test('Financeiro: devoluções da Shopee vêm do portal e são descontadas do expedido', () => {
+  const db = openDb(':memory:');
+  f.salvarTotaisShopee(db, { mes: '2026-11', expedidos: 600, retiradas: 0, recebidos: 600, retiradasRecebidas: 0, devolucoes: 100, devolucoesRecebidas: 100 });
+  const r = f.resumo(db, '2026-11');
+  assert.equal(r.quantidades.shopee.devolucoes, 100);
+  // (600 - 100) x 0,70 + 100 x 0,80 = 430
+  assert.equal(r.shopee.pago, 430);
+  assert.equal(r.shopee.portal.devolucoes, true);
+});

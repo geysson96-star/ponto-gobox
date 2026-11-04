@@ -28,7 +28,7 @@
   const ITENS = {
     shopee: [['expedidos', 'Total expedido', 'Drop-offs coletados pela Shopee no mês. Faixas por quantidade.'],
       ['retiradas', 'Retiradas do comprador', 'Retiradas feitas no mês. Mesmas faixas, contadas à parte.'],
-      ['devolucoes', 'Devoluções do comprador', 'R$ 0,80 cada. O portal não mostra: lance em Ajuste.']],
+      ['devolucoes', 'Devoluções do comprador', 'Etiqueta Return/Refund. R$ 0,80 cada, descontadas do total expedido.']],
     ml: [['delivery', 'Delivery', 'R$ 2,60 por pacote'], ['pickup', 'Pick Up', 'R$ 0,65 por pacote'],
       ['falhas', 'Falhas de entrega', 'R$ 0,65 cada'], ['nex', 'NEx', 'R$ 10,00 por rota']],
     correios: [['pacotes', 'Pacotes', 'R$ 1,20 por pacote']]
@@ -72,7 +72,7 @@
       return est ? `Oficial ${num(of)} + hoje ${num(est)}` : `Oficial ${num(of)}`;
     }
     const auto = fonte === 'ml' ? dados.automatico.ml[quinzena][item] : dados.automatico[fonte][item];
-    if (fonte === 'shopee' && dados.shopee.portal && item !== 'devolucoes') return `Portal ${num(auto)}`;
+    if (fonte === 'shopee' && dados.shopee.portal && (item !== 'devolucoes' || dados.shopee.portal.devolucoes)) return `Portal ${num(auto)}`;
     return `Automático ${num(auto)}`;
   }
   function campoAjuste(fonte, item, quinzena) {
