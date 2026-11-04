@@ -35,7 +35,11 @@ else onAuthStateChanged(auth, async user => {
   if (S.settingUp) return; // durante o primeiro acesso, quem decide é o formulário
   S.unsub.forEach(u => u()); S.unsub = [];
   Object.values(S.escSubs).forEach(u => u()); S.escSubs = {}; S.escalas = {};
-  if (!user) return renderLogin();
+  if (!user) {
+    // Dentro do painel da GoBox: entra sozinho com o acesso guardado no servidor.
+    if (await entrarAutomatico()) return;
+    return renderLogin();
+  }
   let me = null;
   try { const u = await getDoc(doc(db, "usuarios", user.uid)); me = u.exists() ? u.data() : null; } catch {}
   if (!me || me.role !== "admin") {
@@ -45,6 +49,20 @@ else onAuthStateChanged(auth, async user => {
   S.me = { uid: user.uid, email: user.email, ...me };
   renderShell(); startData();
 });
+
+let tentouAutomatico = false;
+async function entrarAutomatico() {
+  if (tentouAutomatico || window.self === window.top) return false;
+  tentouAutomatico = true;
+  try {
+    const r = await fetch("/admin/api/ponto/acesso", { credentials: "same-origin", cache: "no-store" });
+    if (!r.ok) return false;
+    const { email, senha } = await r.json();
+    if (!email || !senha) return false;
+    await signInWithEmailAndPassword(auth, email, senha); // onAuthStateChanged segue daqui
+    return true;
+  } catch { return false; }
+}
 
 async function renderLogin(msg = "") {
   let precisaSetup = false;

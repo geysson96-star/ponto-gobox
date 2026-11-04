@@ -227,6 +227,15 @@ function createApp({ config, db, robo = null }) {
 
   const requireAdmin = auth.requireAdmin(db);
 
+  // ---------- Ponto (aba do painel) ----------
+  // Entrega o acesso do Ponto GoBox só para quem já entrou no painel, para a aba
+  // Ponto fazer o login no Firebase sozinha. Configurado no servidor (PONTO_EMAIL e PONTO_SENHA).
+  admin.get('/ponto/acesso', requireAdmin, (req, res) => {
+    if (!config.PONTO_EMAIL || !config.PONTO_SENHA) return res.status(404).json({ erro: 'Acesso do ponto não configurado no servidor.' });
+    res.set('Cache-Control', 'no-store');
+    res.json({ email: config.PONTO_EMAIL, senha: config.PONTO_SENHA });
+  });
+
   // ---------- Financeiro ----------
   admin.get('/financeiro', requireAdmin, (req, res) => {
     try { res.json(financeiro.resumo(db, req.query.mes ? String(req.query.mes) : undefined)); }

@@ -46,6 +46,9 @@ module.exports = {
   INBOX_DIR: path.resolve(ROOT, process.env.INBOX_DIR || path.join(DATA_DIR, 'entrada')),
   ADMIN_USER: process.env.ADMIN_USER || '',
   ADMIN_PASSWORD_HASH: process.env.ADMIN_PASSWORD_HASH || '',
+  // Acesso de administrador do Ponto GoBox (Firebase), para a aba Ponto entrar sozinha.
+  PONTO_EMAIL: process.env.PONTO_EMAIL || '',
+  PONTO_SENHA: process.env.PONTO_SENHA || '',
   SESSION_HOURS: int('SESSION_HOURS', 12),
   COOKIE_SECURE: bool('COOKIE_SECURE', NODE_ENV === 'production'),
   TRUST_PROXY: bool('TRUST_PROXY', false),

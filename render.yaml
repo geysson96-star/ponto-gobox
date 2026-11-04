@@ -25,3 +25,7 @@ services:
         sync: false
       - key: EXTENSAO_CHAVE
         sync: false
+      - key: PONTO_EMAIL
+        sync: false
+      - key: PONTO_SENHA
+        sync: false
