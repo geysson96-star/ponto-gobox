@@ -31,7 +31,7 @@ test('envio misto (1 delivery + 4 next) gera um aviso para cada grupo, uma únic
   db.close();
 });
 
-test('cada grupo tem a própria numeração do dia', () => {
+test('o primeiro envio do dia é M1 e os seguintes são M2, em todos os grupos', () => {
   const db = banco();
   sacas.registrar(db, [
     { numero: '078', status: 'a_caminho', dia: DIA, entregar: 1, extra: 4 },
@@ -182,6 +182,43 @@ test('reenviar as mensagens de hoje: uma por grupo de cada envio recebido, sem d
   db.close();
 });
 
+test('regra do dia de hoje: #078 é M1; #095 e #929 são M2 (M2 não vira M3)', () => {
+  const db = banco();
+  sacas.salvarConfig(db, { ativo: true });
+  sacas.registrar(db, [
+    { numero: '078', status: 'a_caminho', dia: DIA, entregar: 1, extra: 4, caminhoEm: ISO('06:24') },
+    { numero: '095', status: 'a_caminho', dia: DIA, entregar: 0, extra: 6, caminhoEm: ISO('08:14') },
+    { numero: '929', status: 'a_caminho', dia: DIA, entregar: 1, extra: 0, caminhoEm: ISO('08:36') }
+  ], { agora: T('07:00') });
+  sacas.registrar(db, [{ numero: '078', status: 'recebido', dia: DIA, entregar: 1, extra: 4 }], { agora: T('07:30') });
+  sacas.registrar(db, [{ numero: '095', status: 'recebido', dia: DIA, entregar: 0, extra: 6 }], { agora: T('12:09') });
+  sacas.registrar(db, [{ numero: '929', status: 'recebido', dia: DIA, entregar: 1, extra: 0 }], { agora: T('12:40') });
+  const saida = [];
+  for (let a = sacas.reservarProximo(db, { agora: T('12:41') }); a; a = sacas.reservarProximo(db, { agora: T('12:41') })) {
+    saida.push([a.numero, a.grupo, a.onda, a.texto.split('\n')[0], a.texto.split('\n').pop()]);
+  }
+  assert.deepEqual(saida, [
+    ['078', 'delivery', 'M1', '📦 *DELIVERY — SACAS CHEGARAM (M1)*', '🛵 1 saca para entregar'],
+    ['078', 'nex', 'M1', '⚡ *NEXT — SACAS CHEGARAM (M1)*', '⚡ 4 sacas Next (Mercado Envios Extra)'],
+    ['095', 'nex', 'M2', '⚡ *NEXT — SACAS CHEGARAM (M2)*', '⚡ 6 sacas Next (Mercado Envios Extra)'],
+    ['929', 'delivery', 'M2', '📦 *DELIVERY — SACAS CHEGARAM (M2)*', '🛵 1 saca para entregar']
+  ]);
+  db.close();
+});
+
+test('envios antigos sem onda salva: M1 é o que chegou primeiro', () => {
+  const db = banco();
+  const dados = { config: { ...sacas.PADRAO }, avisos: [], envios: {
+    [`${DIA}#078`]: { chave: `${DIA}#078`, numero: '078', dia: DIA, status: 'recebido', entregar: 1, extra: 4, caminhoEm: ISO('06:24'), ondas: { delivery: 'M1', nex: 'M1' } },
+    [`${DIA}#095`]: { chave: `${DIA}#095`, numero: '095', dia: DIA, status: 'recebido', entregar: 0, extra: 6, caminhoEm: ISO('08:14'), recebidoEm: ISO('12:09'), ondas: { nex: 'M2' } },
+    [`${DIA}#929`]: { chave: `${DIA}#929`, numero: '929', dia: DIA, status: 'recebido', entregar: 1, extra: 0, caminhoEm: ISO('08:36'), ondas: { delivery: 'M2' } }
+  } };
+  db.prepare("INSERT OR REPLACE INTO settings (source, json) VALUES ('__sacas', ?)").run(JSON.stringify(dados));
+  const ondas = Object.fromEntries(sacas.resumo(db, { agora: T('12:50') }).envios.map((e) => [e.numero, e.onda]));
+  assert.deepEqual(ondas, { '078': 'M1', '095': 'M2', '929': 'M2' });
+  db.close();
+});
+
 test('texto da mensagem de cada grupo', () => {
   const e = {
     numero: '078', recebidoEm: ISO('07:10'), sacas: 5, entregar: 1, extra: 4, paradas: 49, pacotes: 69,
@@ -191,7 +228,7 @@ test('texto da mensagem de cada grupo', () => {
     '📦 *DELIVERY — SACAS CHEGARAM (M1)*',
     'Envio #078 · recebido às 07:10',
     '',
-    '🛵 1 saca · 69 pacotes · 49 paradas',
+    '🛵 1 saca para entregar · 69 pacotes · 49 paradas',
     '• Zona 01: 3 pacotes (2 paradas)',
     '• Sem zona: 14 pacotes (12 paradas)'
   ].join('\n'));
@@ -199,7 +236,7 @@ test('texto da mensagem de cada grupo', () => {
     '⚡ *NEXT — SACAS CHEGARAM (M1)*',
     'Envio #078 · recebido às 07:10',
     '',
-    '⚡ 4 sacas de Mercado Envios Extra'
+    '⚡ 4 sacas Next (Mercado Envios Extra)'
   ].join('\n'));
 });
 

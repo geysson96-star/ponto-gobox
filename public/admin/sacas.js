@@ -79,7 +79,7 @@
       el('div', { class: 'sac-envio-topo' },
         el('span', { class: 'sac-envio-num' }, `Envio #${e.numero}`),
         el('span', { class: 'sac-selos' },
-          Object.entries(e.ondas || {}).map(([g, o]) => el('span', { class: 'sac-selo onda' }, `${g === 'nex' ? 'Next' : 'Delivery'} ${o}`)),
+          e.onda ? el('span', { class: 'sac-selo onda' }, e.onda) : null,
           el('span', { class: `sac-selo ${e.status === 'recebido' ? 'recebido' : ''}` }, STATUS[e.status] || e.status))),
       el('div', { class: 'sac-numeros' }, numeros.map((n) => el('span', {}, n))),
       (e.previas || []).map((p) => el('div', { class: 'sac-previa-bloco' },
@@ -110,7 +110,7 @@
     }
     return el('li', { class: 'sac-aviso' },
       el('div', { class: 'sac-aviso-topo' },
-        el('strong', {}, `${a.grupoRotulo} · ${a.tipo === 'caminho' ? 'A caminho' : 'Chegada'} · Envio #${a.numero || '?'}${a.onda && a.tipo === 'chegada' ? ` · ${a.onda}` : ''}`),
+        el('strong', {}, `${a.grupoRotulo} · ${a.tipo === 'caminho' ? 'A caminho' : 'Chegada'} · Envio #${a.numero || '?'}${a.onda ? ` · ${a.onda}` : ''}`),
         el('span', { class: 'nota' }, `${SITUACAO[a.situacao] || a.situacao} · ${quando(a.enviadoEm || a.criadoEm)}`),
         acoes),
       a.erro ? el('span', { class: 'mensagem-erro' }, a.erro) : null,

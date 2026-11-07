@@ -7,7 +7,7 @@
 //  - guarda cada envio pelo número (atualizar a página várias vezes não repete nada);
 //  - percebe quando um envio passa a "recebido" e cria UM aviso para o grupo dos entregadores;
 //  - separa por tipo: Delivery (para entregar) e Next (Mercado Envios Extra), cada um no seu grupo;
-//  - numera as ondas do dia de cada grupo pela ordem de chegada: M1, M2, M3...;
+//  - o primeiro envio que chega no dia é a M1; os que chegam depois são M2;
 //  - entrega os avisos prontos ao n8n, que manda no WhatsApp e confirma o envio.
 //
 // Tudo fica na tabela settings (chave "__sacas"), que o site já copia para o Firebase:
@@ -99,7 +99,7 @@ function linhaDelivery(e, config) {
   const extras = [];
   if (e.pacotes !== null) extras.push(plural(e.pacotes, 'pacote', 'pacotes'));
   if (e.paradas !== null) extras.push(plural(e.paradas, 'parada', 'paradas'));
-  const out = [`🛵 ${plural(e.entregar, 'saca', 'sacas')}${extras.length ? ` · ${extras.join(' · ')}` : ''}`];
+  const out = [`🛵 ${plural(e.entregar, 'saca', 'sacas')} para entregar${extras.length ? ` · ${extras.join(' · ')}` : ''}`];
   if (config.zonas && e.zonas) {
     for (const z of e.zonas) {
       out.push(`• ${zonaNome(z.nome)}: ${plural(z.pacotes, 'pacote', 'pacotes')}${z.paradas !== null ? ` (${plural(z.paradas, 'parada', 'paradas')})` : ''}`);
@@ -123,7 +123,7 @@ function montarTexto(e, tipo, grupo, config, onda) {
   }
   linhas.push('');
   if (grupo === 'delivery') linhas.push(...linhaDelivery(e, config));
-  else if (grupo === 'nex') linhas.push(`⚡ ${plural(e.extra, 'saca', 'sacas')} de Mercado Envios Extra`);
+  else if (grupo === 'nex') linhas.push(`⚡ ${plural(e.extra, 'saca', 'sacas')} Next (Mercado Envios Extra)`);
   else if (e.sacas !== null) linhas.push(`*Total: ${plural(e.sacas, 'saca', 'sacas')}*`);
   return linhas.join('\n');
 }
@@ -137,13 +137,19 @@ function gruposDo(e) {
   return Object.keys(GRUPOS).filter((g) => (e[GRUPOS[g].campo] || 0) > 0);
 }
 
+// Onda do envio no dia: o primeiro envio que chega é a M1; todos os que chegam depois são M2.
+// (A onda é do envio; cada grupo recebe a parte dele com a mesma onda.)
+const chegadaDe = (x) => x.recebidoEm || x.caminhoEm || x.vistoPrimeiro || '';
+function ondaEnvio(dados, e) {
+  if (!e || e.status !== 'recebido') return null;
+  if (e.mOnda) return e.mOnda;
+  const doDia = Object.values(dados.envios).filter((x) => x.dia === e.dia && x.status === 'recebido');
+  if (doDia.some((x) => x.chave !== e.chave && x.mOnda)) return 'M2';
+  const primeiro = doDia.sort((a, b) => String(chegadaDe(a)).localeCompare(String(chegadaDe(b))))[0];
+  return primeiro && primeiro.chave !== e.chave ? 'M2' : 'M1';
+}
 function darOndas(dados, e) {
-  e.ondas = e.ondas || {};
-  for (const g of gruposDo(e)) {
-    if (e.ondas[g]) continue;
-    const n = Object.values(dados.envios).filter((x) => x.dia === e.dia && x.chave !== e.chave && x.ondas && x.ondas[g]).length;
-    e.ondas[g] = `M${n + 1}`;
-  }
+  if (e.status === 'recebido' && !e.mOnda) e.mOnda = ondaEnvio(dados, e);
 }
 
 function criarAviso(dados, e, tipo, grupo, agora, generico = false) {
@@ -267,7 +273,7 @@ function expirarReservas(dados, agora) {
 function comTexto(dados, a) {
   const e = dados.envios[a.envio];
   const grupo = a.grupo || 'delivery';
-  const onda = e && e.ondas ? e.ondas[grupo] || null : null;
+  const onda = ondaEnvio(dados, e);
   return {
     ...a,
     grupo,
@@ -375,9 +381,10 @@ function resumo(db, { agora = Date.now() } = {}) {
       const tipo = e.status === 'recebido' ? 'chegada' : 'caminho';
       const grupos = gruposDo(e);
       const previas = grupos.length
-        ? grupos.map((g) => ({ grupo: g, grupoRotulo: GRUPOS[g].rotulo, texto: montarTexto(e, tipo, g, dados.config, e.ondas && e.ondas[g]) }))
+        ? grupos.map((g) => ({ grupo: g, grupoRotulo: GRUPOS[g].rotulo, texto: montarTexto(e, tipo, g, dados.config, ondaEnvio(dados, e)) }))
         : [{ grupo: null, grupoRotulo: 'nenhum ainda', texto: 'Aguardando a extensão informar quantas sacas são Delivery e quantas são Next. Nada é enviado até lá.' }];
-      return { ...e, hoje: e.dia === hoje, previas };
+      const onda = ondaEnvio(dados, e);
+      return { ...e, onda, ondas: Object.fromEntries(grupos.map((g) => [g, onda]).filter(([, o]) => o)), hoje: e.dia === hoje, previas };
     });
   return {
     config: dados.config,
