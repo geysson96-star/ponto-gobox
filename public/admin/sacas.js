@@ -98,7 +98,7 @@
 
   function linhaAviso(a) {
     const acoes = [];
-    if (a.situacao === 'falhou' || a.situacao === 'enviado') {
+    if (!a.generico && (a.situacao === 'falhou' || a.situacao === 'enviado')) {
       acoes.push(el('button', {
         type: 'button', class: 'botao-texto',
         onclick: async () => {
@@ -110,7 +110,7 @@
     }
     return el('li', { class: 'sac-aviso' },
       el('div', { class: 'sac-aviso-topo' },
-        el('strong', {}, `${a.grupoRotulo} · ${a.tipo === 'caminho' ? 'A caminho' : 'Chegada'} · Envio #${a.numero || '?'}${a.onda ? ` · ${a.onda}` : ''}`),
+        el('strong', {}, `${a.generico ? 'Antigo (geral) · ' : ''}${a.grupoRotulo} · ${a.tipo === 'caminho' ? 'A caminho' : 'Chegada'} · Envio #${a.numero || '?'}${a.onda ? ` · ${a.onda}` : ''}`),
         el('span', { class: 'nota' }, `${SITUACAO[a.situacao] || a.situacao} · ${quando(a.enviadoEm || a.criadoEm)}`),
         acoes),
       a.erro ? el('span', { class: 'mensagem-erro' }, a.erro) : null,

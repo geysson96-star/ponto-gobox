@@ -357,6 +357,7 @@ function reenviar(db, id) {
   const a = dados.avisos.find((x) => x.id === id);
   if (!a) return null;
   if (!dados.config.ativo) throw new Error('Ligue o envio para o grupo antes de reenviar.');
+  if (a.generico) throw new Error('Este é um aviso antigo (mensagem geral, sem separar Delivery e Next). Use "Enviar agora" no envio.');
   a.situacao = 'pendente'; a.erro = null; a.enviadoEm = null; delete a.reservadoEm;
   gravar(db, dados);
   return comTexto(dados, a);
