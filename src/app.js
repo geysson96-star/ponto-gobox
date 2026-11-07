@@ -288,6 +288,13 @@ function createApp({ config, db, robo = null }) {
   // ---------- Sacas ----------
   admin.get('/sacas', requireAdmin, (req, res) => res.json(sacas.resumo(db)));
   admin.put('/sacas/config', requireAdmin, (req, res) => res.json({ config: sacas.salvarConfig(db, req.body || {}) }));
+  admin.post('/sacas/enviar', requireAdmin, (req, res) => {
+    const b = req.body || {};
+    try { res.json(sacas.enviarAgora(db, String(b.envio || ''), String(b.grupo || ''))); } catch (e) { res.status(409).json({ erro: e.message }); }
+  });
+  admin.post('/sacas/reenviar-hoje', requireAdmin, (req, res) => {
+    try { res.json(sacas.reenviarHoje(db)); } catch (e) { res.status(409).json({ erro: e.message }); }
+  });
   admin.post('/sacas/avisos/:id/reenviar', requireAdmin, (req, res) => {
     try {
       const a = sacas.reenviar(db, String(req.params.id));

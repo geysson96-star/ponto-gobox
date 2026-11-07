@@ -25,7 +25,7 @@
   const quando = (iso) => (iso ? new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Bahia' }) : '');
   const STATUS = { agendado: 'Agendado', a_caminho: 'A caminho', recebido: 'Recebido' };
   const SITUACAO = {
-    teste: 'Modo teste (não enviado)', pendente: 'Na fila do n8n', enviando: 'Enviando…', enviado: 'Enviado', falhou: 'Falhou'
+    teste: 'Modo teste (não enviado)', pendente: 'Na fila do n8n (sai em até 1 min)', enviando: 'Enviando…', enviado: 'Enviado', falhou: 'Falhou'
   };
 
   let timer = null;
@@ -52,7 +52,17 @@
       chave('sac-zonas', 'Incluir zonas na mensagem', c.zonas, (ev) => salvar({ zonas: ev.target.checked })),
       el('p', { class: 'sac-estado' }, c.ativo
         ? 'Envio ligado: os avisos novos entram na fila e o n8n manda no grupo.'
-        : 'Modo teste: os avisos aparecem abaixo para você conferir, mas nada é enviado.')
+        : 'Modo teste: os avisos aparecem abaixo para você conferir, mas nada é enviado.'),
+      c.ativo ? el('button', {
+        type: 'button', class: 'botao-secundario',
+        onclick: async (ev) => {
+          if (!confirm('Mandar de novo, nos grupos, a mensagem de chegada de cada envio recebido hoje? O n8n manda uma por minuto.')) return;
+          ev.target.disabled = true;
+          try { const r = await api('/sacas/reenviar-hoje', { method: 'POST' }); alert(`${r.novos} mensagem(ns) na fila. O n8n manda uma por minuto.`); } catch (err) { alert(err.message); }
+          ev.target.disabled = false;
+          carregar();
+        }
+      }, 'Reenviar as mensagens de hoje') : null
     );
   }
 
@@ -73,7 +83,16 @@
           el('span', { class: `sac-selo ${e.status === 'recebido' ? 'recebido' : ''}` }, STATUS[e.status] || e.status))),
       el('div', { class: 'sac-numeros' }, numeros.map((n) => el('span', {}, n))),
       (e.previas || []).map((p) => el('div', { class: 'sac-previa-bloco' },
-        el('span', { class: 'nota' }, `Grupo ${p.grupoRotulo}`),
+        el('div', { class: 'sac-previa-topo' },
+          el('span', { class: 'nota' }, `Grupo ${p.grupoRotulo}`),
+          p.grupo && e.status === 'recebido' ? el('button', {
+            type: 'button', class: 'botao-texto',
+            onclick: async () => {
+              if (!confirm(`Mandar agora esta mensagem do envio #${e.numero} no grupo ${p.grupoRotulo}?`)) return;
+              try { await api('/sacas/enviar', { method: 'POST', body: { envio: e.chave, grupo: p.grupo } }); } catch (err) { alert(err.message); }
+              carregar();
+            }
+          }, 'Enviar agora') : null),
         el('pre', { class: 'sac-previa', 'aria-label': `Prévia da mensagem para o grupo ${p.grupoRotulo}` }, p.texto))));
   }
 

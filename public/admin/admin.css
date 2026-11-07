@@ -201,6 +201,8 @@ p.fin-origem { margin: 0; }
 .sac-selo.recebido { background: #E7F6EC; color: var(--ok-texto); }
 .sac-selo.onda { background: var(--azul); color: var(--branco); }
 .sac-selos { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.sac-previa-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.sac-previa-topo .botao-texto { min-height: 32px; padding: 0 6px; font-size: 13px; }
 .sac-previa-bloco { display: flex; flex-direction: column; gap: 4px; }
 .sac-numeros { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; color: var(--texto-2); }
 .sac-previa { white-space: pre-wrap; font-size: 13px; line-height: 1.45; background: #EFF8EC; border-radius: 12px; padding: 12px 14px; margin: 0; font-family: inherit; }

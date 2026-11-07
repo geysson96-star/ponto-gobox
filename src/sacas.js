@@ -147,7 +147,7 @@ function darOndas(dados, e) {
 }
 
 function criarAviso(dados, e, tipo, grupo, agora, generico = false) {
-  if (dados.avisos.some((a) => a.envio === e.chave && a.tipo === tipo && (a.grupo || 'delivery') === grupo)) return null;
+  if (dados.avisos.some((a) => a.envio === e.chave && a.tipo === tipo && !a.generico && (a.grupo || 'delivery') === grupo)) return null;
   const aviso = {
     id: crypto.randomBytes(6).toString('hex'),
     envio: e.chave,
@@ -232,8 +232,10 @@ function registrar(db, lista, { agora = Date.now() } = {}) {
       const recente = antes || (atual.recebidoEm && agora - Date.parse(atual.recebidoEm) <= min(dados.config.janelaMin));
       if (atual.dia === hoje && recente) resumo.novosAvisos += avisarChegada(dados, atual, agora);
       else darOndas(dados, atual); // conta na numeração do dia, sem avisar
-    } else if (atual.status === 'recebido' && atual.aguardaDetalhe) {
-      resumo.novosAvisos += avisarChegada(dados, atual, agora); // o detalhe chegou depois
+    } else if (atual.status === 'recebido' && atual.dia === hoje
+      && (atual.aguardaDetalhe || dados.avisos.some((a) => a.envio === k && a.tipo === 'chegada' && a.generico))) {
+      // O detalhe chegou depois (ou só saiu a mensagem geral): completa os avisos de cada grupo.
+      resumo.novosAvisos += avisarChegada(dados, atual, agora);
     }
     const saiuAgora = dados.config.avisoCaminho && atual.status === 'a_caminho'
       && (!antes || antes.status === 'agendado' || atual.aguardaCaminho);
@@ -299,6 +301,50 @@ function confirmar(db, id, { ok, erro } = {}, { agora = Date.now() } = {}) {
   return comTexto(dados, a);
 }
 
+// Painel: mandar agora a mensagem de chegada de um envio para um grupo (cria um aviso novo).
+function novoAvisoManual(dados, e, grupo, agora) {
+  darOndas(dados, e);
+  const aviso = {
+    id: crypto.randomBytes(6).toString('hex'), envio: e.chave, tipo: e.status === 'recebido' ? 'chegada' : 'caminho',
+    grupo, generico: false, manual: true, situacao: 'pendente',
+    criadoEm: new Date(agora).toISOString(), enviadoEm: null, erro: null
+  };
+  dados.avisos.push(aviso);
+  return aviso;
+}
+
+function enviarAgora(db, chave, grupo, { agora = Date.now() } = {}) {
+  const dados = ler(db);
+  if (!dados.config.ativo) throw new Error('Ligue "Enviar para o grupo" antes.');
+  const e = dados.envios[chave];
+  if (!e) throw new Error('Envio não encontrado.');
+  if (!gruposDo(e).includes(grupo)) throw new Error('Este envio não tem sacas desse tipo.');
+  const a = novoAvisoManual(dados, e, grupo, agora);
+  gravar(db, dados);
+  return comTexto(dados, a);
+}
+
+// Painel: manda de novo a mensagem de chegada de cada envio recebido hoje, em cada grupo.
+function reenviarHoje(db, { agora = Date.now() } = {}) {
+  const dados = ler(db);
+  if (!dados.config.ativo) throw new Error('Ligue "Enviar para o grupo" antes.');
+  const hoje = diaDe(agora);
+  const naFila = (e, g) => dados.avisos.some((a) => a.envio === e.chave && (a.grupo || 'delivery') === g
+    && !a.generico && (a.situacao === 'pendente' || a.situacao === 'enviando'));
+  let n = 0;
+  const envios = Object.values(dados.envios).filter((e) => e.dia === hoje && e.status === 'recebido')
+    .sort((a, b) => String(a.caminhoEm || '9').localeCompare(String(b.caminhoEm || '9')));
+  for (const e of envios) {
+    for (const g of gruposDo(e)) {
+      if (naFila(e, g)) continue;
+      novoAvisoManual(dados, e, g, agora);
+      n += 1;
+    }
+  }
+  gravar(db, dados);
+  return { novos: n };
+}
+
 // Painel: reenviar um aviso (volta para a fila do n8n).
 function reenviar(db, id) {
   const dados = ler(db);
@@ -342,4 +388,4 @@ function resumo(db, { agora = Date.now() } = {}) {
   };
 }
 
-module.exports = { GRUPOS, registrar, reservarProximo, confirmar, reenviar, salvarConfig, resumo, montarTexto, _limpar: limpar, PADRAO };
+module.exports = { GRUPOS, registrar, reservarProximo, confirmar, reenviar, enviarAgora, reenviarHoje, salvarConfig, resumo, montarTexto, _limpar: limpar, PADRAO };

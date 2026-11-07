@@ -152,6 +152,36 @@ test('chegando juntos na mesma leitura, conta primeiro quem saiu primeiro', () =
   db.close();
 });
 
+test('envio que só teve a mensagem geral ganha o aviso do grupo certo quando o detalhe chega', () => {
+  const db = banco();
+  sacas.salvarConfig(db, { ativo: true });
+  const dados = { config: { ...sacas.PADRAO, ativo: true }, envios: { [`${DIA}#095`]: { chave: `${DIA}#095`, numero: '095', dia: DIA, status: 'recebido', sacas: 6, entregar: null, extra: null } },
+    avisos: [{ id: 'x', envio: `${DIA}#095`, tipo: 'chegada', grupo: 'delivery', generico: true, situacao: 'enviado', criadoEm: ISO('09:00') }] };
+  db.prepare("INSERT OR REPLACE INTO settings (source, json) VALUES ('__sacas', ?)").run(JSON.stringify(dados));
+  const r = sacas.registrar(db, [{ numero: '095', status: 'recebido', dia: DIA, entregar: 0, extra: 6 }], { agora: T('10:00') });
+  assert.equal(r.novosAvisos, 1);
+  const a = sacas.reservarProximo(db, { agora: T('10:01') });
+  assert.equal(a.grupo, 'nex');
+  db.close();
+});
+
+test('reenviar as mensagens de hoje: uma por grupo de cada envio recebido, sem duplicar a fila', () => {
+  const db = banco();
+  sacas.registrar(db, [
+    { numero: '078', status: 'recebido', dia: DIA, entregar: 1, extra: 4, caminhoEm: ISO('06:24'), recebidoEm: ISO('05:00') },
+    { numero: '095', status: 'recebido', dia: DIA, entregar: 0, extra: 6, caminhoEm: ISO('08:14'), recebidoEm: ISO('05:00') },
+    { numero: '929', status: 'recebido', dia: DIA, entregar: 1, extra: 0, caminhoEm: ISO('08:36'), recebidoEm: ISO('05:00') }
+  ], { agora: T('12:40') });
+  assert.throws(() => sacas.reenviarHoje(db, { agora: T('12:41') }), /Ligue/);
+  sacas.salvarConfig(db, { ativo: true });
+  assert.equal(sacas.reenviarHoje(db, { agora: T('12:41') }).novos, 4);
+  assert.equal(sacas.reenviarHoje(db, { agora: T('12:41') }).novos, 0, 'não duplica o que está na fila');
+  const grupos = [];
+  for (let i = 0; i < 4; i += 1) { const a = sacas.reservarProximo(db, { agora: T('12:42') }); grupos.push(`${a.numero}:${a.grupo}`); }
+  assert.deepEqual(grupos, ['078:delivery', '078:nex', '095:nex', '929:delivery']);
+  db.close();
+});
+
 test('texto da mensagem de cada grupo', () => {
   const e = {
     numero: '078', recebidoEm: ISO('07:10'), sacas: 5, entregar: 1, extra: 4, paradas: 49, pacotes: 69,
