@@ -16,7 +16,7 @@ Instalar no n8n
    - site: endereço do site (https://gobox-consulta.onrender.com)
    - chave: a mesma chave da extensão do Edge (painel > Configurações > Extensão)
    - whatsappUrl, instancia, whatsappApiKey: os mesmos do robô de atendimento
-     (http://gobox_evolution:8080, instância gobox)
+     (http://gobox_evolution:8080, instância Gobox)
    - grupoDelivery: grupo das sacas para entregar (Delivery - GoBox)
    - grupoNex: grupo das sacas Next / Mercado Envios Extra (Gobox_Entregadores)
      Use o nome como aparece no WhatsApp (basta o começo) ou o ID terminado em @g.us.
