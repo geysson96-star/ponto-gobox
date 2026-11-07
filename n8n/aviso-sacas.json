@@ -58,13 +58,13 @@
             {
               "id": "c6",
               "name": "grupoDelivery",
-              "value": "Delivery - GoBox",
+              "value": "120363429605511103@g.us",
               "type": "string"
             },
             {
               "id": "c7",
               "name": "grupoNex",
-              "value": "Gobox_Entregadores",
+              "value": "120363428476324315@g.us",
               "type": "string"
             }
           ]
@@ -230,8 +230,8 @@
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "={{ $('Configuração').item.json.whatsappUrl }}/group/fetchAllGroups/{{ $('Configuração').item.json.instancia }}?getParticipants=false",
+        "method": "POST",
+        "url": "={{ $('Configuração').item.json.whatsappUrl }}/chat/findChats/{{ $('Configuração').item.json.instancia }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -241,8 +241,11 @@
             }
           ]
         },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"where\": {} }",
         "options": {
-          "timeout": 60000
+          "timeout": 30000
         }
       },
       "id": "a1c0f6f0-0008-4c00-9000-000000000008",
@@ -257,7 +260,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Delivery (sacas para entregar) -> grupo Delivery; Next (Mercado Envios Extra) -> grupo dos entregadores.\n// Acha o grupo pelo nome (ou usa direto se já for um ID terminado em @g.us).\nconst cfg = $('Configuração').first().json;\nconst aviso = $('Buscar próximo aviso').first().json.body;\nconst alvo = String((aviso.grupo === 'nex' ? cfg.grupoNex : cfg.grupoDelivery) || '').trim();\nlet id = alvo.endsWith('@g.us') ? alvo : null;\nif (!id) {\n  const normal = (s) => String(s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().trim();\n  const grupos = $input.all().map((i) => i.json).flat();\n  const achado = grupos.find((g) => normal(g.subject) === normal(alvo)) || grupos.find((g) => normal(g.subject).includes(normal(alvo)));\n  if (!achado) throw new Error(`Grupo \"${alvo}\" não encontrado no WhatsApp conectado.`);\n  id = achado.id;\n}\nreturn [{ json: { number: id, text: aviso.texto } }];"
+        "jsCode": "// Delivery (sacas para entregar) -> grupo Delivery; Next (Mercado Envios Extra) -> grupo dos entregadores.\n// Usa o ID do grupo (terminado em @g.us) ou procura pelo nome nas conversas do WhatsApp.\nconst cfg = $('Configuração').first().json;\nconst aviso = $('Buscar próximo aviso').first().json.body;\nconst alvo = String((aviso.grupo === 'nex' ? cfg.grupoNex : cfg.grupoDelivery) || '').trim();\nlet id = alvo.endsWith('@g.us') ? alvo : null;\nif (!id) {\n  const normal = (s) => String(s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().trim();\n  const grupos = $input.all().map((i) => i.json).flat()\n    .map((c) => ({ id: c.remoteJid || c.id, nome: c.name || c.subject || c.pushName }))\n    .filter((c) => String(c.id || '').endsWith('@g.us'));\n  const achado = grupos.find((g) => normal(g.nome) === normal(alvo)) || grupos.find((g) => normal(g.nome).includes(normal(alvo)));\n  if (!achado) throw new Error(`Grupo \"${alvo}\" não encontrado no WhatsApp conectado.`);\n  id = achado.id;\n}\nreturn [{ json: { number: id, text: aviso.texto } }];"
       },
       "id": "a1c0f6f0-0009-4c00-9000-000000000009",
       "name": "Escolher grupo",
