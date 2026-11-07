@@ -121,24 +121,31 @@
   //   status ON_WAY / RECEIVED; date -> quando saiu (a caminho)
   const STATUS_API = { ON_WAY: 'a_caminho', RECEIVED: 'recebido' };
   let api = null; // { em, envios }
+  // Transforma a resposta do Mercado Livre nos envios do dia.
+  function aplicarInbound(r) {
+    if (!r || !Array.isArray(r.currentShipping)) return false;
+    const envios = [];
+    for (const x of r.currentShipping) {
+      const rota = String(x.routeId || '');
+      if (!/^\d{3,}$/.test(rota)) continue;
+      const entregar = Number(x.quantity) || 0;
+      const extra = Number(x.nexQuantity) || 0;
+      const saiu = x.date && !Number.isNaN(Date.parse(x.date)) ? new Date(x.date).toISOString() : null;
+      const status = STATUS_API[String(x.status || '').toUpperCase()] || 'agendado';
+      envios.push({
+        numero: rota.slice(-3), rota, status, entregar, extra, sacas: entregar + extra,
+        caminhoEm: status !== 'agendado' ? saiu : null
+      });
+    }
+    api = { em: Date.now(), envios };
+    return true;
+  }
+
+  // Busca por conta própria (pode ser recusada pelo portal; aí vale a resposta que a página recebe).
   async function lerApi() {
     try {
       const r = await goboxBuscarJson('/logistics/dist-ops/api/reports/inbound');
-      if (!r || !Array.isArray(r.currentShipping)) throw new Error('formato inesperado');
-      const envios = [];
-      for (const x of r.currentShipping) {
-        const rota = String(x.routeId || '');
-        if (!/^\d{3,}$/.test(rota)) continue;
-        const entregar = Number(x.quantity) || 0;
-        const extra = Number(x.nexQuantity) || 0;
-        const saiu = x.date && !Number.isNaN(Date.parse(x.date)) ? new Date(x.date).toISOString() : null;
-        const status = STATUS_API[String(x.status || '').toUpperCase()] || 'agendado';
-        envios.push({
-          numero: rota.slice(-3), rota, status, entregar, extra, sacas: entregar + extra,
-          caminhoEm: status !== 'agendado' ? saiu : null
-        });
-      }
-      api = { em: Date.now(), envios };
+      if (!aplicarInbound(r)) throw new Error('formato inesperado');
     } catch {
       if (api && Date.now() - api.em > 10 * 60_000) api = null; // volta a ler só a tela
     }
@@ -216,6 +223,8 @@
     try { corpo = JSON.parse(d.texto); } catch { return; }
     let caminho;
     try { const u = new URL(d.url, location.href); caminho = u.origin + u.pathname; } catch { return; }
+    // A própria página buscou os envios do dia: usa essa resposta (é a fonte mais confiável).
+    if (caminho.includes('/logistics/dist-ops/api/reports/inbound') && aplicarInbound(corpo)) ler(true);
     const { amostrasSacas = [] } = await chrome.storage.local.get('amostrasSacas');
     const resto = amostrasSacas.filter((a) => a.caminho !== caminho);
     resto.push({ caminho, em: new Date().toISOString(), corpo: limpar(corpo) });
