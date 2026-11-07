@@ -62,7 +62,7 @@ test('n8n: reserva, confirma e não entrega o mesmo aviso duas vezes', () => {
   const db = banco();
   sacas.salvarConfig(db, { ativo: true });
   sacas.registrar(db, [{ numero: '078', status: 'a_caminho', dia: DIA, entregar: 1, extra: 4 }], { agora: T('06:30') });
-  sacas.registrar(db, [{ numero: '078', status: 'recebido', dia: DIA, entregar: 1, extra: 4 }], { agora: T('07:10') });
+  sacas.registrar(db, [{ numero: '078', status: 'recebido', dia: DIA, entregar: 1, extra: 4, pacotes: 69 }], { agora: T('07:10') });
   const a1 = sacas.reservarProximo(db, { agora: T('07:11') });
   const a2 = sacas.reservarProximo(db, { agora: T('07:11') });
   assert.ok(a1 && a2 && a1.grupo !== a2.grupo);
@@ -190,12 +190,12 @@ test('regra do dia de hoje: #078 é M1; #095 e #929 são M2 (M2 não vira M3)', 
     { numero: '095', status: 'a_caminho', dia: DIA, entregar: 0, extra: 6, caminhoEm: ISO('08:14') },
     { numero: '929', status: 'a_caminho', dia: DIA, entregar: 1, extra: 0, caminhoEm: ISO('08:36') }
   ], { agora: T('07:00') });
-  sacas.registrar(db, [{ numero: '078', status: 'recebido', dia: DIA, entregar: 1, extra: 4 }], { agora: T('07:30') });
+  sacas.registrar(db, [{ numero: '078', status: 'recebido', dia: DIA, entregar: 1, extra: 4, pacotes: 69 }], { agora: T('07:30') });
   sacas.registrar(db, [{ numero: '095', status: 'recebido', dia: DIA, entregar: 0, extra: 6 }], { agora: T('12:09') });
-  sacas.registrar(db, [{ numero: '929', status: 'recebido', dia: DIA, entregar: 1, extra: 0 }], { agora: T('12:40') });
+  sacas.registrar(db, [{ numero: '929', status: 'recebido', dia: DIA, entregar: 1, extra: 0, pacotes: 50 }], { agora: T('12:40') });
   const saida = [];
   for (let a = sacas.reservarProximo(db, { agora: T('12:41') }); a; a = sacas.reservarProximo(db, { agora: T('12:41') })) {
-    saida.push([a.numero, a.grupo, a.onda, a.texto.split('\n')[0], a.texto.split('\n').pop()]);
+    saida.push([a.numero, a.grupo, a.onda, a.texto.split('\n')[0], a.texto.split('\n').find((l) => (l.startsWith('🛵') || l.startsWith('⚡ ')) && !l.includes('*'))]);
   }
   assert.deepEqual(saida, [
     ['078', 'delivery', 'M1', '📦 *DELIVERY — SACAS CHEGARAM (M1)*', '🛵 1 saca para entregar'],
@@ -216,6 +216,32 @@ test('envios antigos sem onda salva: M1 é o que chegou primeiro', () => {
   db.prepare("INSERT OR REPLACE INTO settings (source, json) VALUES ('__sacas', ?)").run(JSON.stringify(dados));
   const ondas = Object.fromEntries(sacas.resumo(db, { agora: T('12:50') }).envios.map((e) => [e.numero, e.onda]));
   assert.deepEqual(ondas, { '078': 'M1', '095': 'M2', '929': 'M2' });
+  db.close();
+});
+
+test('chegada do Delivery espera o total de pacotes (até 5 min); a do Next sai na hora', () => {
+  const db = banco();
+  sacas.salvarConfig(db, { ativo: true });
+  sacas.registrar(db, [{ numero: '078', status: 'a_caminho', dia: DIA, entregar: 1, extra: 4 }], { agora: T('06:30') });
+  sacas.registrar(db, [{ numero: '078', status: 'recebido', dia: DIA, entregar: 1, extra: 4 }], { agora: T('07:10') });
+  const a1 = sacas.reservarProximo(db, { agora: T('07:11') });
+  assert.equal(a1.grupo, 'nex', 'Next não espera');
+  assert.equal(sacas.reservarProximo(db, { agora: T('07:11') }), null, 'Delivery espera os pacotes');
+  sacas.registrar(db, [{ numero: '078', status: 'recebido', dia: DIA, entregar: 1, extra: 4, pacotes: 69, paradas: 49 }], { agora: T('07:12') });
+  const a2 = sacas.reservarProximo(db, { agora: T('07:12') });
+  assert.equal(a2.grupo, 'delivery');
+  assert.match(a2.texto, /📦 Total: 69 pacotes · 49 paradas/);
+  assert.match(a2.texto, /🕗 Chegou às 07:10/);
+  db.close();
+});
+
+test('sem os pacotes, a chegada do Delivery sai depois de 5 minutos mesmo assim', () => {
+  const db = banco();
+  sacas.salvarConfig(db, { ativo: true });
+  sacas.registrar(db, [{ numero: '929', status: 'a_caminho', dia: DIA, entregar: 1, extra: 0 }], { agora: T('08:40') });
+  sacas.registrar(db, [{ numero: '929', status: 'recebido', dia: DIA, entregar: 1, extra: 0 }], { agora: T('09:00') });
+  assert.equal(sacas.reservarProximo(db, { agora: T('09:04') }), null);
+  assert.equal(sacas.reservarProximo(db, { agora: T('09:05') }).grupo, 'delivery');
   db.close();
 });
 
@@ -274,7 +300,7 @@ test('rotas: extensão envia, painel liga, n8n pega e confirma', async () => {
   await fetch(`${base}/admin/api/sacas/config`, { method: 'PUT', headers: adm, body: JSON.stringify({ ativo: true }) });
   const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia' }).format(new Date());
   await fetch(`${base}/api/extensao/sacas`, { method: 'POST', headers: auth, body: JSON.stringify({ envios: [{ numero: '078', status: 'a_caminho', dia: hoje, sacas: 5 }] }) });
-  const r = await fetch(`${base}/api/extensao/sacas`, { method: 'POST', headers: auth, body: JSON.stringify({ envios: [{ numero: '078', status: 'recebido', dia: hoje, sacas: 1, entregar: 1, extra: 0 }] }) });
+  const r = await fetch(`${base}/api/extensao/sacas`, { method: 'POST', headers: auth, body: JSON.stringify({ envios: [{ numero: '078', status: 'recebido', dia: hoje, sacas: 1, entregar: 1, extra: 0, pacotes: 12 }] }) });
   assert.equal((await r.json()).novosAvisos, 1);
   const p = await fetch(`${base}/api/sacas/proximo`, { method: 'POST', headers: auth });
   const aviso = await p.json();

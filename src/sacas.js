@@ -254,8 +254,14 @@ function registrar(db, lista, { agora = Date.now() } = {}) {
   return resumo;
 }
 
-function pronto(dados, a) {
-  return a.situacao === 'pendente' && Boolean(dados.envios[a.envio]);
+const ESPERA_PACOTES_MIN = 5; // chegada do Delivery espera o total de pacotes (zonas) por até 5 min
+function pronto(dados, a, agora) {
+  const e = dados.envios[a.envio];
+  if (a.situacao !== 'pendente' || !e) return false;
+  if (a.tipo === 'chegada' && a.grupo === 'delivery' && !a.generico && !a.manual
+    && (e.pacotes === null || e.pacotes === undefined)
+    && agora - Date.parse(a.criadoEm) < min(ESPERA_PACOTES_MIN)) return false;
+  return true;
 }
 
 function expirarReservas(dados, agora) {
@@ -288,7 +294,7 @@ function comTexto(dados, a) {
 function reservarProximo(db, { agora = Date.now() } = {}) {
   const dados = ler(db);
   let mudou = expirarReservas(dados, agora);
-  const a = dados.config.ativo ? dados.avisos.find((x) => pronto(dados, x)) : null;
+  const a = dados.config.ativo ? dados.avisos.find((x) => pronto(dados, x, agora)) : null;
   if (a) { a.situacao = 'enviando'; a.reservadoEm = new Date(agora).toISOString(); mudou = true; }
   if (mudou) gravar(db, dados);
   return a ? comTexto(dados, a) : null;

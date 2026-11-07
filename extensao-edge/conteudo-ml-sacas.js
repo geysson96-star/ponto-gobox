@@ -3,7 +3,8 @@
 // Mercado Livre Envios: tela "Entrada de unidades" (sacas que chegam na agência).
 //
 // Principal: a cada 2 minutos lê os envios do dia nos dados da própria página
-// (para entregar, Mercado Envios Extra, situação e horário), sem precisar clicar.
+// (para entregar, Mercado Envios Extra, situação e horário), sem precisar clicar,
+// e, para cada envio com Delivery, os pacotes e paradas por zona (página de zonas).
 // Complemento/alternativa, lendo o que a tela mostra:
 //  - lista:   "Envio #078 a caminho" + "5 sacas" (seção "Hoje");
 //  - detalhe: "1 Saca para entregar", "4 Sacas para Mercado Envios Extra", horários;
@@ -132,9 +133,11 @@
       const extra = Number(x.nexQuantity) || 0;
       const saiu = x.date && !Number.isNaN(Date.parse(x.date)) ? new Date(x.date).toISOString() : null;
       const status = STATUS_API[String(x.status || '').toUpperCase()] || 'agendado';
+      const z = zonasCache[rota];
       envios.push({
         numero: rota.slice(-3), rota, status, entregar, extra, sacas: entregar + extra,
-        caminhoEm: status !== 'agendado' ? saiu : null
+        caminhoEm: status !== 'agendado' ? saiu : null,
+        ...(z && z.pacotes > 0 && entregar ? { paradas: z.paradas, pacotes: z.pacotes, zonas: z.zonas } : {})
       });
     }
     api = { em: Date.now(), envios };
@@ -150,6 +153,68 @@
       if (api && Date.now() - api.em > 10 * 60_000) api = null; // volta a ler só a tela
     }
     ler(true);
+    completarZonas();
+  }
+
+  // ---------- zonas e pacotes de cada envio com Delivery ----------
+  // Página "Distribuição por zonas": /logistics/dist-ops-group-assignment/zones?facility=...&route_id=...
+  // traz no HTML os dados "zones": [{ zone_name, stops (paradas), total_shipments (pacotes) }].
+  const zonasCache = {}; // rota -> { em, paradas, pacotes, zonas }
+  let agencia = null;
+  function acharAgencia() {
+    if (agencia) return agencia;
+    const m = (document.documentElement.innerHTML || '').match(/"facility(?:Id)?\\?"\s*:\s*\\?"([A-Z]{2,6}\d{2,6})/);
+    agencia = m ? m[1] : null;
+    return agencia;
+  }
+  function extrairZonas(html) {
+    const i = html.indexOf('"zones":[');
+    if (i < 0) return null;
+    let j = i + 8; let nivel = 0; let aspas = false; let esc = false;
+    for (; j < html.length; j += 1) {
+      const c = html[j];
+      if (aspas) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') aspas = false; continue; }
+      if (c === '"') aspas = true;
+      else if (c === '[' || c === '{') nivel += 1;
+      else if (c === ']' || c === '}') { nivel -= 1; if (nivel === 0) { j += 1; break; } }
+    }
+    let lista;
+    try { lista = JSON.parse(html.slice(i + 8, j)); } catch { return null; }
+    if (!Array.isArray(lista)) return null;
+    const zonas = lista.map((z) => ({ nome: z.zone_name || 'Sem zona', paradas: Number(z.stops) || 0, pacotes: Number(z.total_shipments) || 0 }))
+      .sort((a, b) => (a.nome === 'Sem zona') - (b.nome === 'Sem zona') || a.nome.localeCompare(b.nome));
+    return {
+      zonas,
+      paradas: zonas.reduce((t, z) => t + z.paradas, 0),
+      pacotes: zonas.reduce((t, z) => t + z.pacotes, 0)
+    };
+  }
+  async function buscarZonas(rota) {
+    const c = zonasCache[rota];
+    if (c && c.pacotes > 0 && Date.now() - c.em < 30 * 60_000) return c;
+    const fac = acharAgencia();
+    if (!fac) return null;
+    try {
+      const html = await fetch(`/logistics/dist-ops-group-assignment/zones?facility=${encodeURIComponent(fac)}&route_id=${encodeURIComponent(rota)}`,
+        { credentials: 'include' }).then((r) => r.text());
+      const z = extrairZonas(html);
+      if (z) zonasCache[rota] = { ...z, em: Date.now() };
+      return z;
+    } catch { return null; }
+  }
+  let buscandoZonas = false;
+  async function completarZonas() {
+    if (!api || buscandoZonas) return;
+    buscandoZonas = true;
+    let mudou = false;
+    try {
+      for (const x of api.envios) {
+        if (!x.entregar || x.status === 'agendado') continue;
+        const z = await buscarZonas(x.rota);
+        if (z && z.pacotes > 0) { Object.assign(x, { paradas: z.paradas, pacotes: z.pacotes, zonas: z.zonas }); mudou = true; }
+      }
+    } finally { buscandoZonas = false; }
+    if (mudou) ler(true);
   }
 
   let ultimoEnviado = '';
@@ -224,7 +289,7 @@
     let caminho;
     try { const u = new URL(d.url, location.href); caminho = u.origin + u.pathname; } catch { return; }
     // A própria página buscou os envios do dia: usa essa resposta (é a fonte mais confiável).
-    if (caminho.includes('/logistics/dist-ops/api/reports/inbound') && aplicarInbound(corpo)) ler(true);
+    if (caminho.includes('/logistics/dist-ops/api/reports/inbound') && !caminho.includes('/detail') && aplicarInbound(corpo)) { ler(true); completarZonas(); }
     const { amostrasSacas = [] } = await chrome.storage.local.get('amostrasSacas');
     const resto = amostrasSacas.filter((a) => a.caminho !== caminho);
     resto.push({ caminho, em: new Date().toISOString(), corpo: limpar(corpo) });
