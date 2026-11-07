@@ -96,10 +96,10 @@ const GRUPOS = {
 };
 
 function linhaDelivery(e, config) {
-  const extras = [];
-  if (e.pacotes !== null) extras.push(plural(e.pacotes, 'pacote', 'pacotes'));
-  if (e.paradas !== null) extras.push(plural(e.paradas, 'parada', 'paradas'));
-  const out = [`🛵 ${plural(e.entregar, 'saca', 'sacas')} para entregar${extras.length ? ` · ${extras.join(' · ')}` : ''}`];
+  const out = [`🛵 ${plural(e.entregar, 'saca', 'sacas')} para entregar`];
+  if (e.pacotes !== null && e.pacotes !== undefined) {
+    out.push(`📦 Total: ${plural(e.pacotes, 'pacote', 'pacotes')}${e.paradas !== null && e.paradas !== undefined ? ` · ${plural(e.paradas, 'parada', 'paradas')}` : ''}`);
+  }
   if (config.zonas && e.zonas) {
     for (const z of e.zonas) {
       out.push(`• ${zonaNome(z.nome)}: ${plural(z.pacotes, 'pacote', 'pacotes')}${z.paradas !== null ? ` (${plural(z.paradas, 'parada', 'paradas')})` : ''}`);
@@ -112,14 +112,14 @@ function linhaDelivery(e, config) {
 function montarTexto(e, tipo, grupo, config, onda) {
   const g = GRUPOS[grupo];
   const linhas = [];
-  const titulo = g ? `${g.emoji} *${g.titulo} — ` : '📦 *';
   if (tipo === 'caminho') {
     linhas.push(`🚚 ${g ? `*${g.titulo} — ` : '*'}SACAS A CAMINHO*`);
-    linhas.push(`Envio #${e.numero}${e.caminhoEm ? ` · saiu às ${horaDe(e.caminhoEm)}` : ''}`);
+    linhas.push(`Envio #${e.numero}`);
+    if (e.caminhoEm) linhas.push(`🕗 Saiu às ${horaDe(e.caminhoEm)}`);
   } else {
-    linhas.push(`${titulo}SACAS CHEGARAM${onda ? ` (${onda})` : ''}*`);
-    const quando = e.recebidoEm ? ` · recebido às ${horaDe(e.recebidoEm)}` : '';
-    linhas.push(`Envio #${e.numero}${quando}`);
+    linhas.push(`${g ? `${g.emoji} *${g.titulo} — ` : '📦 *'}SACAS CHEGARAM${onda ? ` (${onda})` : ''}*`);
+    linhas.push(`Envio #${e.numero}`);
+    if (e.recebidoEm) linhas.push(`🕗 Chegou às ${horaDe(e.recebidoEm)}`);
   }
   linhas.push('');
   if (grupo === 'delivery') linhas.push(...linhaDelivery(e, config));

@@ -226,18 +226,24 @@ test('texto da mensagem de cada grupo', () => {
   };
   assert.equal(sacas.montarTexto(e, 'chegada', 'delivery', { zonas: true }, 'M1'), [
     '📦 *DELIVERY — SACAS CHEGARAM (M1)*',
-    'Envio #078 · recebido às 07:10',
+    'Envio #078',
+    '🕗 Chegou às 07:10',
     '',
-    '🛵 1 saca para entregar · 69 pacotes · 49 paradas',
+    '🛵 1 saca para entregar',
+    '📦 Total: 69 pacotes · 49 paradas',
     '• Zona 01: 3 pacotes (2 paradas)',
     '• Sem zona: 14 pacotes (12 paradas)'
   ].join('\n'));
   assert.equal(sacas.montarTexto(e, 'chegada', 'nex', { zonas: true }, 'M1'), [
     '⚡ *NEXT — SACAS CHEGARAM (M1)*',
-    'Envio #078 · recebido às 07:10',
+    'Envio #078',
+    '🕗 Chegou às 07:10',
     '',
     '⚡ 4 sacas Next (Mercado Envios Extra)'
   ].join('\n'));
+  // Sem horário nem pacotes conhecidos: as linhas somem.
+  assert.equal(sacas.montarTexto({ ...e, recebidoEm: null, pacotes: null, paradas: null, zonas: null }, 'chegada', 'delivery', { zonas: true }, 'M2'),
+    ['📦 *DELIVERY — SACAS CHEGARAM (M2)*', 'Envio #078', '', '🛵 1 saca para entregar'].join('\n'));
 });
 
 // ---------- rotas ----------
