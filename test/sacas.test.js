@@ -73,22 +73,31 @@ test('n8n: reserva, confirma e não entrega o mesmo aviso duas vezes', () => {
   db.close();
 });
 
-test('chegou sem as sacas por tipo: espera o detalhe; sem ele, manda a mensagem geral no Delivery após 10 min', () => {
+test('chegou sem as sacas por tipo: não manda nada até o detalhe chegar, e aí vai para o grupo certo', () => {
   const db = banco();
-  sacas.registrar(db, [{ numero: '078', status: 'a_caminho', dia: DIA, sacas: 5 }], { agora: T('06:30') });
-  let r = sacas.registrar(db, [{ numero: '078', status: 'recebido', dia: DIA, sacas: 5 }], { agora: T('07:10') });
-  assert.equal(r.novosAvisos, 0);
-  r = sacas.registrar(db, [{ numero: '078', status: 'recebido', dia: DIA }], { agora: T('07:21') });
+  sacas.salvarConfig(db, { ativo: true, avisoCaminho: true });
+  let r = sacas.registrar(db, [{ numero: '095', status: 'a_caminho', dia: DIA, sacas: 6 }], { agora: T('08:00') });
+  assert.equal(r.novosAvisos, 0, 'a caminho sem tipo: não avisa');
+  r = sacas.registrar(db, [{ numero: '095', status: 'recebido', dia: DIA, sacas: 6 }], { agora: T('09:00') });
+  assert.equal(r.novosAvisos, 0, 'chegou sem tipo: não avisa');
+  r = sacas.registrar(db, [{ numero: '095', status: 'recebido', dia: DIA }], { agora: T('10:00') });
+  assert.equal(r.novosAvisos, 0, 'mesmo uma hora depois, sem tipo não avisa');
+  assert.equal(sacas.reservarProximo(db, { agora: T('10:00') }), null);
+  r = sacas.registrar(db, [{ numero: '095', status: 'recebido', dia: DIA, entregar: 0, extra: 6 }], { agora: T('10:02') });
   assert.equal(r.novosAvisos, 1);
-  const [a] = avisos(db, T('07:21'));
-  assert.equal(a.grupo, 'delivery');
-  assert.match(a.texto, /Total: 5 sacas/);
-  // E quando o detalhe chega antes dos 10 min, sai separado por grupo.
-  sacas.registrar(db, [{ numero: '095', status: 'a_caminho', dia: DIA, sacas: 6 }], { agora: T('08:00') });
-  sacas.registrar(db, [{ numero: '095', status: 'recebido', dia: DIA, sacas: 6 }], { agora: T('09:00') });
-  r = sacas.registrar(db, [{ numero: '095', status: 'recebido', dia: DIA, entregar: 0, extra: 6 }], { agora: T('09:02') });
+  const a = sacas.reservarProximo(db, { agora: T('10:03') });
+  assert.equal(a.grupo, 'nex');
+  assert.match(a.texto, /NEXT — SACAS CHEGARAM \(M1\)/);
+  db.close();
+});
+
+test('a caminho sem tipo fica pendente e sai para o grupo certo quando o tipo chega', () => {
+  const db = banco();
+  sacas.salvarConfig(db, { avisoCaminho: true });
+  sacas.registrar(db, [{ numero: '929', status: 'a_caminho', dia: DIA, sacas: 1 }], { agora: T('08:00') });
+  const r = sacas.registrar(db, [{ numero: '929', status: 'a_caminho', dia: DIA, entregar: 1, extra: 0 }], { agora: T('08:02') });
   assert.equal(r.novosAvisos, 1);
-  assert.equal(avisos(db, T('09:02'))[0].grupo, 'nex');
+  assert.equal(sacas.resumo(db, { agora: T('08:02') }).avisos[0].grupo, 'delivery');
   db.close();
 });
 

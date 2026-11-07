@@ -20,7 +20,6 @@ const CHAVE = '__sacas';
 const FUSO = 'America/Bahia';
 const DIAS_GUARDADOS = 7;
 const AVISOS_GUARDADOS = 60;
-const ESPERA_DETALHE_MIN = 10;   // chegou sem as sacas por tipo: espera isso antes da mensagem geral
 const RESERVA_EXPIRA_MIN = 10;   // n8n pegou e não confirmou: marca como falhou
 
 const PADRAO = {
@@ -164,8 +163,8 @@ function criarAviso(dados, e, tipo, grupo, agora, generico = false) {
   return aviso;
 }
 
-// Cria os avisos de chegada (um por grupo). Sem o detalhe por tipo, espera até 10 min
-// e depois manda a mensagem geral no grupo Delivery.
+// Cria os avisos de chegada (um por grupo). Sem as sacas por tipo (Delivery / Next),
+// não manda nada: espera a extensão trazer o detalhe, para não avisar o grupo errado.
 function avisarChegada(dados, e, agora) {
   let n = 0;
   const grupos = gruposDo(e);
@@ -175,10 +174,17 @@ function avisarChegada(dados, e, agora) {
     delete e.aguardaDetalhe;
   } else if (!e.aguardaDetalhe) {
     e.aguardaDetalhe = new Date(agora).toISOString();
-  } else if (agora - Date.parse(e.aguardaDetalhe) >= min(ESPERA_DETALHE_MIN)) {
-    if (criarAviso(dados, e, 'chegada', 'delivery', agora, true)) n += 1;
-    delete e.aguardaDetalhe;
   }
+  return n;
+}
+
+// "A caminho": só com as sacas por tipo; sem elas, fica pendente até o detalhe chegar.
+function avisarCaminho(dados, e, agora) {
+  let n = 0;
+  const grupos = gruposDo(e);
+  if (!grupos.length) { e.aguardaCaminho = true; return 0; }
+  for (const g of grupos) if (criarAviso(dados, e, 'caminho', g, agora)) n += 1;
+  delete e.aguardaCaminho;
   return n;
 }
 
@@ -229,18 +235,11 @@ function registrar(db, lista, { agora = Date.now() } = {}) {
     } else if (atual.status === 'recebido' && atual.aguardaDetalhe) {
       resumo.novosAvisos += avisarChegada(dados, atual, agora); // o detalhe chegou depois
     }
-    const saiuAgora = dados.config.avisoCaminho && atual.status === 'a_caminho' && (!antes || antes.status === 'agendado');
-    if (saiuAgora && atual.dia === hoje) {
-      const grupos = gruposDo(atual);
-      for (const g of grupos.length ? grupos : ['delivery']) {
-        if (criarAviso(dados, atual, 'caminho', g, agora, !grupos.length)) resumo.novosAvisos += 1;
-      }
-    }
+    const saiuAgora = dados.config.avisoCaminho && atual.status === 'a_caminho'
+      && (!antes || antes.status === 'agendado' || atual.aguardaCaminho);
+    if (saiuAgora && atual.dia === hoje) resumo.novosAvisos += avisarCaminho(dados, atual, agora);
+    if (atual.status !== 'a_caminho') delete atual.aguardaCaminho;
     resumo.envios += 1;
-  }
-  // Envios que chegaram sem detalhe e não apareceram nesta leitura: confere o prazo de espera.
-  for (const e of Object.values(dados.envios)) {
-    if (e.aguardaDetalhe && e.dia === hoje && !limpos.some((x) => x.numero === e.numero)) resumo.novosAvisos += avisarChegada(dados, e, agora);
   }
   dados.ultimaLeitura = new Date(agora).toISOString();
   gravar(db, dados);
@@ -331,7 +330,7 @@ function resumo(db, { agora = Date.now() } = {}) {
       const grupos = gruposDo(e);
       const previas = grupos.length
         ? grupos.map((g) => ({ grupo: g, grupoRotulo: GRUPOS[g].rotulo, texto: montarTexto(e, tipo, g, dados.config, e.ondas && e.ondas[g]) }))
-        : [{ grupo: 'delivery', grupoRotulo: GRUPOS.delivery.rotulo, texto: montarTexto(e, tipo, null, dados.config) }];
+        : [{ grupo: null, grupoRotulo: 'nenhum ainda', texto: 'Aguardando a extensão informar quantas sacas são Delivery e quantas são Next. Nada é enviado até lá.' }];
       return { ...e, hoje: e.dia === hoje, previas };
     });
   return {
