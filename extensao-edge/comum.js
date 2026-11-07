@@ -68,3 +68,26 @@ function goboxAgendar(fonte, ler) {
     if (msg && msg.tipo === 'gobox-agora') passada();
   });
 }
+
+// Recarrega a página do portal de tempos em tempos para pegar os dados novos
+// (a leitura roda sozinha logo depois de carregar). O tempo é escolhido no popup:
+// ícone GoBox > Configurar > "Recarregar as páginas" (padrão: 5 minutos; 0 = desligado).
+// Não recarrega se você mexeu nesta aba no último minuto, para não perder o que estava fazendo.
+(function () {
+  const carregadaEm = Date.now();
+  let ultimaInteracao = 0;
+  for (const ev of ['keydown', 'mousedown', 'input', 'wheel', 'touchstart']) {
+    window.addEventListener(ev, () => { ultimaInteracao = Date.now(); }, { capture: true, passive: true });
+  }
+  setInterval(async () => {
+    let minutos;
+    try {
+      ({ recarregarMin: minutos = 5 } = await chrome.storage.local.get('recarregarMin'));
+    } catch { return; } // extensão recarregada: esta aba vai receber a versão nova
+    minutos = Number(minutos);
+    if (!minutos || minutos <= 0) return;
+    if (Date.now() - carregadaEm < minutos * 60_000) return;
+    if (Date.now() - ultimaInteracao < 60_000) return;
+    location.reload();
+  }, 20_000);
+}());

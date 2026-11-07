@@ -3,7 +3,8 @@ const $ = (s) => document.querySelector(s);
 const FONTES = [
   { id: 'shopee', nome: 'Shopee SPX', url: 'https://sp.spx.shopee.com.br/*' },
   { id: 'ml', nome: 'Mercado Livre', url: 'https://places.mercadolivre.com.br/*' },
-  { id: 'correios', nome: 'Correios', url: 'https://correiosatende.correios.com.br/*' }
+  { id: 'correios', nome: 'Correios', url: 'https://correiosatende.correios.com.br/*' },
+  { id: 'sacas', nome: 'Sacas (ML Envios)', url: 'https://envios.mercadolivre.com.br/*' }
 ];
 const ROTULO = {
   sucesso: ['Enviado', 'ok'],
@@ -36,7 +37,8 @@ async function desenhar() {
     det.className = 'det';
     const partes = [];
     if (!aberta) partes.push('Aba não está aberta.');
-    if (s && s.codigos !== undefined && s.situacao === 'sucesso') partes.push(`${s.codigos} pacote(s) · ${quando(s.em)}`);
+    if (f.id === 'sacas' && s && s.em) partes.push(quando(s.em));
+    else if (s && s.codigos !== undefined && s.situacao === 'sucesso') partes.push(`${s.codigos} pacote(s) · ${quando(s.em)}`);
     else if (s && s.em) partes.push(quando(s.em));
     if (s && s.detalhe) partes.push(s.detalhe);
     det.textContent = partes.join(' ');
@@ -50,8 +52,9 @@ async function desenhar() {
 }
 
 async function carregarConfig() {
-  const { servidor = 'http://localhost:3000', chave = '', trocarPontoShopee = true, mcuCorreios = '' } =
-    await chrome.storage.local.get(['servidor', 'chave', 'trocarPontoShopee', 'mcuCorreios']);
+  const { servidor = 'http://localhost:3000', chave = '', trocarPontoShopee = true, mcuCorreios = '', recarregarMin = 5 } =
+    await chrome.storage.local.get(['servidor', 'chave', 'trocarPontoShopee', 'mcuCorreios', 'recarregarMin']);
+  $('#recarregar-min').value = String(recarregarMin);
   $('#mcu').value = mcuCorreios;
   $('#servidor').value = servidor;
   $('#chave').value = chave;
@@ -99,6 +102,21 @@ $('#agora').addEventListener('click', async () => {
   setTimeout(() => { $('#agora').textContent = 'Sincronizar agora'; desenhar(); }, 6000);
 });
 
+// Diagnóstico: formato das respostas da tela de sacas (sem dados de clientes), para colar no chat.
+$('#diag-sacas').addEventListener('click', async () => {
+  const { amostrasSacas = [] } = await chrome.storage.local.get('amostrasSacas');
+  const msg = $('#msg-diag');
+  if (!amostrasSacas.length) {
+    msg.textContent = 'Nada capturado ainda: abra "Entrada de unidades", clique num envio e em "Ver distribuição por zonas".';
+    return;
+  }
+  await navigator.clipboard.writeText(JSON.stringify(amostrasSacas, null, 1));
+  msg.textContent = `Copiado (${amostrasSacas.length} resposta(s)). Cole no chat com o Claude.`;
+});
+
 chrome.storage.onChanged.addListener((mud) => { if (mud.status) desenhar(); });
 carregarConfig();
 desenhar();
+
+// O tempo de recarga vale na hora, sem precisar de "Salvar e testar".
+$('#recarregar-min').addEventListener('change', (ev) => chrome.storage.local.set({ recarregarMin: Number(ev.target.value) }));

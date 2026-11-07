@@ -1,0 +1,31 @@
+AVISO DE SACAS NO GRUPO DOS ENTREGADORES (n8n)
+
+Como funciona
+- A extensão do Edge lê a tela "Entrada de unidades" do Mercado Livre e manda para o site.
+- Quando um envio chega (fica "Recebido"), o site cria um aviso para cada tipo de saca:
+  Delivery vai para o grupo Delivery - GoBox e Next para o Gobox_Entregadores,
+  cada grupo com a sua numeração do dia (M1, M2, M3...).
+- Este fluxo do n8n pergunta ao site a cada minuto se há aviso novo, manda no grupo
+  e confirma para o site. Cada aviso sai uma vez só.
+- No painel do site (aba Sacas), com "Enviar para o grupo" DESLIGADO, os avisos
+  aparecem só lá, em modo teste. O n8n não recebe nada até você ligar.
+
+Instalar no n8n
+1. No n8n: Workflows > Import from File > escolha aviso-sacas.json.
+2. Abra o bloco "Configuração" e preencha:
+   - site: endereço do site (https://gobox-consulta.onrender.com)
+   - chave: a mesma chave da extensão do Edge (painel > Configurações > Extensão)
+   - whatsappUrl, instancia, whatsappApiKey: os mesmos do robô de atendimento
+     (http://gobox_evolution:8080, instância gobox)
+   - grupoDelivery: grupo das sacas para entregar (Delivery - GoBox)
+   - grupoNex: grupo das sacas Next / Mercado Envios Extra (Gobox_Entregadores)
+     Use o nome como aparece no WhatsApp (basta o começo) ou o ID terminado em @g.us.
+3. Salve e ative o fluxo (chave "Active" no topo).
+
+Se o seu WhatsApp no n8n não for a Evolution API
+- Troque só o bloco "Mandar no grupo (WhatsApp)" pelo bloco de envio que você já usa
+  no robô de atendimento. O texto da mensagem está em: {{ $json.text }}
+  e o ID do grupo em: {{ $json.number }}
+- Mantenha as duas saídas (sucesso e erro) ligadas aos blocos "Confirmar".
+
+O número conectado na Evolution precisa estar nos dois grupos.

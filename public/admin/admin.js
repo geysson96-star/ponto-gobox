@@ -109,6 +109,7 @@
     if (aba === 'importacoes') carregarImportacoes();
     if (aba === 'configuracoes') carregarConfiguracoes();
     if (window.goboxFinanceiro) window.goboxFinanceiro[aba === 'financeiro' ? 'abrir' : 'fechar']();
+    if (window.goboxSacas) window.goboxSacas[aba === 'sacas' ? 'abrir' : 'fechar']();
     // Aba Ponto: carrega o painel do ponto só quando for aberta pela primeira vez.
     if (aba === 'ponto' && !$('#ponto-frame').getAttribute('src')) $('#ponto-frame').setAttribute('src', '/admin/ponto/');
   }

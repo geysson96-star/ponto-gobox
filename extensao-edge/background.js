@@ -77,6 +77,8 @@ async function configurarSozinha() {
   } catch { /* sem arquivo: configurar pelo popup */ }
 }
 chrome.runtime.onInstalled.addListener(configurarSozinha);
+chrome.runtime.onStartup.addListener(configurarSozinha);
+configurarSozinha();
 
 // Ao instalar ou recarregar a extensão, coloca a versão nova nas abas dos portais
 // que já estavam abertas (sem precisar apertar F5 em cada uma).
@@ -85,13 +87,41 @@ chrome.runtime.onInstalled.addListener(async () => {
     let abas = [];
     try { abas = await chrome.tabs.query({ url: cs.matches }); } catch { continue; }
     for (const aba of abas) {
-      try { await chrome.scripting.executeScript({ target: { tabId: aba.id }, files: cs.js }); } catch { /* aba sem acesso: segue */ }
+      try {
+        await chrome.scripting.executeScript({ target: { tabId: aba.id }, files: cs.js, world: cs.world || 'ISOLATED' });
+      } catch { /* aba sem acesso: segue */ }
     }
   }
 });
-chrome.runtime.onStartup.addListener(configurarSozinha);
-configurarSozinha();
+
+// Sacas do Mercado Livre Envios (tela "Entrada de unidades").
+async function enviarSacas(envios) {
+  const { servidor, chave } = await config();
+  if (!chave) {
+    await guardarStatus('sacas', { situacao: 'erro_envio', detalhe: 'Cole a chave da extensão (gerada no painel do site).' });
+    return;
+  }
+  try {
+    const resp = await fetch(`${servidor}/api/extensao/sacas`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${chave}` },
+      body: JSON.stringify({ envios })
+    });
+    const dados = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      await guardarStatus('sacas', { situacao: 'erro_envio', detalhe: dados.erro || `O site respondeu ${resp.status}.` });
+      return;
+    }
+    await guardarStatus('sacas', {
+      situacao: 'sucesso',
+      detalhe: `${dados.envios} envio(s) de hoje${dados.novosAvisos ? ` · ${dados.novosAvisos} aviso(s) novo(s)` : ''}`
+    });
+  } catch {
+    await guardarStatus('sacas', { situacao: 'erro_envio', detalhe: 'Não consegui falar com o site.' });
+  }
+}
 
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg && msg.tipo === 'gobox-sincronizar' && NOMES[msg.fonte]) enviar(msg);
+  if (msg && msg.tipo === 'gobox-sacas' && Array.isArray(msg.envios)) enviarSacas(msg.envios.slice(0, 60));
 });

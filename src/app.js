@@ -15,6 +15,7 @@ const extensao = require('./extensao');
 const { processAll } = require('./inbox');
 const auth = require('./auth');
 const financeiro = require('./financeiro');
+const sacas = require('./sacas');
 
 function createApp({ config, db, robo = null }) {
   const app = express();
@@ -140,6 +141,27 @@ function createApp({ config, db, robo = null }) {
       return res.json({ situacao: 'sucesso', codigos: codigos.size, novos: prep.toInsert, removidos: prep.toDeactivate });
     });
 
+  // Sacas do Mercado Livre (tela "Entrada de unidades"): a extensão manda os envios do dia.
+  app.post('/api/extensao/sacas', extensaoLimiter, exigirChaveExtensao, express.json({ limit: '256kb' }), (req, res) => {
+    const lista = req.body && req.body.envios;
+    if (!Array.isArray(lista)) return res.status(400).json({ erro: 'Lista de envios inválida.' });
+    res.json(sacas.registrar(db, lista));
+  });
+
+  // n8n: pega o próximo aviso pronto para o grupo e depois confirma se saiu.
+  // Usa a mesma chave da extensão.
+  app.post('/api/sacas/proximo', extensaoLimiter, exigirChaveExtensao, (req, res) => {
+    const aviso = sacas.reservarProximo(db);
+    if (!aviso) return res.status(204).end();
+    res.json(aviso);
+  });
+  app.post('/api/sacas/avisos/:id/resultado', extensaoLimiter, exigirChaveExtensao, (req, res) => {
+    const b = req.body || {};
+    const a = sacas.confirmar(db, String(req.params.id), { ok: b.ok === true, erro: b.erro });
+    if (!a) return res.status(404).json({ erro: 'Aviso não encontrado.' });
+    res.json({ situacao: a.situacao });
+  });
+
   // Verificação de funcionamento (usada pela hospedagem e pelo "manter acordado").
   app.get('/saude', (req, res) => { res.set('Cache-Control', 'no-store'); res.json({ ok: true }); });
 
@@ -261,6 +283,17 @@ function createApp({ config, db, robo = null }) {
       financeiro.salvarMedalha(db, req.params.mes, req.body || {});
       res.json(financeiro.resumo(db, req.params.mes));
     } catch (e) { res.status(400).json({ erro: e.message }); }
+  });
+
+  // ---------- Sacas ----------
+  admin.get('/sacas', requireAdmin, (req, res) => res.json(sacas.resumo(db)));
+  admin.put('/sacas/config', requireAdmin, (req, res) => res.json({ config: sacas.salvarConfig(db, req.body || {}) }));
+  admin.post('/sacas/avisos/:id/reenviar', requireAdmin, (req, res) => {
+    try {
+      const a = sacas.reenviar(db, String(req.params.id));
+      if (!a) return res.status(404).json({ erro: 'Aviso não encontrado.' });
+      res.json(a);
+    } catch (e) { res.status(409).json({ erro: e.message }); }
   });
 
   admin.get('/fontes', requireAdmin, (req, res) => {

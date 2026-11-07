@@ -14,10 +14,26 @@ Conectar ao site
 
 Uso diário
 - Abra a Shopee SPX e o Mercado Livre Places no Edge, como você já faz, logado.
-- A extensão lê os pacotes da agência ao abrir a página e de novo a cada 10 minutos
-  enquanto as abas estiverem abertas. O botão "Sincronizar agora" faz na hora.
+- A extensão recarrega as páginas dos portais de tempos em tempos e lê os pacotes
+  logo depois (se você estiver mexendo na aba, ela espera).
+  O tempo se escolhe em: ícone GoBox > Configurar > "Recarregar as páginas dos portais"
+  (de 1 minuto a 1 hora, ou não recarregar). Padrão: 5 minutos.
+- Para o Edge não "adormecer" as abas paradas: edge://settings/system >
+  Guias em suspensão > "Nunca colocar estes sites em suspensão" > adicione
+  sp.spx.shopee.com.br, places.mercadolivre.com.br, envios.mercadolivre.com.br
+  e correiosatende.correios.com.br.
+- O botão "Sincronizar agora" lê na hora.
 - O site precisa estar aberto (iniciar.bat) para receber.
 - Só os códigos dos pacotes são enviados. Nome, telefone e o resto ficam no portal.
+
+Sacas que chegam (aviso para os entregadores)
+- Deixe aberta no Edge a tela do Mercado Livre "Entrada de unidades":
+  https://envios.mercadolivre.com.br/logistics/dist-ops/reports/inbound
+- A extensão lê os envios de hoje (a caminho / recebido) e manda para o site.
+  Quando você abre um envio e "Ver distribuição por zonas", ela também lê
+  as sacas para entregar, as de Mercado Envios Extra e as zonas.
+- O aviso no grupo é ligado no painel (aba Sacas) e enviado pelo n8n
+  (veja a pasta n8n).
 
 Shopee e o ponto "Admin"
 - Se o portal estiver no ponto "Admin", as listas ficam vazias. Com a opção

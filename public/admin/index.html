@@ -39,6 +39,7 @@
     <div class="menu">
       <button type="button" class="item-menu" data-aba="pacotes" aria-current="page">Pacotes</button>
       <button type="button" class="item-menu" data-aba="financeiro">Financeiro</button>
+      <button type="button" class="item-menu" data-aba="sacas">Sacas</button>
       <button type="button" class="item-menu" data-aba="ponto">Ponto</button>
       <button type="button" class="item-menu" data-aba="importacoes">Importações</button>
       <button type="button" class="item-menu" data-aba="configuracoes">Configurações</button>
@@ -152,6 +153,25 @@
       </details>
     </section>
 
+    <!-- Aba Sacas (Mercado Livre: entrada de unidades + aviso no grupo) -->
+    <section id="aba-sacas" class="aba" hidden>
+      <div class="cabecalho">
+        <div>
+          <h1>Sacas</h1>
+          <p class="descricao">Envios do Mercado Livre lidos na tela “Entrada de unidades”. Quando um envio chega, as sacas Delivery vão para o grupo “Delivery - GoBox” e as Next (Mercado Envios Extra) para o “Gobox_Entregadores”, pelo n8n. Com o envio desligado (modo teste), as mensagens só aparecem aqui.</p>
+        </div>
+      </div>
+      <section class="tabela-bloco sac-config" id="sac-config" aria-label="Configuração dos avisos"></section>
+      <section class="tabela-bloco">
+        <div class="fin-titulo-bloco"><h2>Envios de hoje</h2><span class="nota" id="sac-leitura"></span></div>
+        <div id="sac-envios" class="sac-envios"></div>
+      </section>
+      <section class="tabela-bloco">
+        <div class="fin-titulo-bloco"><h2>Avisos</h2><span class="nota">Mais recentes primeiro</span></div>
+        <ul id="sac-avisos" class="sac-lista"></ul>
+      </section>
+    </section>
+
     <!-- Aba Ponto (painel do Ponto GoBox, dados no Firebase) -->
     <section id="aba-ponto" class="aba aba-ponto" hidden>
       <iframe id="ponto-frame" class="ponto-frame" title="Controle de ponto" loading="lazy"></iframe>
@@ -237,5 +257,6 @@
 
 <script src="/admin/admin.js"></script>
 <script src="/admin/financeiro.js"></script>
+<script src="/admin/sacas.js"></script>
 </body>
 </html>
