@@ -4,6 +4,24 @@
   const $ = (s) => document.querySelector(s);
   const brl = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const num = (n) => Number(n || 0).toLocaleString('pt-BR');
+
+  // Olho: oculta os valores ganhos (as tarifas nas regras continuam visíveis).
+  // A escolha fica salva neste navegador.
+  let oculto = false;
+  try { oculto = localStorage.getItem('gobox-fin-oculto') === '1'; } catch { /* sem armazenamento */ }
+  const val = (v) => (oculto ? 'R$ ••••••' : brl(v));
+  const OLHO_ABERTO = '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
+  const OLHO_FECHADO = '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 5.1A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7a17.5 17.5 0 0 1-3.2 4.1M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7a9.7 9.7 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function atualizarOlho() {
+    const b = document.getElementById('fin-olho');
+    if (!b) return;
+    b.innerHTML = oculto ? OLHO_FECHADO : OLHO_ABERTO;
+    b.setAttribute('aria-pressed', String(oculto));
+    b.setAttribute('aria-label', oculto ? 'Mostrar valores' : 'Ocultar valores');
+    b.title = oculto ? 'Mostrar valores' : 'Ocultar valores';
+    const aba = document.getElementById('aba-financeiro');
+    if (aba) aba.classList.toggle('fin-valores-ocultos', oculto);
+  }
   function el(tag, attrs, ...filhos) {
     const n = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs || {})) {
@@ -91,7 +109,7 @@
     return el('div', { class: 'fin-linha' },
       el('div', { class: 'fin-linha-topo' },
         el('div', {}, el('div', { class: 'fin-item' }, nome), el('div', { class: 'nota' }, `${num(qtd(fonte, item, quinzena))} · ${desc}`)),
-        el('div', { class: 'fin-item-valor' }, brl(valorItem(fonte, item, quinzena)))),
+        el('div', { class: 'fin-item-valor' }, val(valorItem(fonte, item, quinzena)))),
       campoAjuste(fonte, item, quinzena));
   }
 
@@ -100,10 +118,10 @@
     const e = s.estimado;
     if (!e) return null;
     return el('div', { class: 'fin-origem' },
-      el('div', {}, el('span', {}, 'Pago (expedido e retiradas feitas)'), el('strong', {}, brl(s.pago))),
+      el('div', {}, el('span', {}, 'Pago (expedido e retiradas feitas)'), el('strong', {}, val(s.pago))),
       el('div', { class: e.incluido ? '' : 'fin-desligado' },
         el('span', {}, `Recebimento estimado · recebidos no mês: ${num(e.recebidos)} drop-offs, ${num(e.retiradasRecebidas)} retiradas · ainda na agência: ${num(e.aguardandoColeta)} + ${num(e.aguardandoRetirada)}`),
-        el('strong', {}, e.incluido ? `+${brl(e.valor)}` : brl(e.valor))),
+        el('strong', {}, e.incluido ? `+${val(e.valor)}` : val(e.valor))),
       chaveEstimado('shopee', 'm', e.incluido));
   }
   function cartaoShopee() {
@@ -124,7 +142,7 @@
       el('div', { class: 'fin-cartao-topo' },
         el('div', {}, el('h2', {}, el('span', { class: 'fin-ponto shopee' }), NOME.shopee),
           el('div', { class: 'nota' }, s.portal ? `Totais do portal, lidos em ${new Date(s.portal.lidoEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : 'Mês inteiro, contado pelos pacotes')),
-        el('div', { class: 'fin-cartao-total' }, brl(s.total))),
+        el('div', { class: 'fin-cartao-total' }, val(s.total))),
       estimadoShopee(),
       ITENS.shopee.map((i) => linha('shopee', i)),
       el('div', { class: 'fin-medalha' },
@@ -132,7 +150,7 @@
         el('div', { class: 'fin-medalha-valores' },
           el('label', { for: 'fin-med-pct' }, 'Acréscimo'), pct, '%',
           el('label', { for: 'fin-med-fixo' }, '+ R$'), fixo),
-        el('p', { class: 'nota' }, `Sem medalha ${brl(s.base)} · bônus ${m.nome} ${brl(s.bonusMedalha)}`)));
+        el('p', { class: 'nota' }, `Sem medalha ${val(s.base)} · bônus ${m.nome} ${val(s.bonusMedalha)}`)));
   }
   // Chave para incluir ou não o estimado do dia no total do Mercado Livre.
   function chaveEstimado(fonte, q, ligado) {
@@ -156,41 +174,41 @@
       const partes = [`${num(e.delivery)} Delivery`, `${num(e.pickup)} Pick Up`];
       if (e.sacas) partes.push(`${num(e.sacas)} ${e.sacas === 1 ? 'saca' : 'sacas'}`);
       return el('div', { class: 'fin-origem' },
-        el('div', {}, el('span', {}, 'Oficial do Mercado Livre'), el('strong', {}, brl(m.oficial.total))),
+        el('div', {}, el('span', {}, 'Oficial do Mercado Livre'), el('strong', {}, val(m.oficial.total))),
         el('div', { class: e.incluido ? '' : 'fin-desligado' },
           el('span', {}, `Estimado desde ${dataBr(e.desde)} · ${partes.join(' · ')}`),
-          el('strong', {}, e.incluido ? `+${brl(e.valor)}` : brl(e.valor))),
+          el('strong', {}, e.incluido ? `+${val(e.valor)}` : val(e.valor))),
         chaveEstimado('ml', q, e.incluido),
         el('p', { class: 'nota' }, `Lido do portal em ${dataBr(m.oficial.lidoEm)}.${e.sacas ? ' Sacas aparecem para controle; os pacotes delas entram quando forem lidos no estoque.' : ''}`));
     };
     const blocos = [['q1', `1 a 15`], ['q2', `16 a ${dados.ultimoDia}`]].map(([q, rot]) =>
       el('details', { class: 'fin-quinzena', open: q === qa },
-        el('summary', {}, el('span', {}, `Quinzena ${rot}`), el('strong', {}, brl(dados.ml[q].total))),
+        el('summary', {}, el('span', {}, `Quinzena ${rot}`), el('strong', {}, val(dados.ml[q].total))),
         origem(q),
         ITENS.ml.map((i) => linha('ml', i, q))));
     return el('article', { class: 'fin-cartao' },
       el('div', { class: 'fin-cartao-topo' },
         el('div', {}, el('h2', {}, el('span', { class: 'fin-ponto ml' }), NOME.ml), el('div', { class: 'nota' }, 'Fecha por quinzena')),
-        el('div', { class: 'fin-cartao-total' }, brl(dados.ml.total))),
+        el('div', { class: 'fin-cartao-total' }, val(dados.ml.total))),
       blocos);
   }
   function cartaoCorreios() {
     return el('article', { class: 'fin-cartao' },
       el('div', { class: 'fin-cartao-topo' },
         el('div', {}, el('h2', {}, el('span', { class: 'fin-ponto correios' }), NOME.correios), el('div', { class: 'nota' }, 'Mês inteiro')),
-        el('div', { class: 'fin-cartao-total' }, brl(dados.correios.total))),
+        el('div', { class: 'fin-cartao-total' }, val(dados.correios.total))),
       ITENS.correios.map((i) => linha('correios', i)));
   }
 
   function desenhar() {
     const d = dados;
     const tot = $('#fin-total');
-    tot.textContent = brl(d.total);
+    tot.textContent = val(d.total);
     if (ultimoTotal !== null && d.total > ultimoTotal) { tot.classList.remove('fin-subiu'); void tot.offsetWidth; tot.classList.add('fin-subiu'); }
     ultimoTotal = d.total;
     $('#fin-meta').textContent = `${num(d.pacotes)} pacotes em ${nomeMes(d.mes).toLowerCase()}`;
     const partes = [['shopee', d.shopee.total], ['ml', d.ml.total], ['correios', d.correios.total]];
-    $('#fin-partes').replaceChildren(...partes.map(([k, v]) => el('span', {}, NOME[k], el('b', {}, brl(v)))));
+    $('#fin-partes').replaceChildren(...partes.map(([k, v]) => el('span', {}, NOME[k], el('b', {}, val(v)))));
     $('#fin-barra').replaceChildren(...partes.map(([k, v]) => {
       const i = el('i', { class: k, title: NOME[k] }); i.style.width = `${d.total ? (v / d.total) * 100 : 0}%`; return i;
     }));
@@ -201,7 +219,7 @@
       el('span', { class: `fin-ponto ${u.fonte}` }),
       el('span', { class: 'fin-u-txt' }, `${NOME[u.fonte]} · ${u.item}`, el('small', {}, u.codigo)),
       el('time', {}, new Date(u.em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })),
-      el('b', {}, `+${brl(u.valor)}`)))
+      el('b', {}, `+${val(u.valor)}`)))
       : [el('li', { class: 'nota' }, 'Nenhum pacote contado neste mês ainda. Eles aparecem aqui assim que a extensão sincronizar os portais.')]));
     $('#fin-atualizado').textContent = `Atualizado às ${new Date(d.agora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
 
@@ -241,6 +259,14 @@
     try { editando = false; dados = await api(`/financeiro/${dados.mes}/medalha`, { method: 'PUT', body: corpo }); desenhar(); }
     catch (e) { window.alert(e.message); }
   }
+
+  document.getElementById('fin-olho')?.addEventListener('click', () => {
+    oculto = !oculto;
+    try { localStorage.setItem('gobox-fin-oculto', oculto ? '1' : '0'); } catch { /* sem armazenamento */ }
+    atualizarOlho();
+    if (dados) { editando = false; desenhar(); }
+  });
+  atualizarOlho();
 
   window.goboxFinanceiro = {
     abrir() { carregar(); clearInterval(timer); timer = setInterval(() => { if (!document.hidden) carregar(); }, 30_000); },
