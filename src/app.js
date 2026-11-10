@@ -187,6 +187,16 @@ function createApp({ config, db, robo = null }) {
      FROM packages WHERE code = ? ORDER BY active DESC, last_updated_at DESC LIMIT 1`
   );
 
+  // Contador de acessos (sem guardar IP, código consultado ou dados do visitante).
+  const acessos = require('./acessos').criar(db);
+  const quem = (req) => ({ ip: req.ip, navegador: req.get('user-agent') });
+  const contar = (fn) => { try { fn(); } catch (e) { console.warn(`[acessos] não contei: ${e.message}`); } };
+  app.post('/api/visita', publicLimiter, (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    contar(() => acessos.visita(quem(req)));
+    res.status(204).end();
+  });
+
   app.post('/api/consulta', publicLimiter, (req, res) => {
     res.set('Cache-Control', 'no-store');
     const raw = req.body && typeof req.body.codigo === 'string' ? req.body.codigo : '';
@@ -195,6 +205,7 @@ function createApp({ config, db, robo = null }) {
     // Correspondência exata após a normalização. Só a situação do próprio pacote é
     // devolvida: nenhum nome, telefone, endereço, empresa ou outro código.
     const p = isAcceptableQuery(code) ? findStmt.get(code) : null;
+    contar(() => acessos.consulta({ encontrado: Boolean(p), ...quem(req) }));
     if (!p) return res.json({ encontrado: false });
     const situacao = p.situacao || (p.active ? 'na_agencia' : 'saiu');
     return res.json({
@@ -286,6 +297,7 @@ function createApp({ config, db, robo = null }) {
   });
 
   // ---------- Sacas ----------
+  admin.get('/acessos', requireAdmin, (req, res) => res.json(acessos.resumo({ dias: 30 })));
   admin.get('/sacas', requireAdmin, (req, res) => res.json(sacas.resumo(db)));
   admin.put('/sacas/config', requireAdmin, (req, res) => res.json({ config: sacas.salvarConfig(db, req.body || {}) }));
   admin.post('/sacas/enviar', requireAdmin, (req, res) => {

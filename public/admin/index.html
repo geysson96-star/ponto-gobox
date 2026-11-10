@@ -40,6 +40,7 @@
       <button type="button" class="item-menu" data-aba="pacotes" aria-current="page">Pacotes</button>
       <button type="button" class="item-menu" data-aba="financeiro">Financeiro</button>
       <button type="button" class="item-menu" data-aba="sacas">Sacas</button>
+      <button type="button" class="item-menu" data-aba="acessos">Acessos</button>
       <button type="button" class="item-menu" data-aba="ponto">Ponto</button>
       <button type="button" class="item-menu" data-aba="importacoes">Importações</button>
       <button type="button" class="item-menu" data-aba="configuracoes">Configurações</button>
@@ -173,6 +174,28 @@
       </section>
     </section>
 
+    <!-- Aba Acessos (uso da página pública de consulta) -->
+    <section id="aba-acessos" class="aba" hidden>
+      <div class="cabecalho">
+        <div>
+          <h1>Acessos</h1>
+          <p class="descricao">Quantas vezes a página de consulta foi aberta e quantas pesquisas os clientes fizeram. Não guardamos IP, código pesquisado nem nenhum dado de quem acessou. “Pessoas” é aproximado: conta cada aparelho uma vez por dia.</p>
+        </div>
+        <div class="acoes"><button type="button" id="ace-atualizar" class="botao-secundario">Atualizar</button></div>
+      </div>
+      <p id="ace-aviso" class="aviso-geral" role="status" hidden></p>
+      <section id="ace-cartoes" class="ace-cartoes" aria-label="Resumo de acessos"></section>
+      <section class="tabela-bloco">
+        <div class="fin-titulo-bloco"><h2>Últimos 30 dias</h2><span class="nota" id="ace-desde"></span></div>
+        <div class="rolagem">
+          <table class="ace-tabela">
+            <thead><tr><th>Dia</th><th>Pessoas</th><th>Visitas</th><th>Pesquisas</th><th>Encontrados</th></tr></thead>
+            <tbody id="ace-dias"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
     <!-- Aba Ponto (painel do Ponto GoBox, dados no Firebase) -->
     <section id="aba-ponto" class="aba aba-ponto" hidden>
       <iframe id="ponto-frame" class="ponto-frame" title="Controle de ponto" loading="lazy"></iframe>
@@ -259,5 +282,6 @@
 <script src="/admin/admin.js"></script>
 <script src="/admin/financeiro.js"></script>
 <script src="/admin/sacas.js"></script>
+<script src="/admin/acessos.js"></script>
 </body>
 </html>

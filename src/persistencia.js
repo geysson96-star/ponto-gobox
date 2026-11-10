@@ -158,11 +158,13 @@ function criar({ db, config, fetchFn = fetch, log = console }) {
       v: 1,
       financeiro: tem('financeiro') ? db.prepare('SELECT chave, json FROM financeiro').all() : [],
       settings: db.prepare('SELECT source, json FROM settings').all(),
-      sessions: db.prepare('SELECT token_hash, created_at, expires_at FROM sessions WHERE expires_at > ?').all(new Date().toISOString())
+      sessions: db.prepare('SELECT token_hash, created_at, expires_at FROM sessions WHERE expires_at > ?').all(new Date().toISOString()),
+      acessos: tem('acessos') ? db.prepare('SELECT dia, visitas, consultas, encontrados, visitantes FROM acessos').all() : []
     };
   }
   function restaurarEstado(e) {
     db.exec('CREATE TABLE IF NOT EXISTS financeiro (chave TEXT PRIMARY KEY, json TEXT NOT NULL)');
+    require('./acessos').preparar(db);
     db.transaction(() => {
       const f = db.prepare('INSERT OR REPLACE INTO financeiro (chave, json) VALUES (?, ?)');
       for (const r of e.financeiro || []) f.run(r.chave, r.json);
@@ -170,6 +172,11 @@ function criar({ db, config, fetchFn = fetch, log = console }) {
       for (const r of e.settings || []) s.run(r.source, r.json);
       const se = db.prepare('INSERT OR REPLACE INTO sessions (token_hash, created_at, expires_at) VALUES (?, ?, ?)');
       for (const r of e.sessions || []) se.run(r.token_hash, r.created_at, r.expires_at);
+      // Contador de acessos: fica o maior valor (o servidor pode ter contado algo antes de restaurar).
+      const a = db.prepare(`INSERT INTO acessos (dia, visitas, consultas, encontrados, visitantes) VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(dia) DO UPDATE SET visitas = MAX(visitas, excluded.visitas), consultas = MAX(consultas, excluded.consultas),
+        encontrados = MAX(encontrados, excluded.encontrados), visitantes = MAX(visitantes, excluded.visitantes)`);
+      for (const r of e.acessos || []) a.run(r.dia, r.visitas || 0, r.consultas || 0, r.encontrados || 0, r.visitantes || 0);
     })();
   }
 

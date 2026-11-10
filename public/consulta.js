@@ -174,4 +174,7 @@
 
   carregarFontes();
   setInterval(carregarFontes, 60_000);
+
+  // Contador de acessos: avisa que a página foi aberta (nenhum dado pessoal é enviado).
+  try { fetch('/api/visita', { method: 'POST', keepalive: true }).catch(() => {}); } catch { /* sem contador */ }
 }());

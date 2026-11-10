@@ -219,3 +219,13 @@ p.fin-origem { margin: 0; }
 /* Aba Ponto */
 .aba-ponto { gap: 0; }
 .ponto-frame { width: 100%; height: calc(100vh - 72px); height: calc(100dvh - 72px); min-height: 560px; border: 0; border-radius: 20px; background: var(--branco); display: block; }
+
+/* Aba Acessos */
+.ace-cartoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 16px; margin-bottom: 20px; }
+.ace-cartao { background: var(--branco); border: 1px solid var(--borda-clara); border-radius: 20px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; }
+.ace-cartao h2 { margin: 0; font-size: 14px; font-weight: 600; color: var(--texto-suave); }
+.ace-numero { font-size: 32px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.ace-detalhe { font-size: 13px; color: var(--texto-suave); }
+.ace-tabela { min-width: 520px; }
+.ace-tabela td { font-variant-numeric: tabular-nums; }
+.ace-barra { display: inline-block; height: 8px; border-radius: 999px; background: var(--azul); margin-left: 10px; vertical-align: middle; opacity: .75; }
