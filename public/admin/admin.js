@@ -74,7 +74,9 @@
   function mostrarPainel() {
     $('#tela-login').hidden = true;
     $('#tela-painel').hidden = false;
-    trocarAba('pacotes');
+    // Volta para a aba que estava aberta (o endereço guarda a aba, ex.: /admin/#fretes).
+    const salva = location.hash.slice(1);
+    trocarAba($(`.item-menu[data-aba="${salva}"]`) ? salva : 'pacotes');
   }
 
   $('#form-login').addEventListener('submit', async (ev) => {
@@ -105,12 +107,14 @@
       else b.removeAttribute('aria-current');
     }
     for (const s of $$('.aba')) s.hidden = s.id !== `aba-${aba}`;
+    if (location.hash.slice(1) !== aba) history.replaceState(null, '', `#${aba}`);
     if (aba === 'pacotes') { carregarRobo(); carregarFontes(); carregarPacotes(); }
     if (aba === 'importacoes') carregarImportacoes();
     if (aba === 'configuracoes') carregarConfiguracoes();
     if (window.goboxFinanceiro) window.goboxFinanceiro[aba === 'financeiro' ? 'abrir' : 'fechar']();
     if (window.goboxSacas) window.goboxSacas[aba === 'sacas' ? 'abrir' : 'fechar']();
     if (window.goboxAcessos) window.goboxAcessos[aba === 'acessos' ? 'abrir' : 'fechar']();
+    if (window.goboxFretes) window.goboxFretes[aba === 'fretes' ? 'abrir' : 'fechar']();
     // Aba Ponto: carrega o painel do ponto só quando for aberta pela primeira vez.
     if (aba === 'ponto' && !$('#ponto-frame').getAttribute('src')) $('#ponto-frame').setAttribute('src', '/admin/ponto/');
     if (aba === 'contabilidade' && !$('#contabilidade-frame').getAttribute('src')) $('#contabilidade-frame').setAttribute('src', '/admin/contabilidade/');

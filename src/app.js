@@ -17,6 +17,7 @@ const auth = require('./auth');
 const financeiro = require('./financeiro');
 const contabilidade = require('./contabilidade');
 const sacas = require('./sacas');
+const fretes = require('./fretes');
 
 function createApp({ config, db, robo = null }) {
   const app = express();
@@ -230,6 +231,19 @@ function createApp({ config, db, robo = null }) {
     });
   });
 
+  // ---------------- Cotação de fretes (parceria Azul Cargo) ----------------
+  // O cliente vê só o preço final; custo, margem e transporte ficam no servidor.
+  const fretesLimiter = rateLimit({
+    windowMs: 60_000, limit: 90, standardHeaders: 'draft-7', legacyHeaders: false,
+    handler: (req, res) => res.status(429).json({ erro: 'Muitas cotações seguidas. Aguarde um minuto e tente de novo.' })
+  });
+  const fretesRota = (fn) => (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    try { res.json(fn(req.body || {})); } catch (e) { res.status(400).json({ erro: e.message }); }
+  };
+  app.post('/api/fretes/cotar', fretesLimiter, fretesRota((b) => fretes.cotar(db, b)));
+  app.post('/api/fretes/contratar', fretesLimiter, fretesRota((b) => fretes.contratar(db, b)));
+
   // ---------------- Área administrativa ----------------
   const admin = express.Router();
   admin.use(auth.sameOrigin);
@@ -315,6 +329,28 @@ function createApp({ config, db, robo = null }) {
   admin.delete('/contabilidade/notas/:id', requireAdmin, contab((req) => { contabilidade.apagarNota(db, String(req.params.id)); return { ok: true }; }));
 
   // ---------- Sacas ----------
+  // Aba Fretes: margem, transporte Tobias Barreto → Aracaju, cotações e tabela da Azul.
+  const fretesAdmin = (fn) => (req, res) => {
+    try { res.json(fn(req)); } catch (e) { res.status(400).json({ erro: e.message }); }
+  };
+  admin.get('/fretes', requireAdmin, fretesAdmin(() => fretes.resumo(db)));
+  admin.put('/fretes/config', requireAdmin, fretesAdmin((req) => ({ config: fretes.salvarConfig(db, req.body || {}) })));
+  admin.post('/fretes/simular', requireAdmin, fretesAdmin((req) => fretes.simular(db, req.body || {})));
+  const uploadTarifa = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: config.MAX_UPLOAD_MB * 1024 * 1024, files: 1 },
+    fileFilter: (req, file, cb) => cb(null, /\.xlsx$/i.test(file.originalname))
+  });
+  admin.post('/fretes/tarifas', requireAdmin, (req, res, next) => {
+    uploadTarifa.single('arquivo')(req, res, (err) => {
+      if (err) return res.status(400).json({ erro: err.code === 'LIMIT_FILE_SIZE' ? `Arquivo maior que ${config.MAX_UPLOAD_MB} MB.` : 'Não foi possível receber o arquivo.' });
+      return next();
+    });
+  }, async (req, res) => {
+    if (!req.file) return res.status(400).json({ erro: 'Envie a planilha .xlsx da Azul.' });
+    try { res.json(await fretes.importarTarifa(db, req.file.buffer)); } catch (e) { res.status(422).json({ erro: e.message }); }
+  });
+
   admin.get('/acessos', requireAdmin, (req, res) => res.json(acessos.resumo({ dias: 30 })));
   admin.get('/sacas', requireAdmin, (req, res) => res.json(sacas.resumo(db)));
   admin.put('/sacas/config', requireAdmin, (req, res) => res.json({ config: sacas.salvarConfig(db, req.body || {}) }));
