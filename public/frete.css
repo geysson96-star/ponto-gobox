@@ -14,16 +14,11 @@ h1, h2, h3 { margin: 0; line-height: 1.2; text-wrap: balance; }
 @media (max-width: 600px) { .fr-menu { margin-left: 0; width: 100%; } .fr-menu a { padding: 6px 10px; font-size: 13px; } }
 
 .fr-hero-faixa { background: linear-gradient(180deg, #F6F8FD 0%, var(--branco) 100%); border-bottom: 1px solid var(--borda-clara); overflow: hidden; }
-.fr-hero { padding-block: 36px 28px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 440px); gap: 24px; align-items: center; }
-.fr-hero-ilustra { width: 100%; height: auto; display: block; }
+.fr-hero { padding-block: 32px 26px; }
 .fr-destaques { list-style: none; padding: 0; margin: 18px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .fr-destaques li { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; background: var(--branco); border: 1px solid var(--borda-clara); font-size: 13px; font-weight: 600; color: var(--azul); }
 .fr-destaques li::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--laranja); }
-@media (max-width: 860px) {
-  .fr-hero { grid-template-columns: 1fr; padding-block: 24px 20px; }
-  .fr-hero-ilustra { max-width: 380px; margin: 0 auto; order: -1; }
-}
-.fr-fundo { background-color: var(--branco); background-image: url("/assets/frete-fundo.svg"); background-size: 360px 360px; padding-top: 28px; }
+.fr-area { padding-top: 28px; }
 .fr-form, .fr-cartao { box-shadow: 0 10px 30px -22px rgba(0, 24, 102, .35); }
 .fr-parceiro { display: inline-flex; align-items: center; gap: 12px; margin-bottom: 14px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--texto-suave); flex-wrap: wrap; }
 .fr-parceiro-logo { display: inline-flex; align-items: center; }

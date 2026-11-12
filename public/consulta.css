@@ -1,5 +1,5 @@
 /* Layout estilo Google: logo grande no centro, barra de busca em pílula, situação das fontes abaixo. */
-:root { --gobox-navy: var(--azul); --gobox-orange: var(--laranja); }
+/* Cores do logo animado: definidas no base.css. */
 
 .pagina { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
 .centro {
@@ -85,5 +85,3 @@
 @media (prefers-reduced-motion: reduce) {
   .centro, .logo, .cartao-resultado { transition: none; animation: none; }
 }
-.rodape-link { font-weight: 600; color: var(--azul); text-decoration: none; }
-.rodape-link:hover { text-decoration: underline; }
