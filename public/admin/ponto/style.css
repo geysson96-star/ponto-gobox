@@ -1,10 +1,10 @@
 /* Layout: terminal de ponto de uma coluna no celular (#ponto); painel em abas com tabelas no computador (#painel). Identidade GoBox: fundo branco, azul-marinho e vermelho da marca. */
 :root{
   --bg:#FFFFFF; --surface:#FFFFFF; --sunk:#F2F4FA; --ink:#24244A; --muted:#5C6589; --line:#DCE0EC;
-  --navy:#333366; --red:#E5531F; --orange:#FF6633;
-  --accent:#333366; --accent-hover:#40407D; --accent-ink:#FFFFFF; --accent-soft:#E8EBF6;
-  --work:#333366; --work-bg:#E8EBF6; --pause:#D24A1A; --pause-bg:#FFEDE6; --off:#5C6589; --off-bg:#EEF0F5;
-  --danger:#FFFFFF; --danger-bg:#E5531F; --shadow:0 1px 2px rgba(51,51,102,.06),0 8px 24px rgba(51,51,102,.07);
+  --navy:#001866; --red:#E01B05; --orange:#FF1F06;
+  --accent:#001866; --accent-hover:#0B2A8A; --accent-ink:#FFFFFF; --accent-soft:#E8EBF6;
+  --work:#001866; --work-bg:#E8EBF6; --pause:#D24A1A; --pause-bg:#FFEDE6; --off:#5C6589; --off-bg:#EEF0F5;
+  --danger:#FFFFFF; --danger-bg:#E5531F; --shadow:0 1px 2px rgba(0,24,102,.06),0 8px 24px rgba(0,24,102,.07);
   --display:"Poppins",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --body:"Poppins",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --mono:"Poppins",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;

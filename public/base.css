@@ -19,6 +19,8 @@
   --fonte: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
 }
+/* Logo GoBox (componente <gobox-logo>) sempre nas cores oficiais: azul-marinho #001866 e vermelho #FF1F06. */
+:root { --gobox-navy: #001866; --gobox-orange: #FF1F06; }
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; }
 body {
@@ -55,3 +57,12 @@ input::placeholder { color: var(--texto-suave); }
 .marca-cubo { height: 36px; width: auto; display: block; }
 .marca-nome { height: 28px; width: auto; display: block; }
 .oculto { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Barra do topo: alterna entre a consulta de pacotes e a cotação de fretes. */
+.abas-site { background: var(--azul); padding: 8px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px)); padding-top: calc(8px + env(safe-area-inset-top, 0px)); }
+.abas-site-in { display: flex; justify-content: center; gap: 4px; max-width: 520px; margin: 0 auto; background: rgba(255, 255, 255, .1); border-radius: 999px; padding: 4px; }
+.abas-site a { flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 16px; border-radius: 999px; color: var(--branco); text-decoration: none; font-size: 14px; font-weight: 600; white-space: nowrap; }
+.abas-site a:hover { background: rgba(255, 255, 255, .12); color: var(--branco); }
+.abas-site a[aria-current="page"] { background: var(--branco); color: var(--azul); }
+.abas-site svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.abas-site a:focus-visible { outline-color: rgba(255, 255, 255, .8); }
