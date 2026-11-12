@@ -108,6 +108,14 @@ Qualquer servidor que rode Node e mantenha arquivos em disco serve, como uma VPS
 - Nenhuma credencial dos portais (Shopee, Mercado Livre, Correios) é usada ou armazenada.
 - Cabeçalhos de segurança (CSP, sem iframes de outros sites) via `helmet`.
 
+## Contabilidade (aba do painel)
+
+- **Contracheques quinzenais:** funcionários e horas extras vêm do Ponto GoBox, com as mesmas regras do relatório do ponto (extras 50%, 100% em domingos e feriados, tolerância). O salário de cada funcionário fica na Contabilidade. Tudo pode ser alterado por quinzena: valor da quinzena, horas, adicional, proventos e descontos. O recibo sai pronto para imprimir ou salvar em PDF.
+- **Notas fiscais:** Correios e Shopee mensais, Mercado Livre quinzenal. O valor sugerido vem do Financeiro. O dia do pagamento é previsto pelo histórico de cada empresa (dias corridos, dias úteis ou dia fixo do mês, o que for mais regular); com menos de 3 pagamentos registrados, vale o prazo informado no modelo de emissão.
+- **Modelo de emissão por empresa:** tomador, CNPJ, código de serviço, CNAE, descrição, observações obrigatórias (hashtags, códigos), quando emitir e onde enviar. Cada nota gera um documento de emissão com esses dados preenchidos, que fica salvo com a nota.
+- Os dados ficam na tabela `financeiro` (chaves `contab:*`), salva no Firebase junto com o resto.
+- **Para tirar a aba:** desfazer o commit da Contabilidade (reverter o commit "Contabilidade" no ramo `consulta` do repositório ponto-gobox, que é o que o Render publica). As chaves `contab:*` que sobrarem no banco não afetam nada.
+
 ## Testes
 
 ```bash

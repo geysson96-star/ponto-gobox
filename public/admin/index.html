@@ -42,6 +42,7 @@
       <button type="button" class="item-menu" data-aba="sacas">Sacas</button>
       <button type="button" class="item-menu" data-aba="acessos">Acessos</button>
       <button type="button" class="item-menu" data-aba="ponto">Ponto</button>
+      <button type="button" class="item-menu" data-aba="contabilidade">Contabilidade</button>
       <button type="button" class="item-menu" data-aba="importacoes">Importações</button>
       <button type="button" class="item-menu" data-aba="configuracoes">Configurações</button>
     </div>
@@ -199,6 +200,11 @@
     <!-- Aba Ponto (painel do Ponto GoBox, dados no Firebase) -->
     <section id="aba-ponto" class="aba aba-ponto" hidden>
       <iframe id="ponto-frame" class="ponto-frame" title="Controle de ponto" loading="lazy"></iframe>
+    </section>
+
+    <!-- Aba Contabilidade (contracheques e notas fiscais; horas do Ponto GoBox) -->
+    <section id="aba-contabilidade" class="aba aba-ponto" hidden>
+      <iframe id="contabilidade-frame" class="ponto-frame" title="Contabilidade" loading="lazy"></iframe>
     </section>
 
     <!-- Aba Importações -->

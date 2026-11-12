@@ -15,6 +15,7 @@ const extensao = require('./extensao');
 const { processAll } = require('./inbox');
 const auth = require('./auth');
 const financeiro = require('./financeiro');
+const contabilidade = require('./contabilidade');
 const sacas = require('./sacas');
 
 function createApp({ config, db, robo = null }) {
@@ -38,13 +39,15 @@ function createApp({ config, db, robo = null }) {
     strictTransportSecurity: config.COOKIE_SECURE ? undefined : false
   }));
   const jsonPequeno = express.json({ limit: '4kb' });
-  app.use((req, res, next) => (req.path.startsWith('/api/extensao/') ? next() : jsonPequeno(req, res, next)));
+  const jsonContabilidade = express.json({ limit: '64kb' }); // modelos e documentos de emissão das notas
+  app.use((req, res, next) => (req.path.startsWith('/api/extensao/') ? next()
+    : req.path.startsWith('/admin/api/contabilidade/') ? jsonContabilidade(req, res, next) : jsonPequeno(req, res, next)));
 
   const publicDir = path.join(config.ROOT, 'public');
 
-  // Painel do ponto (aba Ponto do admin): fala direto com o Firebase do Ponto GoBox
-  // e abre dentro do painel (iframe da mesma origem).
-  app.use('/admin/ponto', (req, res, next) => {
+  // Painel do ponto (aba Ponto do admin) e aba Contabilidade: falam direto com o Firebase
+  // do Ponto GoBox e abrem dentro do painel (iframe da mesma origem).
+  app.use(['/admin/ponto', '/admin/contabilidade'], (req, res, next) => {
     res.setHeader('Content-Security-Policy', [
       "default-src 'self'",
       "script-src 'self' https://www.gstatic.com",
@@ -295,6 +298,21 @@ function createApp({ config, db, robo = null }) {
       res.json(financeiro.resumo(db, req.params.mes));
     } catch (e) { res.status(400).json({ erro: e.message }); }
   });
+
+  // ---------- Contabilidade (contracheques e notas fiscais) ----------
+  const contab = (fn) => (req, res) => {
+    try { res.json(fn(req)); } catch (e) { res.status(400).json({ erro: e.message }); }
+  };
+  admin.get('/contabilidade', requireAdmin, contab((req) => {
+    const ref = String(req.query.quinzena || '');
+    return { ...contabilidade.resumoNotas(db), salarios: contabilidade.salarios(db), quinzena: ref, contracheques: ref ? contabilidade.contracheques(db, ref) : {} };
+  }));
+  admin.put('/contabilidade/salarios/:fid', requireAdmin, contab((req) => ({ salario: contabilidade.salvarSalario(db, String(req.params.fid), req.body || {}) })));
+  admin.put('/contabilidade/contracheques/:ref/:fid', requireAdmin, contab((req) => ({ contracheque: contabilidade.salvarContracheque(db, String(req.params.ref), String(req.params.fid), req.body || {}) })));
+  admin.put('/contabilidade/modelos/:empresa', requireAdmin, contab((req) => ({ modelo: contabilidade.salvarModelo(db, String(req.params.empresa), req.body || {}) })));
+  admin.post('/contabilidade/notas', requireAdmin, contab((req) => ({ nota: contabilidade.criarNota(db, req.body || {}) })));
+  admin.put('/contabilidade/notas/:id', requireAdmin, contab((req) => ({ nota: contabilidade.editarNota(db, String(req.params.id), req.body || {}) })));
+  admin.delete('/contabilidade/notas/:id', requireAdmin, contab((req) => { contabilidade.apagarNota(db, String(req.params.id)); return { ok: true }; }));
 
   // ---------- Sacas ----------
   admin.get('/acessos', requireAdmin, (req, res) => res.json(acessos.resumo({ dias: 30 })));

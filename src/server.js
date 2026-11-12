@@ -64,8 +64,11 @@ let server;
     if (r.erro) console.warn(`[persistência] não restaurei tudo: ${r.erro}`);
     else console.log(`[persistência] restaurado do Firebase: estado ${r.estado ? 'sim' : 'vazio'}, pacotes ${JSON.stringify(r.pacotes)}`);
     persistencia.ligar();
+    // Só depois de restaurar com sucesso, para não sobrescrever as notas salvas no Firebase.
+    if (!r.erro) console.log(`[contabilidade] notas de out/2026 registradas: ${require('./contabilidade').registrarNotasIniciais(db)}`);
   } else {
     console.log('[persistência] desligada (sem PONTO_EMAIL/PONTO_SENHA).');
+    require('./contabilidade').registrarNotasIniciais(db);
   }
   server = app.listen(config.PORT, () => {
   console.log(`GoBox consulta rodando em http://localhost:${config.PORT}`);

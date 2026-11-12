@@ -113,6 +113,7 @@
     if (window.goboxAcessos) window.goboxAcessos[aba === 'acessos' ? 'abrir' : 'fechar']();
     // Aba Ponto: carrega o painel do ponto só quando for aberta pela primeira vez.
     if (aba === 'ponto' && !$('#ponto-frame').getAttribute('src')) $('#ponto-frame').setAttribute('src', '/admin/ponto/');
+    if (aba === 'contabilidade' && !$('#contabilidade-frame').getAttribute('src')) $('#contabilidade-frame').setAttribute('src', '/admin/contabilidade/');
   }
   for (const b of $$('.item-menu')) b.addEventListener('click', () => trocarAba(b.dataset.aba));
 
