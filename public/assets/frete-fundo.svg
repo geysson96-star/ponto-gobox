@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="360" viewBox="0 0 360 360" fill="none">
+  <!-- Padrão flat bem suave para o fundo da cotação: caixas, pinos, aviões e rotas -->
+  <g opacity=".55">
+    <g transform="translate(30 40)" stroke="#C9D2EA" stroke-width="2.5" stroke-linejoin="round">
+      <path d="M0 12 L22 0 L44 12 V36 L22 48 L0 36Z M0 12 L22 24 L44 12 M22 24 V48"/>
+    </g>
+    <g transform="translate(220 30) rotate(-18)" fill="#D6DDF0">
+      <path d="M0 10 C0 6 3 5 7 5 H48 C56 5 62 8 62 11 C62 14 56 16 48 16 H7 C3 16 0 14 0 10Z"/>
+      <path d="M24 6 L35 -9 H41 L35 6Z M26 15 L36 29 H42 L36 15Z M2 6 L-3 -3 H3 L9 6Z"/>
+    </g>
+    <path d="M150 300 C150 300 166 286 166 274 C166 265 159 258 150 258 C141 258 134 265 134 274 C134 286 150 300 150 300Z" fill="#FFD9D2"/>
+    <circle cx="150" cy="274" r="5" fill="#FFFFFF"/>
+    <path d="M60 190 C110 160 160 220 230 180" stroke="#D6DDF0" stroke-width="2.5" stroke-dasharray="2 9" stroke-linecap="round"/>
+    <g transform="translate(270 220)" stroke="#C9D2EA" stroke-width="2.5" stroke-linejoin="round">
+      <rect x="0" y="0" width="40" height="32" rx="3"/><path d="M15 0 V12 H25 V0"/>
+    </g>
+    <circle cx="300" cy="120" r="4" fill="#D6DDF0"/>
+    <circle cx="90" cy="300" r="3" fill="#FFD9D2"/>
+    <circle cx="190" cy="120" r="3" fill="#D6DDF0"/>
+  </g>
+</svg>

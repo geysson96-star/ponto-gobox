@@ -37,14 +37,30 @@
       <span class="etiqueta-admin">Admin</span>
     </div>
     <div class="menu">
-      <button type="button" class="item-menu" data-aba="pacotes" aria-current="page">Pacotes</button>
-      <button type="button" class="item-menu" data-aba="financeiro">Financeiro</button>
-      <button type="button" class="item-menu" data-aba="sacas">Sacas</button>
-      <button type="button" class="item-menu" data-aba="acessos">Acessos</button>
-      <button type="button" class="item-menu" data-aba="ponto">Ponto</button>
-      <button type="button" class="item-menu" data-aba="contabilidade">Contabilidade</button>
-      <button type="button" class="item-menu" data-aba="importacoes">Importações</button>
-      <button type="button" class="item-menu" data-aba="configuracoes">Configurações</button>
+      <div class="grupo-menu" role="group" aria-labelledby="gm-pacotes">
+        <span class="titulo-grupo" id="gm-pacotes">Pacotes na agência</span>
+        <button type="button" class="item-menu" data-aba="pacotes" aria-current="page">Consulta de pacotes</button>
+        <button type="button" class="item-menu" data-aba="importacoes">Importações</button>
+        <button type="button" class="item-menu" data-aba="sacas">Sacas do Mercado Livre</button>
+      </div>
+      <div class="grupo-menu" role="group" aria-labelledby="gm-fretes">
+        <span class="titulo-grupo" id="gm-fretes">Envios</span>
+        <button type="button" class="item-menu" data-aba="fretes">Fretes Azul</button>
+      </div>
+      <div class="grupo-menu" role="group" aria-labelledby="gm-dinheiro">
+        <span class="titulo-grupo" id="gm-dinheiro">Dinheiro</span>
+        <button type="button" class="item-menu" data-aba="financeiro">Financeiro</button>
+        <button type="button" class="item-menu" data-aba="contabilidade">Contabilidade</button>
+      </div>
+      <div class="grupo-menu" role="group" aria-labelledby="gm-equipe">
+        <span class="titulo-grupo" id="gm-equipe">Equipe</span>
+        <button type="button" class="item-menu" data-aba="ponto">Ponto</button>
+      </div>
+      <div class="grupo-menu" role="group" aria-labelledby="gm-sistema">
+        <span class="titulo-grupo" id="gm-sistema">Site e sistema</span>
+        <button type="button" class="item-menu" data-aba="acessos">Acessos ao site</button>
+        <button type="button" class="item-menu" data-aba="configuracoes">Configurações</button>
+      </div>
     </div>
     <div class="rodape-menu">
       <div><strong>Administrador</strong><span>Sessão protegida</span></div>
@@ -57,7 +73,7 @@
     <section id="aba-pacotes" class="aba">
       <div class="cabecalho">
         <div>
-          <h1>Pacotes</h1>
+          <h1>Consulta de pacotes</h1>
           <p class="descricao">Base local usada pela consulta pública. Os dados não são em tempo real: valem até a última importação de cada empresa.</p>
         </div>
         <div class="acoes">
@@ -160,7 +176,7 @@
     <section id="aba-sacas" class="aba" hidden>
       <div class="cabecalho">
         <div>
-          <h1>Sacas</h1>
+          <h1>Sacas do Mercado Livre</h1>
           <p class="descricao">Envios do Mercado Livre lidos na tela “Entrada de unidades”. Quando um envio chega, as sacas Delivery vão para o grupo “Delivery - GoBox” e as Next (Mercado Envios Extra) para o “Gobox_Entregadores”, pelo n8n. Com o envio desligado (modo teste), as mensagens só aparecem aqui.</p>
         </div>
       </div>
@@ -179,7 +195,7 @@
     <section id="aba-acessos" class="aba" hidden>
       <div class="cabecalho">
         <div>
-          <h1>Acessos</h1>
+          <h1>Acessos ao site</h1>
           <p class="descricao">Quantas vezes a página de consulta foi aberta e quantas pesquisas os clientes fizeram. Não guardamos IP, código pesquisado nem nenhum dado de quem acessou. “Pessoas” é aproximado: conta cada aparelho uma vez por dia.</p>
         </div>
         <div class="acoes"><button type="button" id="ace-atualizar" class="botao-secundario">Atualizar</button></div>
@@ -193,6 +209,68 @@
             <thead><tr><th>Dia</th><th>Pessoas</th><th>Visitas</th><th>Pesquisas</th><th>Encontrados</th></tr></thead>
             <tbody id="ace-dias"></tbody>
           </table>
+        </div>
+      </section>
+    </section>
+
+    <!-- Aba Fretes (cotação Azul Cargo: margem, transporte e cotações) -->
+    <section id="aba-fretes" class="aba" hidden>
+      <div class="cabecalho">
+        <div>
+          <h1>Fretes Azul</h1>
+          <p class="descricao">Margem e transporte usados na <a href="/frete" target="_blank" rel="noopener">página de cotação</a>. Mudou aqui, o preço do cliente muda na hora.</p>
+        </div>
+      </div>
+      <div class="frt-grade">
+        <section class="tabela-bloco frt-cartao" aria-labelledby="frt-t-margem">
+          <h2 id="frt-t-margem">Minha margem de lucro</h2>
+          <div class="frt-grande"><input id="frt-margem" type="number" min="0" max="200" step="0.5" aria-label="Margem em porcentagem"><span>%</span></div>
+          <div class="chips" id="frt-atalhos">
+            <button type="button" class="chip" data-v="5">5%</button><button type="button" class="chip" data-v="10">10%</button>
+            <button type="button" class="chip" data-v="15">15%</button><button type="button" class="chip" data-v="20">20%</button>
+          </div>
+          <p class="nota">Sobre o custo total (frete Azul + seguro + embalagem + transporte). O preço termina em ,90.</p>
+        </section>
+        <section class="tabela-bloco frt-cartao" aria-labelledby="frt-t-transp">
+          <h2 id="frt-t-transp">Transporte Tobias Barreto → Aracaju</h2>
+          <div class="frt-grande"><span>R$</span><input id="frt-transporte" type="number" min="0" max="500" step="0.5" aria-label="Valor por pacote"></div>
+          <p class="nota">Cobrado por pacote, para levar até a base da Azul.</p>
+          <details class="frt-rateio"><summary>Não sei quanto cobrar</summary>
+            <div class="frt-linha">
+              <div class="campo"><label for="frt-viagem">Custo da viagem (R$)</label><input id="frt-viagem" type="number" min="0" value="150"></div>
+              <div class="campo"><label for="frt-pacotes">Pacotes por viagem</label><input id="frt-pacotes" type="number" min="1" value="30"></div>
+            </div>
+            <div class="frt-sugestao"><span>Sugestão: <strong id="frt-sug">R$ 5,00</strong> por pacote</span><button type="button" class="botao-secundario" id="frt-usar">Usar este valor</button></div>
+          </details>
+          <p class="frt-salvo nota" id="frt-salvo" role="status"></p>
+        </section>
+      </div>
+
+      <section class="tabela-bloco">
+        <div class="fin-titulo-bloco"><h2>Simulador</h2><span class="nota">A mesma conta da página, com o seu lucro</span></div>
+        <div class="filtros frt-sim">
+          <div class="campo"><label for="frt-s-uf">Estado</label><select id="frt-s-uf"></select></div>
+          <div class="campo"><label for="frt-s-tipo">Cidade</label><select id="frt-s-tipo"><option value="C">Capital</option><option value="I">Interior</option><option value="R">Interior distante</option></select></div>
+          <div class="campo"><label for="frt-s-peso">Peso (kg)</label><input id="frt-s-peso" type="number" min="0.01" step="0.1" value="2"></div>
+          <div class="campo"><label for="frt-s-valor">Valor (R$)</label><input id="frt-s-valor" type="number" min="0" value="200"></div>
+        </div>
+        <div class="rolagem"><table class="frt-tabela" id="frt-simulacao"></table></div>
+      </section>
+
+      <section class="tabela-bloco">
+        <div class="fin-titulo-bloco"><h2>Cotações recebidas</h2><span class="nota">Cada “Contratar” na página aparece aqui</span></div>
+        <div class="rolagem"><table id="frt-cotacoes"></table></div>
+      </section>
+
+      <section class="tabela-bloco">
+        <div class="fin-titulo-bloco"><h2>Tabela da Azul</h2><span class="nota" id="frt-vigencia"></span></div>
+        <div class="frt-tabela-azul">
+          <ul id="frt-servicos" class="frt-servicos"></ul>
+          <form id="frt-form-tarifa" class="frt-upload">
+            <div class="campo"><label for="frt-arquivo">Planilha nova da Azul (.xlsx)</label><input id="frt-arquivo" type="file" accept=".xlsx"></div>
+            <button type="submit" class="botao-principal botao-medio">Atualizar tabela</button>
+            <p class="nota" id="frt-msg-tarifa" role="status">Envie um arquivo por vez. O sistema reconhece se é E-commerce, Expresso, Premium ou Standard.</p>
+          </form>
         </div>
       </section>
     </section>
@@ -289,5 +367,6 @@
 <script src="/admin/financeiro.js"></script>
 <script src="/admin/sacas.js"></script>
 <script src="/admin/acessos.js"></script>
+<script src="/admin/fretes.js"></script>
 </body>
 </html>

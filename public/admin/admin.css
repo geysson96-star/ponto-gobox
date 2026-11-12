@@ -23,7 +23,9 @@ body.admin { background: var(--superficie); }
 .lateral .marca-cubo { height: 30px; }
 .lateral .marca-nome { height: 22px; }
 .etiqueta-admin { font-size: 12px; font-weight: 600; color: var(--texto-suave); padding: 3px 8px; border-radius: 999px; background: var(--superficie); }
-.menu { display: flex; flex-direction: column; gap: 4px; }
+.menu { display: flex; flex-direction: column; gap: 18px; }
+.grupo-menu { display: flex; flex-direction: column; gap: 2px; }
+.titulo-grupo { padding: 0 12px 4px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--texto-suave); }
 .item-menu {
   min-height: 44px; padding: 0 12px; border: none; border-radius: 12px; background: transparent;
   text-align: left; font-size: 15px; font-weight: 500; color: var(--texto-2); cursor: pointer;
@@ -120,7 +122,9 @@ td.codigo { font-family: var(--mono); font-size: 13px; font-weight: 600; color: 
 @media (max-width: 720px) {
   .principal { padding: 24px 16px 40px; }
   .lateral { border-right: none; border-bottom: 1px solid var(--borda-clara); padding: 20px 12px; gap: 16px; }
-  .menu { flex-direction: row; flex-wrap: wrap; }
+  .menu { flex-direction: row; flex-wrap: wrap; gap: 12px 16px; }
+  .grupo-menu { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px; }
+  .titulo-grupo { flex-basis: 100%; padding-bottom: 0; }
   .rodape-menu { margin-top: 0; }
 }
 
@@ -229,3 +233,32 @@ p.fin-origem { margin: 0; }
 .ace-tabela { min-width: 520px; }
 .ace-tabela td { font-variant-numeric: tabular-nums; }
 .ace-barra { display: inline-block; height: 8px; border-radius: 999px; background: var(--azul); margin-left: 10px; vertical-align: middle; opacity: .75; }
+
+/* ---------- Aba Fretes ---------- */
+#aba-fretes > .tabela-bloco { margin-top: 18px; }
+.frt-grade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 22px; }
+@media (max-width: 900px) { .frt-grade { grid-template-columns: 1fr; } }
+.frt-cartao { padding: 20px; display: grid; gap: 12px; align-content: start; overflow: visible; }
+.frt-cartao h2 { margin: 0; font-size: 17px; }
+.frt-grande { display: flex; align-items: center; gap: 6px; border: 1.5px solid var(--borda); border-radius: 14px; padding: 4px 14px; width: max-content; max-width: 100%; }
+.frt-grande input { border: 0 !important; box-shadow: none !important; width: 130px; height: auto; font-size: 34px; font-weight: 700; color: var(--azul); padding: 2px 0; background: transparent; }
+.frt-grande span { font-size: 24px; font-weight: 700; color: var(--texto-suave); }
+.frt-rateio { background: var(--superficie); border-radius: 12px; padding: 10px 14px; }
+.frt-rateio summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--azul); }
+.frt-linha { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.frt-sugestao { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; font-size: 14px; }
+.frt-sugestao strong { color: var(--ok-texto); font-size: 18px; }
+.frt-salvo:empty { display: none; }
+.frt-sim { justify-content: flex-start; }
+.frt-sim .campo { min-width: 140px; }
+.frt-tabela td.n, .frt-tabela th.n, #frt-cotacoes td.n, #frt-cotacoes th.n { text-align: right; font-variant-numeric: tabular-nums; }
+.frt-tabela tr.total td { font-weight: 700; color: var(--azul); background: var(--superficie); }
+.frt-tabela tr.lucro td { color: var(--ok-texto); font-weight: 600; }
+#frt-cotacoes td.lucro { color: var(--ok-texto); font-weight: 600; }
+.frt-tabela-azul { padding: 18px 20px; display: grid; gap: 16px; }
+.frt-servicos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.frt-servicos li { background: var(--superficie); border-radius: 12px; padding: 12px 14px; font-size: 13px; color: var(--texto-suave); }
+.frt-servicos b { display: block; color: var(--texto); font-size: 14px; }
+.frt-upload { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.frt-upload .campo input[type="file"] { height: auto; padding: 8px 0; }
+.frt-upload .nota { flex-basis: 100%; }

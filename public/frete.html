@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cotar frete · GoBox</title>
+<meta name="description" content="Cote o frete para todo o Brasil saindo da GoBox, em Tobias Barreto. Parceria Azul Cargo Express.">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="icon" href="/assets/cubo.png">
+<link rel="stylesheet" href="/base.css">
+<link rel="stylesheet" href="/frete.css">
+<script src="/gobox-logo.js" defer></script>
+</head>
+<body>
+<header class="fr-topo">
+  <div class="fr-largura fr-topo-in">
+    <a href="/frete" class="fr-marca" aria-label="GoBox · Cotar frete"><gobox-logo static class="fr-logo"></gobox-logo></a>
+    <nav class="fr-menu" aria-label="Menu">
+      <a href="/frete" aria-current="page">Cotar frete</a>
+      <a href="#antes">Antes de enviar</a>
+      <a href="/">Consultar pacote</a>
+      <a href="#contato">Contato</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="fr-hero-faixa">
+    <div class="fr-largura fr-hero">
+      <div class="fr-hero-texto">
+        <div class="fr-parceiro">
+          <span>Parceiro oficial</span>
+          <span class="fr-parceiro-logo"><img src="/assets/azul-cargo.png" alt="Azul Cargo Express" width="145" height="40"></span>
+        </div>
+        <h1>Quanto custa enviar para <em>todo o Brasil</em>?</h1>
+        <p>Saindo da GoBox, em Tobias Barreto. Preço final, com seguro e entrega no endereço.</p>
+        <ul class="fr-destaques">
+          <li>Preço na hora</li><li>Seguro incluso</li><li>Entrega no endereço</li>
+        </ul>
+      </div>
+      <img class="fr-hero-ilustra" src="/assets/frete-hero.svg" alt="" width="560" height="400">
+    </div>
+  </section>
+
+  <div class="fr-fundo">
+  <section class="fr-largura fr-cotacao">
+    <form class="fr-form" id="fr-form" novalidate>
+      <h2 class="fr-bloco"><span>1</span>Destino</h2>
+      <div class="fr-campo"><label for="fr-uf">Estado</label><select id="fr-uf" name="uf"></select></div>
+      <div class="fr-campo">
+        <span class="fr-rotulo" id="fr-lb-tipo">Cidade</span>
+        <div class="fr-opcoes" id="fr-tipo" role="group" aria-labelledby="fr-lb-tipo">
+          <button type="button" data-v="C" aria-pressed="true" id="fr-capital">Capital</button>
+          <button type="button" data-v="I" aria-pressed="false">Interior</button>
+          <button type="button" data-v="R" aria-pressed="false">Interior distante</button>
+        </div>
+        <p class="fr-ajuda">Interior distante: cidades atendidas por parceiro da Azul (redespacho). Na dúvida, a GoBox confirma pelo WhatsApp.</p>
+      </div>
+
+      <h2 class="fr-bloco"><span>2</span>Pacote</h2>
+      <div class="fr-linha">
+        <div class="fr-campo fr-unid"><label for="fr-peso">Peso</label><input id="fr-peso" type="number" min="0.01" step="0.1" value="1" inputmode="decimal"><em>kg</em></div>
+        <div class="fr-campo fr-unid"><label for="fr-valor">Valor do produto</label><input id="fr-valor" type="number" min="0" step="1" value="100" inputmode="decimal"><em>R$</em></div>
+      </div>
+      <div class="fr-campo">
+        <span class="fr-rotulo">Medidas da caixa <span class="fr-opc">(opcional)</span></span>
+        <div class="fr-linha fr-linha-3">
+          <div class="fr-unid"><input id="fr-alt" type="number" min="1" placeholder="Alt." aria-label="Altura em centímetros" inputmode="decimal"><em>cm</em></div>
+          <div class="fr-unid"><input id="fr-lar" type="number" min="1" placeholder="Larg." aria-label="Largura em centímetros" inputmode="decimal"><em>cm</em></div>
+          <div class="fr-unid"><input id="fr-com" type="number" min="1" placeholder="Comp." aria-label="Comprimento em centímetros" inputmode="decimal"><em>cm</em></div>
+        </div>
+        <p class="fr-ajuda" id="fr-cubado">Caixas grandes e leves pagam pelo tamanho.</p>
+      </div>
+      <label class="fr-check"><input type="checkbox" id="fr-doc"> É só documento (até 100 g)</label>
+
+      <h2 class="fr-bloco"><span>3</span>Embalagem</h2>
+      <div class="fr-campo">
+        <select id="fr-emb" aria-label="Embalagem">
+          <option value="0">Já vou levar embalado</option>
+          <option value="1.3">Envelope · + R$ 1,30</option>
+          <option value="4.2">Caixa 1 · + R$ 4,20</option>
+          <option value="5">Caixa 2 · + R$ 5,00</option>
+          <option value="6.45">Caixa de vinho · + R$ 6,45</option>
+        </select>
+      </div>
+    </form>
+
+    <div class="fr-resultado">
+      <h2>Opções de envio</h2>
+      <p class="fr-sub" id="fr-sub">Calculando…</p>
+      <div class="fr-cartoes" id="fr-cartoes" aria-live="polite"></div>
+      <p class="fr-erro" id="fr-erro" role="alert" hidden></p>
+      <div id="fr-resumo"></div>
+    </div>
+  </section>
+  </div>
+
+  <section class="fr-faixa">
+    <div class="fr-largura">
+      <h2 class="fr-titulo">Como contratar</h2>
+      <ol class="fr-passos">
+        <li><b>Escolha o serviço</b><span>Compare os preços e clique em Contratar.</span></li>
+        <li><b>Mande no WhatsApp</b><span>A cotação vai pronta. A GoBox confirma o envio.</span></li>
+        <li><b>Traga na GoBox</b><span>Av. José David dos Santos, 1455. Pague no balcão.</span></li>
+        <li><b>A Azul entrega</b><span>Direto no endereço do destinatário.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="fr-largura fr-antes" id="antes">
+    <h2 class="fr-titulo">Antes de enviar</h2>
+    <div class="fr-faq">
+      <details><summary>O que está incluso no preço</summary><p>Frete da Azul, seguro sobre o valor do produto, transporte da GoBox até a base da Azul em Aracaju e entrega no endereço do destinatário. A embalagem só entra se você escolher.</p></details>
+      <details><summary>Peso cubado: por que minha caixa pesa mais?</summary><p>O frete usa o maior valor entre o peso real e o peso pelo tamanho (altura × largura × comprimento ÷ 6000). Uma caixa de 30 × 30 × 30 cm conta como 4,5 kg, mesmo pesando 1 kg.</p></details>
+      <details><summary>Valor declarado e seguro</summary><p>Informe o valor real do produto. O seguro é calculado sobre ele e é a referência em caso de extravio ou dano.</p></details>
+      <details><summary>Destinatário ausente e devolução</summary><p>A Azul faz até 3 tentativas de entrega. Se o pacote voltar, a devolução custa o mesmo valor do frete original.</p></details>
+      <details><summary>O que não pode ser enviado</summary><p>Produtos perigosos, inflamáveis e radioativos têm regras e taxas especiais. Fale com a GoBox antes de trazer.</p></details>
+      <details><summary>Prazos de entrega</summary><p>O prazo depende do serviço e da cidade. A GoBox confirma o prazo junto com a cotação pelo WhatsApp.</p></details>
+    </div>
+  </section>
+</main>
+
+<footer class="fr-rodape" id="contato">
+  <div class="fr-largura fr-rodape-in">
+    <span><b>GoBox</b> · Av. José David dos Santos, 1455 · Tobias Barreto/SE</span>
+    <span>Seg. a sex. 8h–19h · Sáb. 8h–16h · Envios com Azul Cargo Express</span>
+  </div>
+</footer>
+<div class="fr-aviso" id="fr-aviso" role="status" aria-live="polite"></div>
+<script src="/frete.js"></script>
+</body>
+</html>
