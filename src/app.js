@@ -34,7 +34,7 @@ function createApp({ config, db, robo = null }) {
         'style-src': ["'self'"],
         'form-action': ["'self'"],
         'frame-ancestors': ["'none'"],
-        'frame-src': ["'self'"]
+        'frame-src': ["'self'", 'https://script.google.com']
       }
     },
     strictTransportSecurity: config.COOKIE_SECURE ? undefined : false
