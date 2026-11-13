@@ -55,6 +55,384 @@
       <div class="grupo-menu" role="group" aria-labelledby="gm-equipe">
         <span class="titulo-grupo" id="gm-equipe">Equipe</span>
         <button type="button" class="item-menu" data-aba="ponto">Ponto</button>
+        <button type="button" class="item-menu" data-aba="motoboys">Motoboys</button>
+      </div>
+      <div class="grupo-menu" role="group" aria-labelledby="gm-sistema">
+        <span class="titulo-grupo" id="gm-sistema">Site e sistema</span>
+        <button type="button" class="item-menu" data-aba="acessos">Acessos ao site</button>
+        <button type="button" class="item-menu" data-aba="configuracoes">Configurações</button>
+      </div>
+    </div>
+    <div class="rodape-menu">
+      <div><strong>Administrador</strong><span>Sessão protegida</span></div>
+      <button type="button" id="botao-sair" class="botao-texto">Sair</button>
+    </div>
+  </nav>
+
+  <main class="principal">
+    <!-- Aba Pacotes -->
+    <section id="aba-pacotes" class="aba">
+      <div class="cabecalho">
+        <div>
+          <h1>Consulta de pacotes</h1>
+          <p class="descricao">Base local usada pela consulta pública. Os dados não são em tempo real: valem até a última importação de cada empresa.</p>
+        </div>
+        <div class="acoes">
+          <button type="button" id="botao-robo" class="botao-secundario" hidden>Sincronizar portais agora</button>
+          <button type="button" id="botao-verificar-entrada" class="botao-secundario">Verificar pasta de entrada</button>
+          <button type="button" class="botao-principal botao-medio" data-abrir-importacao="">Importar relatório</button>
+        </div>
+      </div>
+      <p id="info-robo" class="descricao" hidden></p>
+      <p id="aviso-geral" class="aviso-geral" role="status" hidden></p>
+      <section id="cartoes-fontes" class="cartoes-fontes" aria-label="Situação de cada empresa"></section>
+
+      <section class="tabela-bloco" aria-label="Lista de pacotes">
+        <div class="filtros">
+          <div class="chips" role="group" aria-label="Filtrar por empresa">
+            <button type="button" class="chip" data-fonte="" aria-pressed="true">Todas</button>
+            <button type="button" class="chip" data-fonte="shopee" aria-pressed="false">Shopee SPX</button>
+            <button type="button" class="chip" data-fonte="ml" aria-pressed="false">Mercado Livre</button>
+            <button type="button" class="chip" data-fonte="correios" aria-pressed="false">Correios</button>
+          </div>
+          <div class="filtros-direita">
+            <div class="campo">
+              <label for="filtro-situacao">Situação</label>
+              <select id="filtro-situacao">
+                <option value="ativos">Na agência</option>
+                <option value="inativos">Já saíram</option>
+                <option value="todos">Todos</option>
+              </select>
+            </div>
+            <div class="campo">
+              <label for="filtro-busca">Buscar por código</label>
+              <input id="filtro-busca" type="search" placeholder="Digite o código" maxlength="64">
+            </div>
+          </div>
+        </div>
+        <div class="rolagem">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Código</th>
+                <th scope="col">Empresa</th>
+                <th scope="col">Situação</th>
+                <th scope="col">Recebido</th>
+                <th scope="col">Saída</th>
+                <th scope="col">Última atualização</th>
+              </tr>
+            </thead>
+            <tbody id="corpo-pacotes"></tbody>
+          </table>
+        </div>
+        <div class="paginacao">
+          <span id="info-paginacao"></span>
+          <div>
+            <button type="button" id="pagina-anterior" class="botao-secundario">Anterior</button>
+            <button type="button" id="pagina-proxima" class="botao-secundario">Próxima</button>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <!-- Aba Financeiro -->
+    <section id="aba-financeiro" class="aba" hidden>
+      <div class="cabecalho">
+        <div>
+          <h1>Financeiro</h1>
+          <p class="descricao">Quanto a GoBox ganhou no mês com cada empresa. Shopee conta o que saiu no mês (total expedido e retiradas); Mercado Livre e Correios, o que chegou. O que os portais não mostram entra em “Ajustes”.</p>
+        </div>
+        <div class="acoes">
+          <button type="button" id="fin-olho" class="botao-olho" aria-pressed="false" aria-label="Ocultar valores" title="Ocultar valores"></button>
+          <label class="campo-mes" for="fin-mes">Mês
+            <select id="fin-mes"></select>
+          </label>
+        </div>
+      </div>
+
+      <section class="fin-total" aria-live="polite">
+        <div>
+          <div class="fin-rotulo">Total do mês, as três empresas</div>
+          <div class="fin-valor" id="fin-total">—</div>
+          <div class="fin-meta" id="fin-meta"></div>
+        </div>
+        <div class="fin-partes" id="fin-partes"></div>
+        <div class="fin-barra" id="fin-barra"></div>
+      </section>
+
+      <div class="fin-cartoes" id="fin-cartoes"></div>
+
+      <section class="tabela-bloco fin-ultimos">
+        <div class="fin-titulo-bloco"><h2>Últimos pacotes contados</h2><span class="nota" id="fin-atualizado"></span></div>
+        <ul id="fin-ultimos" class="fin-lista"></ul>
+      </section>
+
+      <details class="tabela-bloco fin-regras">
+        <summary>Como cada valor é calculado</summary>
+        <div id="fin-regras"></div>
+      </details>
+    </section>
+
+    <!-- Aba Sacas (Mercado Livre: entrada de unidades + aviso no grupo) -->
+    <section id="aba-sacas" class="aba" hidden>
+      <div class="cabecalho">
+        <div>
+          <h1>Sacas do Mercado Livre</h1>
+          <p class="descricao">Envios do Mercado Livre lidos na tela “Entrada de unidades”. Quando um envio chega, as sacas Delivery vão para o grupo “Delivery - GoBox” e as Next (Mercado Envios Extra) para o “Gobox_Entregadores”, pelo n8n. Com o envio desligado (modo teste), as mensagens só aparecem aqui.</p>
+        </div>
+      </div>
+      <section class="tabela-bloco sac-config" id="sac-config" aria-label="Configuração dos avisos"></section>
+      <section class="tabela-bloco">
+        <div class="fin-titulo-bloco"><h2>Envios de hoje</h2><span class="nota" id="sac-leitura"></span></div>
+        <div id="sac-envios" class="sac-envios"></div>
+      </section>
+      <section class="tabela-bloco">
+        <div class="fin-titulo-bloco"><h2>Avisos</h2><span class="nota">Mais recentes primeiro</span></div>
+        <ul id="sac-avisos" class="sac-lista"></ul>
+      </section>
+    </section>
+
+    <!-- Aba Acessos (uso da página pública de consulta) -->
+    <section id="aba-acessos" class="aba" hidden>
+      <div class="cabecalho">
+        <div>
+          <h1>Acessos ao site</h1>
+          <p class="descricao">Quantas vezes a página de consulta foi aberta e quantas pesquisas os clientes fizeram. Não guardamos IP, código pesquisado nem nenhum dado de quem acessou. “Pessoas” é aproximado: conta cada aparelho uma vez por dia.</p>
+        </div>
+        <div class="acoes"><button type="button" id="ace-atualizar" class="botao-secundario">Atualizar</button></div>
+      </div>
+      <p id="ace-aviso" class="aviso-geral" role="status" hidden></p>
+      <section id="ace-cartoes" class="ace-cartoes" aria-label="Resumo de acessos"></section>
+      <section class="tabela-bloco">
+        <div class="fin-titulo-bloco"><h2>Últimos 30 dias</h2><span class="nota" id="ace-desde"></span></div>
+        <div class="rolagem">
+          <table class="ace-tabela">
+            <thead><tr><th>Dia</th><th>Pessoas</th><th>Visitas</th><th>Pesquisas</th><th>Encontrados</th></tr></thead>
+            <tbody id="ace-dias"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <!-- Aba Fretes (cotação Azul Cargo: margem, transporte e cotações) -->
+    <section id="aba-fretes" class="aba" hidden>
+      <div class="cabecalho">
+        <div>
+          <h1>Fretes Azul</h1>
+          <p class="descricao">Margem e transporte usados na <a href="/frete" target="_blank" rel="noopener">página de cotação</a>. Mudou aqui, o preço do cliente muda na hora.</p>
+        </div>
+      </div>
+      <div class="frt-grade">
+        <section class="tabela-bloco frt-cartao" aria-labelledby="frt-t-margem">
+          <h2 id="frt-t-margem">Minha margem de lucro</h2>
+          <div class="frt-grande"><input id="frt-margem" type="number" min="0" max="200" step="0.5" aria-label="Margem em porcentagem"><span>%</span></div>
+          <div class="chips" id="frt-atalhos">
+            <button type="button" class="chip" data-v="5">5%</button><button type="button" class="chip" data-v="10">10%</button>
+            <button type="button" class="chip" data-v="15">15%</button><button type="button" class="chip" data-v="20">20%</button>
+          </div>
+          <p class="nota">Sobre o custo total (frete Azul + seguro + embalagem + transporte). O preço termina em ,90.</p>
+        </section>
+        <section class="tabela-bloco frt-cartao" aria-labelledby="frt-t-transp">
+          <h2 id="frt-t-transp">Transporte Tobias Barreto → Aracaju</h2>
+          <div class="frt-grande"><span>R$</span><input id="frt-transporte" type="number" min="0" max="500" step="0.5" aria-label="Valor por pacote"></div>
+          <p class="nota">Cobrado por pacote, para levar até a base da Azul.</p>
+          <details class="frt-rateio"><summary>Não sei quanto cobrar</summary>
+            <div class="frt-linha">
+              <div class="campo"><label for="frt-viagem">Custo da viagem (R$)</label><input id="frt-viagem" type="number" min="0" value="150"></div>
+              <div class="campo"><label for="frt-pacotes">Pacotes por viagem</label><input id="frt-pacotes" type="number" min="1" value="30"></div>
+            </div>
+            <div class="frt-sugestao"><span>Sugestão: <strong id="frt-sug">R$ 5,00</strong> por pacote</span><button type="button" class="botao-secundario" id="frt-usar">Usar este valor</button></div>
+          </details>
+          <p class="frt-salvo nota" id="frt-salvo" role="status"></p>
+        </section>
+      </div>
+
+      <section class="tabela-bloco">
+        <div class="fin-titulo-bloco"><h2>Simulador</h2><span class="nota">A mesma conta da página, com o seu lucro</span></div>
+        <div class="filtros frt-sim">
+          <div class="campo"><label for="frt-s-uf">Estado</label><select id="frt-s-uf"></select></div>
+          <div class="campo"><label for="frt-s-tipo">Cidade</label><select id="frt-s-tipo"><option value="C">Capital</option><option value="I">Interior</option><option value="R">Interior distante</option></select></div>
+          <div class="campo"><label for="frt-s-peso">Peso (kg)</label><input id="frt-s-peso" type="number" min="0.01" step="0.1" value="2"></div>
+          <div class="campo"><label for="frt-s-valor">Valor (R$)</label><input id="frt-s-valor" type="number" min="0" value="200"></div>
+        </div>
+        <div class="rolagem"><table class="frt-tabela" id="frt-simulacao"></table></div>
+      </section>
+
+      <section class="tabela-bloco">
+        <div class="fin-titulo-bloco"><h2>Cotações recebidas</h2><span class="nota">Cada “Contratar” na página aparece aqui</span></div>
+        <div class="rolagem"><table id="frt-cotacoes"></table></div>
+      </section>
+
+      <section class="tabela-bloco">
+        <div class="fin-titulo-bloco"><h2>Tabela da Azul</h2><span class="nota" id="frt-vigencia"></span></div>
+        <div class="frt-tabela-azul">
+          <ul id="frt-servicos" class="frt-servicos"></ul>
+          <form id="frt-form-tarifa" class="frt-upload">
+            <div class="campo"><label for="frt-arquivo">Planilha nova da Azul (.xlsx)</label><input id="frt-arquivo" type="file" accept=".xlsx"></div>
+            <button type="submit" class="botao-principal botao-medio">Atualizar tabela</button>
+            <p class="nota" id="frt-msg-tarifa" role="status">Envie um arquivo por vez. O sistema reconhece se é E-commerce, Expresso, Premium ou Standard.</p>
+          </form>
+        </div>
+      </section>
+    </section>
+
+    <!-- Aba Ponto (painel do Ponto GoBox, dados no Firebase) -->
+    <section id="aba-ponto" class="aba aba-ponto" hidden>
+      <iframe id="ponto-frame" class="ponto-frame" title="Controle de ponto" loading="lazy"></iframe>
+    </section>
+
+    <!-- Aba Motoboys (credenciamento: cadastros, equipe e acionamento; Google Apps Script) -->
+    <section id="aba-motoboys" class="aba aba-ponto" hidden>
+      <iframe id="motoboys-frame" class="ponto-frame" title="Motoboys" loading="lazy" allow="clipboard-write"></iframe>
+    </section>
+
+    <!-- Aba Contabilidade (contracheques e notas fiscais; horas do Ponto GoBox) -->
+    <section id="aba-contabilidade" class="aba aba-ponto" hidden>
+      <iframe id="contabilidade-frame" class="ponto-frame" title="Contabilidade" loading="lazy"></iframe>
+    </section>
+
+    <!-- Aba Importações -->
+    <section id="aba-importacoes" class="aba" hidden>
+      <div class="cabecalho">
+        <div>
+          <h1>Importações</h1>
+          <p class="descricao">Histórico das últimas 100 importações. Importações aguardando confirmação ainda não alteraram a consulta.</p>
+        </div>
+        <div class="acoes">
+          <div class="campo">
+            <label for="filtro-importacoes">Empresa</label>
+            <select id="filtro-importacoes">
+              <option value="">Todas</option>
+              <option value="shopee">Shopee SPX</option>
+              <option value="ml">Mercado Livre</option>
+              <option value="correios">Correios</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="tabela-bloco">
+        <div class="rolagem">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Início</th>
+                <th scope="col">Empresa</th>
+                <th scope="col">Origem</th>
+                <th scope="col">Situação</th>
+                <th scope="col">Códigos</th>
+                <th scope="col">Novos / atualizados / removidos</th>
+                <th scope="col">Detalhe</th>
+                <th scope="col"><span class="oculto">Ações</span></th>
+              </tr>
+            </thead>
+            <tbody id="corpo-importacoes"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Aba Configurações -->
+    <section id="aba-configuracoes" class="aba" hidden>
+      <div class="cabecalho">
+        <div>
+          <h1>Configurações</h1>
+          <p class="descricao">Regras de leitura dos relatórios de cada empresa. Senhas e chaves nunca ficam aqui: só no servidor.</p>
+        </div>
+      </div>
+      <div id="lista-configuracoes" class="lista-configuracoes"></div>
+    </section>
+  </main>
+</div>
+
+<!-- Diálogo de importação -->
+<dialog id="dialogo-importacao" class="dialogo" aria-labelledby="titulo-importacao">
+  <form id="form-importacao" method="dialog">
+    <h2 id="titulo-importacao">Importar relatório</h2>
+    <div id="passo-arquivo">
+      <label for="importacao-fonte">Empresa</label>
+      <select id="importacao-fonte" required>
+        <option value="">Escolha…</option>
+        <option value="shopee">Shopee SPX</option>
+        <option value="ml">Mercado Livre</option>
+        <option value="correios">Correios</option>
+      </select>
+      <label for="importacao-arquivo">Arquivo exportado do portal (.csv ou .xlsx)</label>
+      <input id="importacao-arquivo" type="file" accept=".csv,.tsv,.txt,.xlsx" required>
+    </div>
+    <div id="passo-previa" hidden></div>
+    <p id="erro-importacao" class="mensagem-erro" role="alert"></p>
+    <div class="botoes-dialogo">
+      <button type="button" id="importacao-fechar" class="botao-secundario">Cancelar</button>
+      <button type="button" id="importacao-ler" class="botao-principal botao-medio">Ler arquivo</button>
+      <button type="button" id="importacao-confirmar" class="botao-principal botao-medio" hidden>Confirmar importação</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="/admin/admin.js"></script>
+<script src="/admin/financeiro.js"></script>
+<script src="/admin/sacas.js"></script>
+<script src="/admin/acessos.js"></script>
+<script src="/admin/fretes.js"></script>
+</body>
+</html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel · GoBox</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/assets/cubo.png">
+<link rel="stylesheet" href="/base.css">
+<link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body class="admin">
+
+<!-- Login -->
+<section id="tela-login" class="tela-login" hidden>
+  <form id="form-login" class="cartao-login">
+    <div class="marca">
+      <img src="/assets/cubo.png" alt="" class="marca-cubo">
+      <img src="/assets/wordmark.png" alt="" class="marca-nome">
+    </div>
+    <h1>Painel administrativo</h1>
+    <label for="usuario">Usuário</label>
+    <input id="usuario" name="usuario" type="text" autocomplete="username" required>
+    <label for="senha">Senha</label>
+    <input id="senha" name="senha" type="password" autocomplete="current-password" required>
+    <p id="erro-login" class="mensagem-erro" role="alert"></p>
+    <button type="submit" class="botao-principal botao-grande">Entrar</button>
+  </form>
+</section>
+
+<!-- Painel -->
+<div id="tela-painel" class="layout" hidden>
+  <nav class="lateral" aria-label="Menu do painel">
+    <div class="marca">
+      <img src="/assets/cubo.png" alt="" class="marca-cubo">
+      <img src="/assets/wordmark.png" alt="" class="marca-nome">
+      <span class="etiqueta-admin">Admin</span>
+    </div>
+    <div class="menu">
+      <div class="grupo-menu" role="group" aria-labelledby="gm-pacotes">
+        <span class="titulo-grupo" id="gm-pacotes">Pacotes na agência</span>
+        <button type="button" class="item-menu" data-aba="pacotes" aria-current="page">Consulta de pacotes</button>
+        <button type="button" class="item-menu" data-aba="importacoes">Importações</button>
+        <button type="button" class="item-menu" data-aba="sacas">Sacas do Mercado Livre</button>
+      </div>
+      <div class="grupo-menu" role="group" aria-labelledby="gm-fretes">
+        <span class="titulo-grupo" id="gm-fretes">Envios</span>
+        <button type="button" class="item-menu" data-aba="fretes">Fretes Azul</button>
+      </div>
+      <div class="grupo-menu" role="group" aria-labelledby="gm-dinheiro">
+        <span class="titulo-grupo" id="gm-dinheiro">Dinheiro</span>
+        <button type="button" class="item-menu" data-aba="financeiro">Financeiro</button>
+        <button type="button" class="item-menu" data-aba="contabilidade">Contabilidade</button>
+      </div>
+      <div class="grupo-menu" role="group" aria-labelledby="gm-equipe">
+        <span class="titulo-grupo" id="gm-equipe">Equipe</span>
+        <button type="button" class="item-menu" data-aba="ponto">Ponto</button>
       </div>
       <div class="grupo-menu" role="group" aria-labelledby="gm-sistema">
         <span class="titulo-grupo" id="gm-sistema">Site e sistema</span>
