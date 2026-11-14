@@ -29,6 +29,12 @@ function createApp({ config, db, robo = null }) {
   if (config.TRUST_PROXY) app.set('trust proxy', 1);
   // Compacta páginas, estilos, scripts e respostas (chegam bem menores no celular).
   app.use(compression());
+  // Diagnóstico: registra pedidos que demoraram mais de 1,5 s (só caminho, sem dados).
+  app.use((req, res, next) => {
+    const t0 = Date.now();
+    res.on('finish', () => { const ms = Date.now() - t0; if (ms > 1500) console.warn(`[demorou] ${req.method} ${req.path} ${res.statusCode} ${ms} ms`); });
+    next();
+  });
   const pontoAcesso = require('./ponto-acesso').criar({ config });
 
   app.use(helmet({

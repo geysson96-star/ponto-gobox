@@ -183,8 +183,10 @@ function criar({ db, config, fetchFn = fetch, log = console }) {
   }
 
   // ---------- salvar ----------
+  const ultimoTamanho = new Map();
   async function salvar(id, foto, extra = {}) {
     const texto = await compactar(foto);
+    ultimoTamanho.set(id.replace(/^pacotes_/, ''), Math.round(texto.length / 1024));
     const h = hash(texto);
     if (ultimoHash.get(id) === h) return false; // nada mudou: não grava
     await gravarGrande(id, texto, { hash: h, salvoEm: new Date().toISOString(), ...extra });
@@ -193,12 +195,15 @@ function criar({ db, config, fetchFn = fetch, log = console }) {
   }
   async function salvarAgora(alvo) {
     if (!ativo || restaurando) return;
+    const t0 = Date.now();
     try {
-      if (alvo === 'estado') await salvar('estado', fotoEstado());
+      let gravou;
+      if (alvo === 'estado') gravou = await salvar('estado', fotoEstado());
       else {
         const foto = fotoPacotes(alvo);
-        await salvar(`pacotes_${alvo}`, foto, { quantidade: foto.p.length });
+        gravou = await salvar(`pacotes_${alvo}`, foto, { quantidade: foto.p.length });
       }
+      log.log(`[persistência] ${alvo}: ${gravou ? 'gravado' : 'sem mudança'} (${Date.now() - t0} ms, ${ultimoTamanho.get(alvo) || 0} KB)`);
       falhas = 0;
     } catch (e) {
       falhas += 1;
