@@ -11,7 +11,7 @@
       { id: 'shopee', nome: 'Entregas Shopee', para: 'Entregador', desc: 'Pacotes da Shopee nos dias de maior movimento.', dias: [5, 6, 0, 1], obs: '' },
       { id: 'azul', nome: 'Fretes Azul Cargo', para: 'Entregador', desc: 'Fretes da Azul, uma vez por semana. Pacote grande paga mais.', dias: [], obs: '1 vez por semana, dia a definir' },
       { id: 'emergencial', nome: 'Entregas expressas', para: 'Entregador', desc: 'Entregas de última hora: a GoBox chama quando surge um pedido urgente e você aceita se puder.', dias: [0, 1, 2, 3, 4, 5, 6], obs: 'Sob demanda, qualquer dia' },
-      { id: 'coleta', nome: 'Coleta em Lagarto', para: 'Coletador', desc: 'Buscar pacotes em Lagarto/SE e trazer para a GoBox.', dias: [], obs: 'Dias a definir' }
+      { id: 'coleta', nome: 'Coleta', para: 'Coletador', desc: 'Buscar pacotes e trazer para a GoBox.', dias: [], obs: 'Dias a definir' }
     ],
     pagamento: { titulo: 'Pagamento todo sábado', texto: 'Os fretes e pacotes da semana são contabilizados e pagos aos sábados.' }
   };
@@ -57,11 +57,6 @@
       }).join('');
   }
 
-  function validCPF(c) {
-    c = c.replace(/\D/g, ''); if (c.length !== 11 || /^(\d)\1+$/.test(c)) return false;
-    for (var t = 9; t < 11; t++) { var s = 0; for (var i = 0; i < t; i++) s += c[i] * (t + 1 - i); if (((10 * s) % 11) % 10 != c[t]) return false; }
-    return true;
-  }
   function mask(el, fn) { el.addEventListener('input', function () { el.value = fn(el.value.replace(/\D/g, '')); }); }
 
   function iniciar() {
@@ -80,7 +75,6 @@
         });
       });
     });
-    mask($('[name=cpf]'), function (v) { return v.slice(0, 11).replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2'); });
     mask($('[name=whatsapp]'), function (v) { return v.slice(0, 11).replace(/^(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2'); });
 
     var tabs = $$('.ent-tabs a');
@@ -109,17 +103,13 @@
     var f = e.target, err = $('#err'); err.textContent = '';
     var bad = $$('#f [required]').filter(function (i) { return i.type === 'checkbox' ? !i.checked : !String(i.value).trim(); })[0];
     if (bad) { err.textContent = bad.name === 'lgpd' ? 'Marque a autorização da LGPD para enviar.' : 'Preencha todos os campos com *.'; bad.focus(); return; }
-    if (!validCPF(f.cpf.value)) { err.textContent = 'CPF inválido. Confira os números.'; f.cpf.focus(); return; }
     if (f.whatsapp.value.replace(/\D/g, '').length < 10) { err.textContent = 'WhatsApp incompleto.'; f.whatsapp.focus(); return; }
     function all(n) { return $$('#f [name=' + n + ']:checked').map(function (i) { return i.value; }); }
     if (!all('serv').length) { err.textContent = 'Escolha pelo menos um serviço.'; return; }
-    if (!all('disp').length) { err.textContent = 'Escolha pelo menos um tipo de disponibilidade.'; return; }
     if (!all('hor').length) { err.textContent = 'Marque os dias e horários que você pode.'; return; }
     var data = {
-      funcao: ($('[name=funcao]:checked') || {}).value, nome: f.nome.value.trim(), cpf: f.cpf.value, nascimento: f.nascimento.value, whatsapp: f.whatsapp.value,
-      cidade: f.cidade.value.trim(), bairro: f.bairro.value.trim(), cnh: f.cnh.value, cnhValidade: f.cnhValidade.value, moto: f.moto.value.trim(),
-      ano: f.ano.value, placa: f.placa.value.toUpperCase(), motoPropria: f.motoPropria.value, bau: f.bau.value, mei: f.mei.value,
-      servicos: all('serv'), disponibilidade: all('disp'), horarios: all('hor'), experiencia: f.experiencia.value, apps: all('apps'),
+      funcao: ($('[name=funcao]:checked') || {}).value, nome: f.nome.value.trim(), whatsapp: f.whatsapp.value,
+      servicos: all('serv'), horarios: all('hor'), experiencia: f.experiencia.value, apps: all('apps'),
       obs: f.obs.value.trim(), lgpd: true, enviadoEm: new Date().toISOString()
     };
     var btn = f.querySelector('.send'); btn.disabled = true; btn.textContent = 'Enviando...';

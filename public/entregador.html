@@ -47,65 +47,31 @@
 
   <section id="cadastro">
     <h2>Cadastro</h2>
-    <p class="sub">Leva uns 3 minutos. Campos com * são obrigatórios.</p>
+    <p class="sub">Leva 1 minuto. Campos com * são obrigatórios.</p>
 
     <form id="f" novalidate>
       <div class="group">
         <div class="gt"><i>1</i>Você quer se cadastrar como</div>
         <label class="opt"><input type="radio" name="funcao" value="entregador" checked><div><b>Motoboy entregador</b><small>Entregas e fretes da GoBox</small></div></label>
-        <label class="opt"><input type="radio" name="funcao" value="coletador"><div><b>Coletador em Lagarto</b><small>Coleta de pacotes em Lagarto/SE</small></div></label>
+        <label class="opt"><input type="radio" name="funcao" value="coletador"><div><b>Coletador</b><small>Coleta de pacotes para a GoBox</small></div></label>
         <label class="opt"><input type="radio" name="funcao" value="ambos"><div><b>Os dois</b><small>Entregas e coleta</small></div></label>
       </div>
 
       <div class="group">
         <div class="gt"><i>2</i>Seus dados</div>
-        <div class="row one"><label class="f">Nome completo *<input type="text" name="nome" required autocomplete="name"></label></div>
         <div class="row">
-          <label class="f">CPF *<input type="text" name="cpf" inputmode="numeric" maxlength="14" required placeholder="000.000.000-00"></label>
-          <label class="f">Data de nascimento *<input type="date" name="nascimento" required></label>
-        </div>
-        <div class="row">
+          <label class="f">Nome *<input type="text" name="nome" required autocomplete="name"></label>
           <label class="f">WhatsApp *<input type="tel" name="whatsapp" inputmode="tel" maxlength="15" required placeholder="(79) 90000-0000" autocomplete="tel"></label>
-          <label class="f">Cidade *<input type="text" name="cidade" required placeholder="Tobias Barreto"></label>
-        </div>
-        <div class="row one"><label class="f">Bairro *<input type="text" name="bairro" required></label></div>
-      </div>
-
-      <div class="group">
-        <div class="gt"><i>3</i>Habilitação e moto</div>
-        <div class="row">
-          <label class="f">Tem CNH categoria A? *<select name="cnh" required><option value="">Selecione</option><option>Sim</option><option>Não</option><option>Em andamento</option></select></label>
-          <label class="f">Validade da CNH<input type="date" name="cnhValidade"></label>
-        </div>
-        <div class="row">
-          <label class="f">Modelo da moto *<input type="text" name="moto" required placeholder="Ex.: Honda CG 160"></label>
-          <label class="f">Ano<input type="number" name="ano" inputmode="numeric" min="1990" max="2030" placeholder="2020"></label>
-        </div>
-        <div class="row">
-          <label class="f">Placa *<input type="text" name="placa" class="up" required maxlength="8" placeholder="ABC1D23" autocapitalize="characters"></label>
-          <label class="f">A moto é *<select name="motoPropria" required><option value="">Selecione</option><option>Própria</option><option>Alugada</option><option>Emprestada / de familiar</option></select></label>
-        </div>
-        <div class="row">
-          <label class="f">Tem baú ou bag? *<select name="bau" required><option value="">Selecione</option><option>Baú</option><option>Bag</option><option>Baú e bag</option><option>Não tenho</option></select></label>
-          <label class="f">Tem MEI?<select name="mei"><option value="">Selecione</option><option>Sim</option><option>Não</option><option>Posso abrir</option></select></label>
         </div>
       </div>
 
       <div class="group">
-        <div class="gt"><i>4</i>Quais serviços te interessam? *</div>
+        <div class="gt"><i>3</i>Quais serviços te interessam? *</div>
         <div id="servOpts"></div>
       </div>
 
       <div class="group">
-        <div class="gt"><i>5</i>Tipo de disponibilidade *</div>
-        <label class="opt"><input type="checkbox" name="disp" value="fixo"><div><b>Fixo</b><small>Trabalhar com a GoBox todo dia, numa rotina</small></div></label>
-        <label class="opt"><input type="checkbox" name="disp" value="fds"><div><b>Finais de semana</b><small>Sábado e domingo</small></div></label>
-        <label class="opt"><input type="checkbox" name="disp" value="emergencial"><div><b>Chamada na hora</b><small>A GoBox chama quando surge uma entrega expressa</small></div></label>
-        <label class="opt"><input type="checkbox" name="disp" value="individual"><div><b>Frete individual</b><small>Fretes avulsos, um de cada vez</small></div></label>
-      </div>
-
-      <div class="group">
-        <div class="gt"><i>6</i>Dias e horários que você pode *</div>
+        <div class="gt"><i>4</i>Dias e horários que você pode *</div>
         <div class="quick">
           <button type="button" data-q="all">Todos</button>
           <button type="button" data-q="week">Seg a sex</button>
@@ -116,7 +82,7 @@
       </div>
 
       <div class="group">
-        <div class="gt"><i>7</i>Experiência</div>
+        <div class="gt"><i>5</i>Experiência</div>
         <div class="row one"><label class="f">Já trabalhou com entregas? *<select name="experiencia" required><option value="">Selecione</option><option>Sim, mais de 1 ano</option><option>Sim, menos de 1 ano</option><option>Não, seria a primeira vez</option></select></label></div>
         <div class="row one"><div>
           <div class="f lbl">Já rodou em algum desses? <small>(opcional)</small></div>
