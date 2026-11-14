@@ -9,6 +9,8 @@
 <link rel="icon" href="/assets/cubo.png">
 <link rel="stylesheet" href="/base.css">
 <link rel="stylesheet" href="/entregador.css">
+<script src="/gobox-logo.js" defer></script>
+<script src="/entregador.js" defer></script>
 </head>
 <body class="pg-entregador">
 <nav class="abas-site" aria-label="Serviços da GoBox">
@@ -18,8 +20,133 @@
     <a href="/entregador" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M9 17h6M6 14l3-6h4l2 4h3M13 8l2 9"/></svg>Seja entregador</a>
   </div>
 </nav>
-<main class="ent-area">
-  <iframe class="ent-frame" src="https://script.google.com/macros/s/AKfycby24wASP9-pR6fO6ofSnGSgyMn2Rt3r6uv0jJKvoDVG263gsfyfKv3YTJ046nokghdAsQ/exec" title="Cadastro de entregadores GoBox" allow="clipboard-write"></iframe>
+
+<div class="ent">
+<header class="ent-wrap ent-head">
+  <gobox-logo class="ent-logo" title="GoBox"></gobox-logo>
+  <div class="ent-tag">Credenciamento</div>
+  <h1>Seja entregador ou coletador parceiro da GoBox</h1>
+  <p class="ent-lead">Veja como funciona cada tipo de serviço e os dias. Depois é só preencher o cadastro: a gente entra em contato pelo WhatsApp.</p>
+</header>
+
+<nav class="ent-tabs"><div class="ent-wrap">
+  <a href="#como" class="on" data-t="como">Como funciona</a>
+  <a href="#cadastro" data-t="cadastro">Fazer cadastro</a>
+</div></nav>
+
+<main class="ent-wrap">
+  <section id="como">
+    <h2>Como funciona</h2>
+    <p class="sub">Tipos de serviço e dias da semana de cada um. Os valores são combinados com a GoBox.</p>
+    <div class="cards" id="cards"></div>
+    <div class="pay">
+      <div class="ic">R$</div>
+      <div><b id="payTitle"></b><p id="payText"></p></div>
+    </div>
+  </section>
+
+  <section id="cadastro">
+    <h2>Cadastro</h2>
+    <p class="sub">Leva uns 3 minutos. Campos com * são obrigatórios.</p>
+
+    <form id="f" novalidate>
+      <div class="group">
+        <div class="gt"><i>1</i>Você quer se cadastrar como</div>
+        <label class="opt"><input type="radio" name="funcao" value="entregador" checked><div><b>Motoboy entregador</b><small>Entregas e fretes da GoBox</small></div></label>
+        <label class="opt"><input type="radio" name="funcao" value="coletador"><div><b>Coletador em Lagarto</b><small>Coleta de pacotes em Lagarto/SE</small></div></label>
+        <label class="opt"><input type="radio" name="funcao" value="ambos"><div><b>Os dois</b><small>Entregas e coleta</small></div></label>
+      </div>
+
+      <div class="group">
+        <div class="gt"><i>2</i>Seus dados</div>
+        <div class="row one"><label class="f">Nome completo *<input type="text" name="nome" required autocomplete="name"></label></div>
+        <div class="row">
+          <label class="f">CPF *<input type="text" name="cpf" inputmode="numeric" maxlength="14" required placeholder="000.000.000-00"></label>
+          <label class="f">Data de nascimento *<input type="date" name="nascimento" required></label>
+        </div>
+        <div class="row">
+          <label class="f">WhatsApp *<input type="tel" name="whatsapp" inputmode="tel" maxlength="15" required placeholder="(79) 90000-0000" autocomplete="tel"></label>
+          <label class="f">Cidade *<input type="text" name="cidade" required placeholder="Tobias Barreto"></label>
+        </div>
+        <div class="row one"><label class="f">Bairro *<input type="text" name="bairro" required></label></div>
+      </div>
+
+      <div class="group">
+        <div class="gt"><i>3</i>Habilitação e moto</div>
+        <div class="row">
+          <label class="f">Tem CNH categoria A? *<select name="cnh" required><option value="">Selecione</option><option>Sim</option><option>Não</option><option>Em andamento</option></select></label>
+          <label class="f">Validade da CNH<input type="date" name="cnhValidade"></label>
+        </div>
+        <div class="row">
+          <label class="f">Modelo da moto *<input type="text" name="moto" required placeholder="Ex.: Honda CG 160"></label>
+          <label class="f">Ano<input type="number" name="ano" inputmode="numeric" min="1990" max="2030" placeholder="2020"></label>
+        </div>
+        <div class="row">
+          <label class="f">Placa *<input type="text" name="placa" class="up" required maxlength="8" placeholder="ABC1D23" autocapitalize="characters"></label>
+          <label class="f">A moto é *<select name="motoPropria" required><option value="">Selecione</option><option>Própria</option><option>Alugada</option><option>Emprestada / de familiar</option></select></label>
+        </div>
+        <div class="row">
+          <label class="f">Tem baú ou bag? *<select name="bau" required><option value="">Selecione</option><option>Baú</option><option>Bag</option><option>Baú e bag</option><option>Não tenho</option></select></label>
+          <label class="f">Tem MEI?<select name="mei"><option value="">Selecione</option><option>Sim</option><option>Não</option><option>Posso abrir</option></select></label>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="gt"><i>4</i>Quais serviços te interessam? *</div>
+        <div id="servOpts"></div>
+      </div>
+
+      <div class="group">
+        <div class="gt"><i>5</i>Tipo de disponibilidade *</div>
+        <label class="opt"><input type="checkbox" name="disp" value="fixo"><div><b>Fixo</b><small>Trabalhar com a GoBox todo dia, numa rotina</small></div></label>
+        <label class="opt"><input type="checkbox" name="disp" value="fds"><div><b>Finais de semana</b><small>Sábado e domingo</small></div></label>
+        <label class="opt"><input type="checkbox" name="disp" value="emergencial"><div><b>Chamada na hora</b><small>A GoBox chama quando surge uma entrega expressa</small></div></label>
+        <label class="opt"><input type="checkbox" name="disp" value="individual"><div><b>Frete individual</b><small>Fretes avulsos, um de cada vez</small></div></label>
+      </div>
+
+      <div class="group">
+        <div class="gt"><i>6</i>Dias e horários que você pode *</div>
+        <div class="quick">
+          <button type="button" data-q="all">Todos</button>
+          <button type="button" data-q="week">Seg a sex</button>
+          <button type="button" data-q="fds">Fim de semana</button>
+          <button type="button" data-q="none">Limpar</button>
+        </div>
+        <table class="grid" id="grid"></table>
+      </div>
+
+      <div class="group">
+        <div class="gt"><i>7</i>Experiência</div>
+        <div class="row one"><label class="f">Já trabalhou com entregas? *<select name="experiencia" required><option value="">Selecione</option><option>Sim, mais de 1 ano</option><option>Sim, menos de 1 ano</option><option>Não, seria a primeira vez</option></select></label></div>
+        <div class="row one"><div>
+          <div class="f lbl">Já rodou em algum desses? <small>(opcional)</small></div>
+          <div class="chips">
+            <label class="chip"><input type="checkbox" name="apps" value="Mercado Livre"><span>Mercado Livre</span></label>
+            <label class="chip"><input type="checkbox" name="apps" value="Shopee"><span>Shopee</span></label>
+            <label class="chip"><input type="checkbox" name="apps" value="iFood"><span>iFood</span></label>
+            <label class="chip"><input type="checkbox" name="apps" value="Correios"><span>Correios</span></label>
+            <label class="chip"><input type="checkbox" name="apps" value="Lalamove"><span>Lalamove</span></label>
+            <label class="chip"><input type="checkbox" name="apps" value="Loggi"><span>Loggi</span></label>
+            <label class="chip"><input type="checkbox" name="apps" value="Outro"><span>Outro</span></label>
+          </div>
+        </div></div>
+        <div class="row one"><label class="f">Quer contar mais alguma coisa? <small>(opcional)</small><textarea name="obs" placeholder="Ex.: conheço bem os povoados, tenho outra moto, etc."></textarea></label></div>
+      </div>
+
+      <label class="consent"><input type="checkbox" name="lgpd" required><span>Autorizo a GoBox a guardar esses dados só para o credenciamento e contato comigo, conforme a LGPD. *</span></label>
+      <button class="send" type="submit">Enviar cadastro</button>
+      <div class="err" id="err" role="alert"></div>
+    </form>
+
+    <div class="done hide" id="done">
+      <div class="ok"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5L19 7"/></svg></div>
+      <h2>Cadastro enviado!</h2>
+      <p class="sub">Obrigado, <span id="dn"></span>. A equipe GoBox vai analisar e chamar você no WhatsApp.</p>
+    </div>
+  </section>
 </main>
+
+<footer class="ent-foot">GoBox · Centro de distribuição e ponto de coleta<br>Av. José David dos Santos, 1455 · Tobias Barreto/SE · WhatsApp (79) 99957-9897</footer>
+</div>
 </body>
 </html>

@@ -1,5 +1,94 @@
-/* Página "Seja entregador": o cadastro (Google Apps Script) ocupa a tela abaixo das abas. */
-html, body.pg-entregador { height: 100%; }
-body.pg-entregador { display: flex; flex-direction: column; margin: 0; background: #fff; }
-.ent-area { flex: 1; display: flex; min-height: 0; }
-.ent-frame { flex: 1; width: 100%; border: 0; display: block; min-height: calc(100vh - 56px); min-height: calc(100dvh - 56px); }
+/* Página "Seja entregador": formulário de credenciamento direto no site (sem iframe). */
+.ent { --navy:#001866; --red:#FF1F06; --ink:#0d1530; --mut:#5b6380; --line:#e6e8f0; --soft:#f5f6fa;
+  color: var(--ink); background: #fff; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+.ent * { box-sizing: border-box; }
+.ent-wrap { max-width: 760px; margin: 0 auto; padding: 0 20px; }
+.ent-head { padding: 32px 20px 8px; text-align: center; }
+.ent-logo { display: inline-block; width: 170px; max-width: 60%; }
+.ent-tag { margin-top: 16px; font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--red); }
+.ent h1 { font-size: 30px; line-height: 1.2; font-weight: 700; color: var(--navy); margin: 6px 0 10px; }
+.ent-lead { color: var(--mut); font-size: 15px; max-width: 520px; margin: 0 auto; }
+
+.ent-tabs { position: sticky; top: 0; z-index: 5; background: rgba(255,255,255,.95); border-bottom: 1px solid var(--line); margin-top: 24px; }
+.ent-tabs .ent-wrap { display: flex; gap: 6px; padding-top: 10px; padding-bottom: 10px; }
+.ent-tabs a { flex: 1; text-align: center; text-decoration: none; font-weight: 600; font-size: 14px; padding: 10px; border-radius: 12px; color: var(--navy); background: var(--soft); }
+.ent-tabs a.on { background: var(--navy); color: #fff; }
+
+.ent section { padding: 30px 0 10px; scroll-margin-top: 64px; }
+.ent h2 { font-size: 21px; color: var(--navy); font-weight: 700; margin: 0 0 4px; }
+.ent .sub { color: var(--mut); font-size: 14px; margin: 0 0 20px; }
+.ent .cards { display: grid; gap: 14px; }
+.ent .card { border: 1px solid var(--line); border-radius: 18px; padding: 18px 18px 16px; background: #fff; }
+.ent .card h3 { font-size: 16px; font-weight: 600; color: var(--navy); margin: 0; }
+.ent .card .who { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--red); }
+.ent .card p { font-size: 14px; color: var(--mut); margin: 6px 0 0; }
+.ent .days { display: flex; gap: 5px; margin-top: 12px; flex-wrap: wrap; }
+.ent .d { width: 38px; text-align: center; font-size: 12px; font-weight: 600; padding: 5px 0; border-radius: 8px; background: var(--soft); color: #a3a9bf; }
+.ent .d.on { background: var(--navy); color: #fff; }
+.ent .note { font-size: 12px; color: var(--mut); margin-top: 8px; }
+.ent .pay { margin-top: 16px; border-radius: 18px; padding: 18px; background: var(--navy); color: #fff; display: flex; gap: 14px; align-items: center; }
+.ent .pay .ic { flex: none; width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,.12); display: grid; place-items: center; font-size: 14px; font-weight: 700; }
+.ent .pay b { font-size: 15px; }
+.ent .pay p { font-size: 13px; opacity: .8; margin: 0; }
+
+.ent form .group { border: 1px solid var(--line); border-radius: 18px; padding: 20px; margin-bottom: 16px; }
+.ent .gt { font-weight: 600; color: var(--navy); font-size: 15px; margin-bottom: 14px; display: flex; gap: 10px; align-items: center; }
+.ent .gt i { font-style: normal; width: 24px; height: 24px; border-radius: 50%; background: var(--red); color: #fff; font-size: 12px; display: grid; place-items: center; flex: none; }
+.ent .row { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+.ent .row + .row { margin-top: 12px; }
+.ent .row.one { grid-template-columns: 1fr; }
+.ent .f { display: block; font-size: 13px; font-weight: 500; color: var(--ink); min-width: 0; }
+.ent .f small { color: var(--mut); font-weight: 400; }
+.ent .f.lbl { margin-bottom: 6px; }
+.ent input[type=text], .ent input[type=tel], .ent input[type=date], .ent input[type=number], .ent select, .ent textarea {
+  display: block; width: 100%; min-width: 0; margin-top: 5px; font: inherit; font-size: 16px; padding: 12px 13px;
+  border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--ink); outline: none; min-height: 48px; -webkit-appearance: none; appearance: none; }
+.ent select { background-image: linear-gradient(45deg, transparent 50%, var(--mut) 50%), linear-gradient(135deg, var(--mut) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 32px; }
+.ent input:focus, .ent select:focus, .ent textarea:focus { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(0,24,102,.08); }
+.ent textarea { min-height: 84px; resize: vertical; }
+.ent .up { text-transform: uppercase; }
+
+.ent .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.ent .chip { position: relative; }
+.ent .chip input { position: absolute; opacity: 0; pointer-events: none; }
+.ent .chip span { display: block; padding: 10px 14px; border: 1px solid var(--line); border-radius: 999px; font-size: 14px; cursor: pointer; user-select: none; }
+.ent .chip input:checked + span { background: var(--navy); border-color: var(--navy); color: #fff; }
+
+.ent .opt { display: flex; gap: 12px; align-items: flex-start; padding: 13px 14px; border: 1px solid var(--line); border-radius: 14px; cursor: pointer; margin-bottom: 8px; }
+.ent .opt input { margin: 3px 0 0; accent-color: var(--navy); width: 20px; height: 20px; flex: none; }
+.ent .opt b { font-size: 14px; font-weight: 600; display: block; }
+.ent .opt small { font-size: 12.5px; color: var(--mut); }
+.ent .opt.sel { border-color: var(--navy); background: #f3f5fb; }
+
+.ent table.grid { width: 100%; border-collapse: separate; border-spacing: 4px; table-layout: fixed; }
+.ent table.grid th { font-size: 11px; font-weight: 600; color: var(--mut); text-transform: uppercase; }
+.ent table.grid th:first-child, .ent table.grid td:first-child { width: 48px; }
+.ent table.grid td:first-child { font-size: 13px; font-weight: 600; color: var(--navy); }
+.ent table.grid td.c { text-align: center; }
+.ent table.grid label { display: block; position: relative; }
+.ent table.grid input { position: absolute; opacity: 0; pointer-events: none; }
+.ent table.grid label span { display: block; height: 40px; border-radius: 10px; background: var(--soft); border: 1px solid var(--line); cursor: pointer; }
+.ent table.grid input:checked + span { background: var(--navy); border-color: var(--navy); }
+.ent table.grid input:checked + span::after { content: ""; display: block; width: 10px; height: 5px; border-left: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(-45deg); margin: 15px auto 0; }
+.ent .quick { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.ent .quick button { font: inherit; font-size: 13px; font-weight: 500; border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 7px 12px; cursor: pointer; color: var(--navy); }
+
+.ent .hide { display: none !important; }
+.ent .consent { display: flex; gap: 10px; font-size: 13px; color: var(--mut); align-items: flex-start; margin: 6px 0 18px; }
+.ent .consent input { accent-color: var(--navy); width: 20px; height: 20px; margin: 1px 0 0; flex: none; }
+.ent button.send { width: 100%; font: inherit; font-weight: 600; font-size: 16px; padding: 16px; border: 0; border-radius: 14px; background: var(--red); color: #fff; cursor: pointer; }
+.ent button.send:disabled { opacity: .6; }
+.ent .err { color: var(--red); font-size: 13px; margin-top: 10px; text-align: center; min-height: 18px; }
+.ent .done { text-align: center; padding: 50px 0; }
+.ent .done .ok { width: 72px; height: 72px; border-radius: 50%; background: var(--navy); display: grid; place-items: center; margin: 0 auto 18px; }
+.ent .done .ok svg { width: 34px; height: 34px; fill: none; stroke: #fff; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.ent-foot { text-align: center; color: var(--mut); font-size: 12px; padding: 30px 20px 40px; border-top: 1px solid var(--line); margin-top: 30px; }
+
+@media (max-width: 560px) {
+  .ent .row { grid-template-columns: 1fr; }
+  .ent h1 { font-size: 25px; }
+  .ent .d { width: 34px; }
+  .ent form .group { padding: 16px; }
+  .ent table.grid th:first-child, .ent table.grid td:first-child { width: 40px; }
+}

@@ -34,7 +34,9 @@ function createApp({ config, db, robo = null }) {
         'style-src': ["'self'"],
         'form-action': ["'self'"],
         'frame-ancestors': ["'none'"],
-        'frame-src': ["'self'", 'https://script.google.com']
+        'frame-src': ["'self'", 'https://script.google.com'],
+        // Cadastro de entregadores (/entregador) envia para o Apps Script "GoBox Motoboys".
+        'connect-src': ["'self'", 'https://script.google.com', 'https://script.googleusercontent.com']
       }
     },
     strictTransportSecurity: config.COOKIE_SECURE ? undefined : false
