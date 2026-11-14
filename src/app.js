@@ -182,7 +182,8 @@ function createApp({ config, db, robo = null }) {
   });
 
   // Verificação de funcionamento (usada pela hospedagem e pelo "manter acordado").
-  app.get('/saude', (req, res) => { res.set('Cache-Control', 'no-store'); res.json({ ok: true }); });
+  // pontoSeguro: true quando o Ponto entra com token temporário (sem a senha ir ao navegador).
+  app.get('/saude', (req, res) => { res.set('Cache-Control', 'no-store'); res.json({ ok: true, pontoSeguro: pontoAcesso.seguro }); });
 
   // Horário da última atualização bem-sucedida (qualquer empresa), para a página pública.
   const ultimaStmt = db.prepare("SELECT MAX(finished_at) AS em FROM imports WHERE status = 'sucesso'");
