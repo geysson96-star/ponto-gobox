@@ -2,6 +2,7 @@
 const path = require('node:path');
 const express = require('express');
 const helmet = require('helmet');
+const compression = require('compression');
 const multer = require('multer');
 const { rateLimit } = require('express-rate-limit');
 
@@ -18,11 +19,16 @@ const financeiro = require('./financeiro');
 const contabilidade = require('./contabilidade');
 const sacas = require('./sacas');
 const fretes = require('./fretes');
+const entregadores = require('./entregadores');
+const site = require('./site');
 
 function createApp({ config, db, robo = null }) {
   const app = express();
   app.disable('x-powered-by');
   if (config.TRUST_PROXY) app.set('trust proxy', 1);
+  // Compacta páginas, estilos, scripts e respostas (chegam bem menores no celular).
+  app.use(compression());
+  const pontoAcesso = require('./ponto-acesso').criar({ config });
 
   app.use(helmet({
     contentSecurityPolicy: {
@@ -33,10 +39,11 @@ function createApp({ config, db, robo = null }) {
         'script-src': ["'self'"],
         'style-src': ["'self'"],
         'form-action': ["'self'"],
-        'frame-ancestors': ["'none'"],
-        'frame-src': ["'self'", 'https://script.google.com'],
-        // Cadastro de entregadores (/entregador) envia para o Apps Script "GoBox Motoboys".
-        'connect-src': ["'self'", 'https://script.google.com', 'https://script.googleusercontent.com']
+        'frame-ancestors': ["'self'"],
+        'frame-src': ["'self'"],
+        'connect-src': ["'self'"],
+        'object-src': ["'none'"],
+        'base-uri': ["'self'"]
       }
     },
     strictTransportSecurity: config.COOKIE_SECURE ? undefined : false
@@ -44,13 +51,19 @@ function createApp({ config, db, robo = null }) {
   const jsonPequeno = express.json({ limit: '4kb' });
   const jsonContabilidade = express.json({ limit: '64kb' }); // modelos e documentos de emissão das notas
   app.use((req, res, next) => (req.path.startsWith('/api/extensao/') ? next()
-    : req.path.startsWith('/admin/api/contabilidade/') ? jsonContabilidade(req, res, next) : jsonPequeno(req, res, next)));
+    : /^\/admin\/api\/(contabilidade|entregadores|site)\b/.test(req.path) ? jsonContabilidade(req, res, next) : jsonPequeno(req, res, next)));
 
   const publicDir = path.join(config.ROOT, 'public');
 
   // Painel do ponto (aba Ponto do admin) e aba Contabilidade: falam direto com o Firebase
   // do Ponto GoBox e abrem dentro do painel (iframe da mesma origem).
   app.use(['/admin/ponto', '/admin/contabilidade'], (req, res, next) => {
+    // Só abrem para quem já entrou no painel.
+    if (!auth.isAuthenticated(db, req)) {
+      if (req.method === 'GET' && /\.html?$|\/$/.test(req.path)) return res.redirect(302, '/admin/');
+      return res.status(401).type('text').send('Entre no painel primeiro.');
+    }
+    res.set('Cache-Control', 'no-store');
     res.setHeader('Content-Security-Policy', [
       "default-src 'self'",
       "script-src 'self' https://www.gstatic.com",
@@ -246,6 +259,27 @@ function createApp({ config, db, robo = null }) {
   app.post('/api/fretes/cotar', fretesLimiter, fretesRota((b) => fretes.cotar(db, b)));
   app.post('/api/fretes/contratar', fretesLimiter, fretesRota((b) => fretes.contratar(db, b)));
 
+  // ---------------- Ajustes do site (aviso, horário, WhatsApp, abas) ----------------
+  app.get('/api/site', publicLimiter, (req, res) => {
+    res.set('Cache-Control', 'no-cache');
+    res.json(site.publico(db));
+  });
+
+  // ---------------- Cadastro de entregadores ----------------
+  const entregadoresLimiter = rateLimit({
+    windowMs: 15 * 60_000, limit: 8, standardHeaders: 'draft-7', legacyHeaders: false,
+    handler: (req, res) => res.status(429).json({ erro: 'Muitos envios seguidos. Aguarde alguns minutos.' })
+  });
+  app.get('/api/entregadores/config', publicLimiter, (req, res) => {
+    res.set('Cache-Control', 'no-cache');
+    res.json(entregadores.configPublica(db));
+  });
+  app.post('/api/entregadores', entregadoresLimiter, (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    if (!site.publico(db).abas.entregador) return res.status(403).json({ erro: 'Cadastros pausados no momento.' });
+    try { res.json(entregadores.cadastrar(db, req.body || {})); } catch (e) { res.status(400).json({ erro: e.message }); }
+  });
+
   // ---------------- Área administrativa ----------------
   const admin = express.Router();
   admin.use(auth.sameOrigin);
@@ -282,11 +316,52 @@ function createApp({ config, db, robo = null }) {
   // ---------- Ponto (aba do painel) ----------
   // Entrega o acesso do Ponto GoBox só para quem já entrou no painel, para a aba
   // Ponto fazer o login no Firebase sozinha. Configurado no servidor (PONTO_EMAIL e PONTO_SENHA).
-  admin.get('/ponto/acesso', requireAdmin, (req, res) => {
-    if (!config.PONTO_EMAIL || !config.PONTO_SENHA) return res.status(404).json({ erro: 'Acesso do ponto não configurado no servidor.' });
+  admin.get('/ponto/acesso', requireAdmin, async (req, res) => {
+    if (!pontoAcesso.configurado) return res.status(404).json({ erro: 'Acesso do ponto não configurado no servidor.' });
     res.set('Cache-Control', 'no-store');
-    res.json({ email: config.PONTO_EMAIL, senha: config.PONTO_SENHA });
+    try { res.json(await pontoAcesso.acesso()); } catch { res.status(502).json({ erro: 'Não consegui conectar ao Ponto agora.' }); }
   });
+
+  // ---------- Visão geral ----------
+  admin.get('/visao-geral', requireAdmin, (req, res) => {
+    const fontes = allSourceStatus(db);
+    const naAgencia = db.prepare("SELECT source, COUNT(*) AS n FROM packages WHERE active = 1 AND COALESCE(situacao, 'na_agencia') = 'na_agencia' GROUP BY source").all();
+    const porFonte = Object.fromEntries(naAgencia.map((r) => [r.source, r.n]));
+    const sac = sacas.resumo(db);
+    const ent = entregadores.resumo(db);
+    let fin = null; let notas = [];
+    try { const f = financeiro.resumo(db); fin = { total: f.total, pacotes: f.pacotes, mes: f.mes }; } catch { fin = null; }
+    try { notas = contabilidade.resumoNotas(db).empresas.filter((e) => e.pendentes.length).map((e) => e.nome); } catch { notas = []; }
+    res.json({
+      pacotes: { total: Object.values(porFonte).reduce((a, b) => a + b, 0), porFonte },
+      fontes: fontes.map((f) => ({ id: f.id, nome: f.name, situacao: f.state, ultima: f.lastSuccessAt, pendentes: f.pendingConfirmations })),
+      acessos: acessos.resumo({ dias: 1 }).hoje,
+      sacas: { envios: sac.envios.length, envioLigado: Boolean(sac.config.ativo), falhas: sac.avisos.filter((a) => a.situacao === 'falhou').length },
+      entregadores: ent.contagem,
+      faturamento: fin,
+      notasParaEmitir: notas,
+      persistencia: req.app.locals.persistenciaAtiva === undefined ? null : req.app.locals.persistenciaAtiva
+    });
+  });
+
+  // ---------- Entregadores ----------
+  admin.get('/entregadores', requireAdmin, (req, res) => res.json(entregadores.resumo(db)));
+  admin.put('/entregadores/config', requireAdmin, (req, res) => {
+    try { res.json({ config: entregadores.salvarConfig(db, req.body || {}) }); } catch (e) { res.status(400).json({ erro: e.message }); }
+  });
+  admin.put('/entregadores/:id', requireAdmin, (req, res) => {
+    const c = entregadores.atualizar(db, String(req.params.id), req.body || {});
+    if (!c) return res.status(404).json({ erro: 'Cadastro não encontrado.' });
+    res.json({ cadastro: c });
+  });
+  admin.delete('/entregadores/:id', requireAdmin, (req, res) => {
+    if (!entregadores.apagar(db, String(req.params.id))) return res.status(404).json({ erro: 'Cadastro não encontrado.' });
+    res.json({ ok: true });
+  });
+
+  // ---------- Ajustes do site ----------
+  admin.get('/site', requireAdmin, (req, res) => res.json({ ajustes: site.ajustes(db) }));
+  admin.put('/site', requireAdmin, (req, res) => res.json({ ajustes: site.salvar(db, req.body || {}) }));
 
   // ---------- Financeiro ----------
   admin.get('/financeiro', requireAdmin, (req, res) => {
@@ -524,7 +599,24 @@ function createApp({ config, db, robo = null }) {
   app.use('/admin/api', admin);
 
   // Arquivos estáticos (página pública e painel).
-  app.use(express.static(publicDir, { index: 'index.html', extensions: ['html'] }));
+  // Modo manutenção: páginas públicas mostram um aviso (painel e APIs continuam).
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' || !['/', '/index.html', '/frete', '/frete.html', '/entregador', '/entregador.html'].includes(req.path)) return next();
+    const p = site.publico(db);
+    if (p.manutencao) return res.sendFile(path.join(publicDir, 'manutencao.html'));
+    if ((req.path.startsWith('/frete') && !p.abas.frete) || (req.path.startsWith('/entregador') && !p.abas.entregador)) return res.redirect(302, '/');
+    return next();
+  });
+  // Cache: imagens por 30 dias; estilos e scripts revalidados (ETag) para atualizar na hora.
+  app.use(express.static(publicDir, {
+    index: 'index.html', extensions: ['html'],
+    setHeaders: (res, arquivo) => {
+      if (/[\\/]admin[\\/]/.test(arquivo)) res.setHeader('Cache-Control', 'no-cache');
+      else if (/[\\/]assets[\\/]|\.(png|webp|svg|ico|jpg|woff2)$/i.test(arquivo)) res.setHeader('Cache-Control', 'public, max-age=2592000');
+      else if (/\.(css|js)$/i.test(arquivo)) res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate');
+      else res.setHeader('Cache-Control', 'no-cache');
+    }
+  }));
 
   app.use((req, res) => res.status(404).type('text').send('Página não encontrada.'));
 

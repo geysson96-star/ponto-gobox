@@ -1,8 +1,7 @@
-// Cadastro de entregadores/coletadores. Os dados vão para a planilha do Apps Script
-// "GoBox Motoboys" (mesmo painel de antes); a página não depende mais de iframe.
+// Cadastro de entregadores/coletadores. Os dados vão para o painel da GoBox
+// (aba Entregadores), sem planilha externa.
 (function () {
   'use strict';
-  var API = 'https://script.google.com/macros/s/AKfycby24wASP9-pR6fO6ofSnGSgyMn2Rt3r6uv0jJKvoDVG263gsfyfKv3YTJ046nokghdAsQ/exec';
 
   // Usado se a configuração do painel não carregar (os valores nunca aparecem nesta página).
   var PADRAO = {
@@ -90,7 +89,7 @@
     $('#f').addEventListener('submit', enviar);
 
     // Atualiza dias e textos com o que estiver salvo no painel (Valores e dias).
-    fetch(API + '?api=config').then(function (r) { return r.json(); }).then(function (c) {
+    fetch('/api/entregadores/config').then(function (r) { return r.json(); }).then(function (c) {
       if (c && Array.isArray(c.servicos) && c.servicos.length) {
         CONFIG = { servicos: c.servicos.map(function (s) { return { id: s.id, nome: s.nome, para: s.para, desc: s.desc, dias: arr(s.dias), obs: s.obs }; }), pagamento: c.pagamento || PADRAO.pagamento };
         renderCards(); renderServ();
@@ -114,8 +113,8 @@
     };
     var btn = f.querySelector('.send'); btn.disabled = true; btn.textContent = 'Enviando...';
     function falha(msg) { err.textContent = msg || 'Não deu para enviar agora. Confira a internet e tente de novo.'; btn.disabled = false; btn.textContent = 'Enviar cadastro'; }
-    fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(data) })
-      .then(function (r) { return r.json(); })
+    fetch('/api/entregadores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
       .then(function (r) {
         if (!r || !r.ok) return falha(r && r.erro ? 'Não deu para enviar: ' + r.erro : null);
         f.classList.add('hide'); $('#dn').textContent = data.nome.split(' ')[0]; $('#done').classList.remove('hide');

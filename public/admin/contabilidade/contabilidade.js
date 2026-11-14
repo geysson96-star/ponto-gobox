@@ -69,14 +69,15 @@ const rotuloQ = ref => { const l = limitesQ(ref); return `${l.q}ª quinzena de $
 /* ---------------- Ponto GoBox ---------------- */
 async function conectarPonto() {
   if (!P) P = await import("../ponto/common.js?v=unif1");
-  const { configured, auth, db, signInWithEmailAndPassword, doc, collection, getDoc, getDocs, setRodizio } = P;
+  const { configured, auth, db, signInWithEmailAndPassword, signInWithCustomToken, doc, collection, getDoc, getDocs, setRodizio } = P;
   if (!configured) throw new Error("O Ponto GoBox não está configurado.");
   if (auth.authStateReady) await auth.authStateReady();
   if (!auth.currentUser) {
     const r = await fetch("/admin/api/ponto/acesso", { credentials: "same-origin", cache: "no-store" });
     if (!r.ok) throw new Error("O acesso ao ponto não está configurado no servidor.");
-    const { email, senha } = await r.json();
-    await signInWithEmailAndPassword(auth, email, senha);
+    const d = await r.json();
+    if (d.token) await signInWithCustomToken(auth, d.token);
+    else await signInWithEmailAndPassword(auth, d.email, d.senha);
   }
   const [fs, cfg] = await Promise.all([getDocs(collection(db, "funcionarios")), getDoc(doc(db, "config", "geral"))]);
   const emps = {}; fs.forEach(d => { emps[d.id] = { id: d.id, ...d.data() }; });
@@ -107,6 +108,7 @@ async function carregarPonto() {
       const porDia = {}; snaps[i].docs.forEach(d => { const x = d.data(); if ((x.marcacoes || []).length) porDia[x.data] = x; });
       const inicio = e.inicio || (e.criado ? dayKey(new Date(e.criado)) : ini);
       let ex50 = 0, ex100 = 0, deb = 0, faltas = 0, dias = 0;
+      const detalhe = [];
       for (let d = keyToDate(ini); dayKey(d) <= ate; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) {
         const dia = dayKey(d), reg = porDia[dia];
         if (reg) {
@@ -114,12 +116,13 @@ async function carregarPonto() {
           const min = derive(reg.marcacoes, { now: atual ? agoraMs() : null, incompleto: reg.incompleto }).liveMin;
           const x = extrasDia(e, dia, min, tol(), S.escalas);
           ex50 += x.ex50; ex100 += x.ex100; if (!atual) deb += x.deb; dias++;
+          detalhe.push({ dia, min, prev: x.prev.min, tipo: x.prev.tipo, ex50: x.ex50, ex100: x.ex100, deb: atual ? 0 : x.deb, aberto: atual });
         } else {
           const p = previsto(e, dia, S.escalas);
-          if (p.min && dia < td && dia >= inicio) { faltas++; deb += p.min; }
+          if (p.min && dia < td && dia >= inicio) { faltas++; deb += p.min; detalhe.push({ dia, min: 0, prev: p.min, tipo: p.tipo, falta: true, deb: p.min }); }
         }
       }
-      S.ponto[e.id] = { he50: cent(ex50 / 60), he100: cent(ex100 / 60), deb, faltas, dias };
+      S.ponto[e.id] = { he50: cent(ex50 / 60), he100: cent(ex100 / 60), deb, faltas, dias, detalhe };
     });
     S.pontoEstado = "ok";
   } catch (e) {
@@ -170,11 +173,12 @@ function render() {
       <div class="subabas" role="tablist">
         <button role="tab" data-aba="cc" aria-selected="${S.aba === "cc"}">Contracheques</button>
         <button role="tab" data-aba="nf" aria-selected="${S.aba === "nf"}">Notas fiscais</button>
+        <button role="tab" data-aba="rel" aria-selected="${S.aba === "rel"}">Relatórios</button>
       </div>
     </div>
     <section id="vista"></section>`;
   $$("[data-aba]").forEach(b => b.onclick = () => { S.aba = b.dataset.aba; render(); });
-  if (S.aba === "cc") renderCC(); else renderNF();
+  if (S.aba === "cc") renderCC(); else if (S.aba === "rel") renderRel(); else renderNF();
 }
 
 /* ======== CONTRACHEQUES ======== */
@@ -214,7 +218,7 @@ async function trocarQuinzena() {
   S.cc = {}; S.pontoEstado = "carregando"; renderCC();
   try { await carregarDados(); } catch (e) { toast(e.message, true); }
   renderCC();
-  await carregarPonto(); if (S.aba === "cc") renderCC();
+  await carregarPonto(); if (S.aba === "cc") renderCC(); else if (S.aba === "rel") renderRel();
 }
 function atualizarCC() {
   const emps = empsDaQuinzena();
@@ -327,6 +331,120 @@ function reciboHTML(fid) {
 function imprimir(html) {
   const a = $("#area-impressao"); a.innerHTML = html;
   setTimeout(() => window.print(), 50);
+}
+
+/* ======== RELATÓRIOS ======== */
+// 1) Folha da quinzena para quem faz os contracheques (dias, horas extras, faltas, valores).
+// 2) Escala dos sábados (rodízio do Ponto: um de manhã, um à tarde, os outros de folga).
+const DSEM = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+const diaBr = d => `${d.slice(8)}/${d.slice(5, 7)} ${DSEM[keyToDate(d).getDay()]}`;
+const hm = horasTxt;
+let relSabados = 8;
+
+function folhaLinhas() {
+  return empsDaQuinzena().map(e => {
+    const c = calc(e.id), p = S.ponto[e.id] || {};
+    return { e, c, p };
+  });
+}
+function relatorioFolhaHTML(paraImprimir) {
+  const l = limitesQ(S.ref), linhas = folhaLinhas();
+  const tot = linhas.reduce((a, x) => a + x.c.liq, 0);
+  const resumo = `<table class="rel-tab"><thead><tr><th>Funcionário</th><th class="r">Dias</th><th class="r">Faltas</th><th class="r">Extras 50%</th><th class="r">Extras 100%</th><th class="r">Horas devidas</th><th class="r">Base</th><th class="r">Extras (R$)</th><th class="r">Outros</th><th class="r">Líquido</th></tr></thead><tbody>
+    ${linhas.map(({ e, c, p }) => `<tr><td><b>${esc(e.nome || "")}</b><br><small class="muted">${esc(e.cargo || "")}</small></td>
+      <td class="r">${p.dias ?? "—"}</td><td class="r">${p.faltas ?? "—"}</td><td class="r">${hrs(c.he50)}</td><td class="r">${hrs(c.he100)}</td>
+      <td class="r">${p.deb ? hm(p.deb) : "—"}</td><td class="r">${brl(c.base)}</td><td class="r">${brl(c.v50 + c.v100)}</td>
+      <td class="r">${c.prov || c.desc ? `${c.prov ? "+" + brl(c.prov) : ""}${c.desc ? " −" + brl(c.desc) : ""}` : "—"}</td><td class="r"><b>${brl(c.liq)}</b></td></tr>`).join("")}
+    <tr class="tot"><td colspan="9">Total da folha</td><td class="r">${brl(tot)}</td></tr></tbody></table>`;
+  const detalhes = linhas.filter(x => (x.p.detalhe || []).length).map(({ e, p }) => `<section class="rel-pessoa"><h3>${esc(e.nome || "")}</h3>
+    <table class="rel-tab"><thead><tr><th>Dia</th><th class="r">Previsto</th><th class="r">Trabalhado</th><th class="r">Extra 50%</th><th class="r">Extra 100%</th><th class="r">Devendo</th><th>Obs.</th></tr></thead><tbody>
+    ${p.detalhe.map(d => `<tr${d.falta ? ' class="falta"' : ""}><td>${diaBr(d.dia)}</td><td class="r">${d.prev ? hm(d.prev) : "folga"}</td><td class="r">${d.falta ? "—" : hm(d.min)}</td>
+      <td class="r">${d.ex50 ? hm(d.ex50) : ""}</td><td class="r">${d.ex100 ? hm(d.ex100) : ""}</td><td class="r">${d.deb ? hm(d.deb) : ""}</td>
+      <td>${d.falta ? "Falta" : d.aberto ? "Em andamento" : d.tipo === "feriado" ? "Feriado" : !d.prev ? "Dia de folga" : ""}</td></tr>`).join("")}</tbody></table></section>`).join("");
+  return `<article class="relatorio${paraImprimir ? " impresso" : ""}">
+    <header class="rel-cab"><div><b>GoBox · Folha da quinzena</b><br><span class="muted">${rotuloQ(S.ref)} · ${br(l.ini)} a ${br(l.fim)}</span></div>
+    <div class="muted r">Gerado em ${new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}<br>Horas do Ponto GoBox · tolerância ${tol()} min</div></header>
+    ${resumo}
+    <p class="muted rel-nota">Extras 50%: o que passou do previsto no dia (e folgas trabalhadas). Extras 100%: domingos e feriados. Horas devidas: atrasos, saídas cedo e faltas.</p>
+    ${detalhes}</article>`;
+}
+function relatorioFolhaTexto() {
+  const l = limitesQ(S.ref);
+  return [`GoBox · Folha da ${rotuloQ(S.ref)} (${br(l.ini)} a ${br(l.fim)})`, ""].concat(folhaLinhas().map(({ e, c, p }) =>
+    `${e.nome}: ${p.dias ?? 0} dias, ${p.faltas ?? 0} falta(s), extras 50% ${hrs(c.he50)}, extras 100% ${hrs(c.he100)}${p.deb ? `, devendo ${hm(p.deb)}` : ""} · base ${brl(c.base)} · líquido ${brl(c.liq)}`)).join("\n");
+}
+
+function proximosSabados(n) {
+  const d = keyToDate(today()); d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7));
+  const out = []; for (let i = 0; i < n; i++) { out.push(dayKey(d)); d.setDate(d.getDate() + 7); }
+  return out;
+}
+function escalaSabados(n) {
+  const emps = Object.values(S.emps).filter(e => e.ativo !== false).sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
+  return proximosSabados(n).map(dia => {
+    const t = { manha: [], tarde: [], trabalho: [], folga: [] };
+    for (const e of emps) {
+      const p = P.previsto(e, dia, S.escalas);
+      if (p.turno === "manha" || p.turno === "tarde") t[p.turno].push(e.nome);
+      else if (p.min) t.trabalho.push(e.nome);
+      else t.folga.push(p.tipo === "feriado" ? `${e.nome} (feriado)` : e.nome);
+    }
+    return { dia, ...t };
+  });
+}
+function escalaHTML(lista) {
+  return `<article class="relatorio"><header class="rel-cab"><div><b>GoBox · Escala dos sábados</b><br><span class="muted">${br(lista[0].dia)} a ${br(lista[lista.length - 1].dia)}</span></div>
+    <div class="muted r">Manhã e tarde pelo rodízio do Ponto GoBox</div></header>
+    <table class="rel-tab"><thead><tr><th>Sábado</th><th>Manhã</th><th>Tarde</th><th>Folga</th></tr></thead><tbody>
+    ${lista.map(s => `<tr><td><b>${br(s.dia)}</b></td><td>${esc([...s.manha, ...s.trabalho].join(", ") || "—")}</td><td>${esc(s.tarde.join(", ") || "—")}</td><td class="muted">${esc(s.folga.join(", ") || "—")}</td></tr>`).join("")}
+    </tbody></table></article>`;
+}
+function escalaTexto(lista) {
+  return ["*Escala dos sábados · GoBox*", ""].concat(lista.map(s => `${br(s.dia).slice(0, 5)}: manhã ${[...s.manha, ...s.trabalho].join(", ") || "—"} · tarde ${s.tarde.join(", ") || "—"} · folga ${s.folga.join(", ") || "—"}`)).join("\n");
+}
+async function copiar(txt) {
+  try { await navigator.clipboard.writeText(txt); toast("Copiado. É só colar no WhatsApp."); }
+  catch { toast("Não consegui copiar. Selecione o texto e copie.", true); }
+}
+
+async function renderRel() {
+  const v = $("#vista");
+  let aviso = "";
+  if (S.pontoEstado === "carregando") aviso = `<div class="aviso">Lendo as horas no Ponto GoBox…</div>`;
+  else if (S.pontoEstado === "erro") aviso = `<div class="aviso erro">${esc(S.pontoErro)}</div>`;
+  v.innerHTML = `${aviso}
+    <div class="bloco rel-bloco">
+      <div class="rel-topo"><div><h2>Folha da quinzena</h2><p class="muted">Para quem faz os contracheques: dias, horas extras, faltas e valores de cada funcionário.</p></div>
+        <div class="rel-acoes"><div class="navq"><button class="btn sm" data-q="-1" aria-label="Quinzena anterior">‹</button><strong>${rotuloQ(S.ref)}</strong><button class="btn sm" data-q="1" aria-label="Próxima quinzena">›</button></div>
+        <button class="btn" id="rel-copiar">Copiar resumo</button><button class="btn primary" id="rel-imprimir">Imprimir ou salvar PDF</button></div></div>
+      <div class="rel-previa">${Object.keys(S.emps).length ? relatorioFolhaHTML(false) : `<p class="muted">Carregando funcionários…</p>`}</div>
+    </div>
+    <div class="bloco rel-bloco">
+      <div class="rel-topo"><div><h2>Escala dos sábados</h2><p class="muted">Quem trabalha de manhã, quem trabalha à tarde e quem folga, pelo rodízio do Controle de ponto. Trocas feitas na escala do mês já aparecem aqui.</p></div>
+        <div class="rel-acoes"><label class="muted">Próximos <select id="rel-n">${[4, 8, 12, 26].map(n => `<option value="${n}"${n === relSabados ? " selected" : ""}>${n} sábados</option>`).join("")}</select></label>
+        <button class="btn" id="esc-copiar">Copiar para o WhatsApp</button><button class="btn primary" id="esc-imprimir">Imprimir ou salvar PDF</button></div></div>
+      <div class="rel-previa" id="esc-previa"><p class="muted">Montando a escala…</p></div>
+    </div>`;
+  $$("[data-q]").forEach(b => b.onclick = async () => { mudarQuinzena(Number(b.dataset.q)); await trocarQuinzena(); });
+  $("#rel-imprimir").onclick = () => imprimir(relatorioFolhaHTML(true));
+  $("#rel-copiar").onclick = () => copiar(relatorioFolhaTexto());
+  $("#rel-n").onchange = (ev) => { relSabados = Number(ev.target.value); montarEscala(); };
+  await montarEscala();
+}
+async function montarEscala() {
+  const box = $("#esc-previa"); if (!box) return;
+  try {
+    if (!Object.keys(S.emps).length) await conectarPonto();
+    const sab = proximosSabados(relSabados);
+    await carregarMeses(sab[0], sab[sab.length - 1]);
+    const rod = S.cfg.rodizio;
+    const lista = escalaSabados(relSabados);
+    box.innerHTML = (!rod || !rod.ativo ? `<div class="aviso">O rodízio de sábado está desligado no Controle de ponto (aba Escala › Rodízio de sábado). Abaixo, quem está escalado pela jornada de cada um.</div>` : "") + escalaHTML(lista);
+    $("#esc-imprimir").onclick = () => imprimir(escalaHTML(lista));
+    $("#esc-copiar").onclick = () => copiar(escalaTexto(lista));
+  } catch (e) {
+    box.innerHTML = `<div class="aviso erro">Não consegui montar a escala agora. Confira a internet e abra a aba de novo.</div>`;
+  }
 }
 
 /* ======== NOTAS FISCAIS ======== */

@@ -56,7 +56,7 @@
         li.append(document.createElement('i'), document.createTextNode(f.nome));
         const q = quando(f.ultima);
         const s = document.createElement('small');
-        s.textContent = f.situacao === 'sem_dados' ? 'sem dados' : (q ? `atualizado ${q}` : '');
+        s.textContent = f.situacao === 'sem_dados' ? 'atualizando' : (q ? `atualizado ${q}` : '');
         if (s.textContent) li.append(s);
         li.title = f.situacao === 'desatualizado' ? 'Faz algum tempo desde a última atualização.' : '';
         listaFontes.append(li);
@@ -67,7 +67,7 @@
   // Título e detalhes conforme a situação informada pelo site.
   function montar(d) {
     if (!d.encontrado) {
-      return { classe: 'nao', icone: 'nao', titulo: 'Pacote não encontrado.', linhas: [] };
+      return { classe: 'nao', icone: 'nao', titulo: 'Ainda não chegou na GoBox.', linhas: [['Dica', 'Os dados são atualizados várias vezes ao dia. Confira o código e tente mais tarde.']] };
     }
     const recebido = dataHora(d.recebidoEm);
     const saida = dataHora(d.saidaEm);

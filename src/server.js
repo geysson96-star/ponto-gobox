@@ -54,6 +54,7 @@ if (config.NODE_ENV !== 'production') {
 
 // Cópia dos dados no Firebase: restaura antes de atender e salva a cada mudança.
 const persistencia = require('./persistencia').criar({ db, config });
+app.locals.persistenciaAtiva = persistencia.ativo;
 let server;
 (async () => {
   if (persistencia.ativo) {

@@ -162,6 +162,29 @@ textarea:focus{border-color:var(--navy);outline:none}
 
 /* impressão: só o recibo ou o documento escolhido */
 #area-impressao{display:none}
+
+/* relatórios */
+.rel-bloco{display:flex;flex-direction:column;gap:14px;margin-bottom:20px}
+.rel-topo{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px}
+.rel-topo h2{font-size:19px}
+.rel-topo p{margin:2px 0 0;max-width:560px}
+.rel-acoes{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.rel-acoes select{height:36px;border:1px solid var(--line-2);border-radius:10px;padding:0 8px;background:var(--white)}
+.rel-previa{border:1px solid var(--line);border-radius:14px;padding:16px;overflow-x:auto;background:var(--white)}
+.relatorio{display:flex;flex-direction:column;gap:12px;min-width:640px}
+.rel-cab{display:flex;justify-content:space-between;gap:16px;font-size:13px}
+.rel-cab b{font-size:15px;color:var(--navy)}
+.rel-cab .r,.rel-tab .r{text-align:right}
+.rel-tab{width:100%;border-collapse:collapse;font-size:12.5px}
+.rel-tab th{text-align:left;font-weight:600;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--line-2);white-space:nowrap}
+.rel-tab td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.rel-tab tr.tot td{font-weight:700;border-top:2px solid var(--ink);border-bottom:0}
+.rel-tab tr.falta td{background:var(--bad-bg)}
+.rel-nota{margin:0;font-size:12px}
+.rel-pessoa h3{font-size:14px;margin:8px 0 6px;color:var(--navy)}
+.relatorio.impresso{min-width:0}
+@media print{.rel-pessoa{break-inside:avoid-page}.rel-tab tr.falta td{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+
 @media print{
   @page{margin:14mm}
   body>*:not(#area-impressao){display:none!important}

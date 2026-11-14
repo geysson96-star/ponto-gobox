@@ -1,7 +1,7 @@
 // Ponto GoBox — código compartilhado entre o painel (computador) e o terminal (celular).
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getAuth, initializeAuth, inMemoryPersistence, onAuthStateChanged, signInWithEmailAndPassword,
+  getAuth, initializeAuth, inMemoryPersistence, onAuthStateChanged, signInWithEmailAndPassword, signInWithCustomToken,
   signOut, createUserWithEmailAndPassword, sendPasswordResetEmail, deleteUser
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
@@ -20,7 +20,7 @@ if (app) {
 }
 export const db = _db;
 export {
-  onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
+  onAuthStateChanged, signInWithEmailAndPassword, signInWithCustomToken, signOut, sendPasswordResetEmail,
   doc, collection, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, writeBatch, deleteField
 };
 

@@ -42,7 +42,7 @@
 
   function desenharConfig(c) {
     const box = $('#sac-config');
-    box.replaceChildren(
+    box.replaceChildren(...[
       chave('sac-ativo', 'Enviar para o grupo', c.ativo, (ev) => {
         const ligar = ev.target.checked;
         if (ligar && !confirm('Ligar o envio? A partir de agora, cada envio que chegar vai para o grupo dos entregadores pelo n8n.')) { ev.target.checked = false; return; }
@@ -63,7 +63,7 @@
           carregar();
         }
       }, 'Reenviar as mensagens de hoje') : null
-    );
+    ].filter(Boolean));
   }
 
   function cartaoEnvio(e) {

@@ -76,7 +76,8 @@
     $('#tela-painel').hidden = false;
     // Volta para a aba que estava aberta (o endereço guarda a aba, ex.: /admin/#fretes).
     const salva = location.hash.slice(1);
-    trocarAba($(`.item-menu[data-aba="${salva}"]`) ? salva : 'pacotes');
+    trocarAba(salva && $(`#aba-${salva}`) ? salva : 'inicio');
+    window.dispatchEvent(new Event('gobox:painel'));
   }
 
   $('#form-login').addEventListener('submit', async (ev) => {
@@ -101,25 +102,34 @@
   });
 
   // ---------- Abas ----------
+  // Abas que aparecem destacadas no menu como outra (Integrações reúne três telas).
+  const MENU_DE = { site: 'configuracoes', importacoes: 'configuracoes' };
   function trocarAba(aba) {
+    if (!$(`#aba-${aba}`)) aba = 'inicio';
+    const noMenu = MENU_DE[aba] || aba;
     for (const b of $$('.item-menu')) {
-      if (b.dataset.aba === aba) b.setAttribute('aria-current', 'page');
+      if (b.dataset.aba === noMenu) b.setAttribute('aria-current', 'page');
       else b.removeAttribute('aria-current');
+    }
+    for (const b of $$('[data-ir]')) {
+      if (b.dataset.ir === aba) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     }
     for (const s of $$('.aba')) s.hidden = s.id !== `aba-${aba}`;
     if (location.hash.slice(1) !== aba) history.replaceState(null, '', `#${aba}`);
+    window.scrollTo(0, 0);
     if (aba === 'pacotes') { carregarRobo(); carregarFontes(); carregarPacotes(); }
     if (aba === 'importacoes') carregarImportacoes();
     if (aba === 'configuracoes') carregarConfiguracoes();
-    if (window.goboxFinanceiro) window.goboxFinanceiro[aba === 'financeiro' ? 'abrir' : 'fechar']();
-    if (window.goboxSacas) window.goboxSacas[aba === 'sacas' ? 'abrir' : 'fechar']();
-    if (window.goboxAcessos) window.goboxAcessos[aba === 'acessos' ? 'abrir' : 'fechar']();
-    if (window.goboxFretes) window.goboxFretes[aba === 'fretes' ? 'abrir' : 'fechar']();
-    // Aba Ponto: carrega o painel do ponto só quando for aberta pela primeira vez.
+    for (const [nome, mod] of [['financeiro', 'goboxFinanceiro'], ['sacas', 'goboxSacas'], ['acessos', 'goboxAcessos'], ['fretes', 'goboxFretes'],
+      ['inicio', 'goboxInicio'], ['motoboys', 'goboxEntregadores'], ['site', 'goboxSite']]) {
+      if (window[mod]) window[mod][aba === nome ? 'abrir' : 'fechar']();
+    }
+    // Ponto e Folha: carregam só quando abertas pela primeira vez (entram sozinhas, sem login).
     if (aba === 'ponto' && !$('#ponto-frame').getAttribute('src')) $('#ponto-frame').setAttribute('src', '/admin/ponto/');
-    if (aba === 'motoboys' && !$('#motoboys-frame').getAttribute('src')) $('#motoboys-frame').setAttribute('src', 'https://script.google.com/macros/s/AKfycby24wASP9-pR6fO6ofSnGSgyMn2Rt3r6uv0jJKvoDVG263gsfyfKv3YTJ046nokghdAsQ/exec?p=admin');
     if (aba === 'contabilidade' && !$('#contabilidade-frame').getAttribute('src')) $('#contabilidade-frame').setAttribute('src', '/admin/contabilidade/');
   }
+  window.goboxTrocarAba = trocarAba;
+  for (const b of $$('[data-ir]')) b.addEventListener('click', () => trocarAba(b.dataset.ir));
   for (const b of $$('.item-menu')) b.addEventListener('click', () => trocarAba(b.dataset.aba));
 
   // ---------- Fontes ----------

@@ -15,8 +15,8 @@
 <section id="tela-login" class="tela-login" hidden>
   <form id="form-login" class="cartao-login">
     <div class="marca">
-      <img src="/assets/cubo.png" alt="" class="marca-cubo">
-      <img src="/assets/wordmark.png" alt="" class="marca-nome">
+      <img src="/assets/cubo.webp" alt="" class="marca-cubo">
+      <img src="/assets/wordmark.webp" alt="" class="marca-nome">
     </div>
     <h1>Painel administrativo</h1>
     <label for="usuario">Usuário</label>
@@ -32,35 +32,34 @@
 <div id="tela-painel" class="layout" hidden>
   <nav class="lateral" aria-label="Menu do painel">
     <div class="marca">
-      <img src="/assets/cubo.png" alt="" class="marca-cubo">
-      <img src="/assets/wordmark.png" alt="" class="marca-nome">
+      <img src="/assets/cubo.webp" alt="" class="marca-cubo">
+      <img src="/assets/wordmark.webp" alt="" class="marca-nome">
       <span class="etiqueta-admin">Admin</span>
     </div>
     <div class="menu">
-      <div class="grupo-menu" role="group" aria-labelledby="gm-pacotes">
-        <span class="titulo-grupo" id="gm-pacotes">Pacotes na agência</span>
-        <button type="button" class="item-menu" data-aba="pacotes" aria-current="page">Consulta de pacotes</button>
-        <button type="button" class="item-menu" data-aba="importacoes">Importações</button>
-        <button type="button" class="item-menu" data-aba="sacas">Sacas do Mercado Livre</button>
+      <div class="grupo-menu">
+        <button type="button" class="item-menu" data-aba="inicio"><svg class="icone-menu" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Visão geral</span></button>
       </div>
-      <div class="grupo-menu" role="group" aria-labelledby="gm-fretes">
-        <span class="titulo-grupo" id="gm-fretes">Envios</span>
-        <button type="button" class="item-menu" data-aba="fretes">Fretes Azul</button>
-      </div>
-      <div class="grupo-menu" role="group" aria-labelledby="gm-dinheiro">
-        <span class="titulo-grupo" id="gm-dinheiro">Dinheiro</span>
-        <button type="button" class="item-menu" data-aba="financeiro">Financeiro</button>
-        <button type="button" class="item-menu" data-aba="contabilidade">Contabilidade</button>
+      <div class="grupo-menu" role="group" aria-labelledby="gm-operacao">
+        <span class="titulo-grupo" id="gm-operacao">Operação</span>
+        <button type="button" class="item-menu" data-aba="pacotes"><svg class="icone-menu" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10"/></svg><span>Pacotes na agência</span></button>
+        <button type="button" class="item-menu" data-aba="sacas"><svg class="icone-menu" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 12H6zM9 8V6a3 3 0 0 1 6 0v2"/></svg><span>Chegada de sacas</span><span class="contador" id="contador-sacas" hidden></span></button>
+        <button type="button" class="item-menu" data-aba="fretes"><svg class="icone-menu" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 16V7h11v9M14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="2"/><circle cx="17" cy="17.5" r="2"/></svg><span>Cotação de fretes</span></button>
       </div>
       <div class="grupo-menu" role="group" aria-labelledby="gm-equipe">
         <span class="titulo-grupo" id="gm-equipe">Equipe</span>
-        <button type="button" class="item-menu" data-aba="ponto">Ponto</button>
-        <button type="button" class="item-menu" data-aba="motoboys">Motoboys</button>
+        <button type="button" class="item-menu" data-aba="ponto"><svg class="icone-menu" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Controle de ponto</span></button>
+        <button type="button" class="item-menu" data-aba="motoboys"><svg class="icone-menu" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a5 5 0 0 1 3.5 6"/></svg><span>Entregadores</span><span class="contador" id="contador-motoboys" hidden></span></button>
+      </div>
+      <div class="grupo-menu" role="group" aria-labelledby="gm-financeiro">
+        <span class="titulo-grupo" id="gm-financeiro">Financeiro</span>
+        <button type="button" class="item-menu" data-aba="financeiro"><svg class="icone-menu" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16M8 15l4-4 3 3 5-6"/></svg><span>Faturamento</span></button>
+        <button type="button" class="item-menu" data-aba="contabilidade"><svg class="icone-menu" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h6M9 17h6"/></svg><span>Folha e notas fiscais</span></button>
       </div>
       <div class="grupo-menu" role="group" aria-labelledby="gm-sistema">
-        <span class="titulo-grupo" id="gm-sistema">Site e sistema</span>
-        <button type="button" class="item-menu" data-aba="acessos">Acessos ao site</button>
-        <button type="button" class="item-menu" data-aba="configuracoes">Configurações</button>
+        <span class="titulo-grupo" id="gm-sistema">Sistema</span>
+        <button type="button" class="item-menu" data-aba="acessos"><svg class="icone-menu" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Estatísticas do site</span></button>
+        <button type="button" class="item-menu" data-aba="configuracoes"><svg class="icone-menu" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span>Integrações</span></button>
       </div>
     </div>
     <div class="rodape-menu">
@@ -70,12 +69,30 @@
   </nav>
 
   <main class="principal">
+    <!-- Visão geral -->
+    <section id="aba-inicio" class="aba" hidden>
+      <div class="cabecalho">
+        <div>
+          <p class="sobretitulo" id="vg-data"></p>
+          <h1>Visão geral</h1>
+          <p class="descricao">O que importa hoje numa tela só. Toque num cartão para abrir a aba.</p>
+        </div>
+        <div class="acoes"><button type="button" id="vg-atualizar" class="botao-secundario">Atualizar</button></div>
+      </div>
+      <p id="vg-aviso" class="aviso-geral" role="status" hidden></p>
+      <section id="vg-cartoes" class="vg-cartoes" aria-label="Resumo do dia"></section>
+      <section class="tabela-bloco vg-atencao">
+        <div class="fin-titulo-bloco"><h2>Precisa de atenção</h2><span class="nota" id="vg-hora"></span></div>
+        <ul id="vg-lista" class="vg-lista"></ul>
+      </section>
+    </section>
+
     <!-- Aba Pacotes -->
     <section id="aba-pacotes" class="aba">
       <div class="cabecalho">
         <div>
-          <h1>Consulta de pacotes</h1>
-          <p class="descricao">Base local usada pela consulta pública. Os dados não são em tempo real: valem até a última importação de cada empresa.</p>
+          <h1>Pacotes na agência</h1>
+          <p class="descricao">Pacotes que os clientes encontram na consulta do site. Os dados valem até a última atualização de cada empresa.</p>
         </div>
         <div class="acoes">
           <button type="button" id="botao-robo" class="botao-secundario" hidden>Sincronizar portais agora</button>
@@ -139,7 +156,7 @@
     <section id="aba-financeiro" class="aba" hidden>
       <div class="cabecalho">
         <div>
-          <h1>Financeiro</h1>
+          <h1>Faturamento</h1>
           <p class="descricao">Quanto a GoBox ganhou no mês com cada empresa. Shopee conta o que saiu no mês (total expedido e retiradas); Mercado Livre e Correios, o que chegou. O que os portais não mostram entra em “Ajustes”.</p>
         </div>
         <div class="acoes">
@@ -177,7 +194,7 @@
     <section id="aba-sacas" class="aba" hidden>
       <div class="cabecalho">
         <div>
-          <h1>Sacas do Mercado Livre</h1>
+          <h1>Chegada de sacas</h1>
           <p class="descricao">Envios do Mercado Livre lidos na tela “Entrada de unidades”. Quando um envio chega, as sacas Delivery vão para o grupo “Delivery - GoBox” e as Next (Mercado Envios Extra) para o “Gobox_Entregadores”, pelo n8n. Com o envio desligado (modo teste), as mensagens só aparecem aqui.</p>
         </div>
       </div>
@@ -196,7 +213,7 @@
     <section id="aba-acessos" class="aba" hidden>
       <div class="cabecalho">
         <div>
-          <h1>Acessos ao site</h1>
+          <h1>Estatísticas do site</h1>
           <p class="descricao">Quantas vezes a página de consulta foi aberta e quantas pesquisas os clientes fizeram. Não guardamos IP, código pesquisado nem nenhum dado de quem acessou. “Pessoas” é aproximado: conta cada aparelho uma vez por dia.</p>
         </div>
         <div class="acoes"><button type="button" id="ace-atualizar" class="botao-secundario">Atualizar</button></div>
@@ -218,8 +235,8 @@
     <section id="aba-fretes" class="aba" hidden>
       <div class="cabecalho">
         <div>
-          <h1>Fretes Azul</h1>
-          <p class="descricao">Margem e transporte usados na <a href="/frete" target="_blank" rel="noopener">página de cotação</a>. Mudou aqui, o preço do cliente muda na hora.</p>
+          <h1>Cotação de fretes</h1>
+          <p class="descricao">Parceria Azul Cargo Express. Margem e transporte usados na <a href="/frete" target="_blank" rel="noopener">página de cotação</a>. Mudou aqui, o preço do cliente muda na hora.</p>
         </div>
       </div>
       <div class="frt-grade">
@@ -281,9 +298,39 @@
       <iframe id="ponto-frame" class="ponto-frame" title="Controle de ponto" loading="lazy"></iframe>
     </section>
 
-    <!-- Aba Motoboys (credenciamento: cadastros, equipe e acionamento; Google Apps Script) -->
-    <section id="aba-motoboys" class="aba aba-ponto" hidden>
-      <iframe id="motoboys-frame" class="ponto-frame" title="Motoboys" loading="lazy" allow="clipboard-write"></iframe>
+    <!-- Entregadores (cadastros do site, equipe e serviços) -->
+    <section id="aba-motoboys" class="aba" hidden>
+      <div class="cabecalho">
+        <div>
+          <h1>Entregadores</h1>
+          <p class="descricao">Cadastros feitos na página <a href="/entregador" target="_blank" rel="noopener">Seja entregador</a>. Aceite, recuse, dê uma nota e chame no WhatsApp. Os valores aparecem só aqui, nunca na página pública.</p>
+        </div>
+        <div class="acoes">
+          <div class="campo"><label for="ent-servico">Serviço</label><select id="ent-servico"><option value="">Todos</option></select></div>
+          <button type="button" id="ent-config-abrir" class="botao-secundario">Serviços e valores</button>
+        </div>
+      </div>
+      <p id="ent-aviso" class="aviso-geral" role="status" hidden></p>
+      <div class="segmentos" role="tablist" aria-label="Situação">
+        <button type="button" class="segmento" data-ent="pendente" aria-current="page">Aguardando aceite <span id="ent-n-pendente"></span></button>
+        <button type="button" class="segmento" data-ent="aprovado">Equipe <span id="ent-n-aprovado"></span></button>
+        <button type="button" class="segmento" data-ent="recusado">Recusados <span id="ent-n-recusado"></span></button>
+      </div>
+      <div id="ent-lista" class="ent-lista"></div>
+      <dialog id="ent-config" class="dialogo dialogo-largo" aria-labelledby="ent-config-titulo">
+        <form id="ent-config-form" method="dialog">
+          <h2 id="ent-config-titulo">Serviços e valores</h2>
+          <p class="nota">Nome, descrição e dias aparecem na página pública. O valor fica só no painel.</p>
+          <div id="ent-config-servicos" class="ent-config-servicos"></div>
+          <div class="campo"><label for="ent-pag-titulo">Pagamento (título)</label><input id="ent-pag-titulo" maxlength="60"></div>
+          <div class="campo"><label for="ent-pag-texto">Pagamento (texto)</label><input id="ent-pag-texto" maxlength="240"></div>
+          <p id="ent-config-msg" class="nota" role="status"></p>
+          <div class="acoes-dialogo">
+            <button type="button" class="botao-secundario" id="ent-config-fechar">Fechar</button>
+            <button type="submit" class="botao-principal botao-medio" value="salvar">Salvar</button>
+          </div>
+        </form>
+      </dialog>
     </section>
 
     <!-- Aba Contabilidade (contracheques e notas fiscais; horas do Ponto GoBox) -->
@@ -291,12 +338,41 @@
       <iframe id="contabilidade-frame" class="ponto-frame" title="Contabilidade" loading="lazy"></iframe>
     </section>
 
+    <!-- Ajustes do site público -->
+    <section id="aba-site" class="aba" hidden>
+      <div class="cabecalho">
+        <div>
+          <h1>Integrações e ajustes</h1>
+          <p class="descricao">Ligue e desligue partes do site e do painel. Muda na hora, sem publicar nada.</p>
+          <div class="segmentos" role="tablist" aria-label="Integrações e ajustes"><button type="button" class="segmento" data-ir="configuracoes">Extensão e portais</button><button type="button" class="segmento" data-ir="site" aria-current="page">Site público</button><button type="button" class="segmento" data-ir="importacoes">Histórico de importações</button></div>
+        </div>
+      </div>
+      <form id="site-form" class="site-ajustes" novalidate>
+        <section class="tabela-bloco site-bloco">
+          <div class="fin-titulo-bloco"><h2>Site público</h2><a class="nota" href="/" target="_blank" rel="noopener">Abrir o site</a></div>
+          <div class="site-linha"><label class="fin-chave"><input type="checkbox" name="aviso.ativo" aria-label="Ligar ou desligar"><span class="fin-chave-trilho" aria-hidden="true"></span></label><div><strong>Aviso no topo</strong><p class="nota">Faixa vermelha no alto das páginas.</p><input name="aviso.texto" maxlength="160" placeholder="Ex.: Feriado: segunda abrimos às 13h"></div></div>
+          <div class="site-linha"><label class="fin-chave"><input type="checkbox" name="horario.ativo" aria-label="Ligar ou desligar"><span class="fin-chave-trilho" aria-hidden="true"></span></label><div><strong>Horário e endereço</strong><p class="nota">Abaixo da busca. Uma linha por horário.</p><textarea name="horario.linhas" rows="2" maxlength="250"></textarea><input name="horario.endereco" maxlength="120" placeholder="Endereço"><input name="horario.mapa" maxlength="300" placeholder="Link do Google Maps (opcional)"></div></div>
+          <div class="site-linha"><label class="fin-chave"><input type="checkbox" name="whatsapp.ativo" aria-label="Ligar ou desligar"><span class="fin-chave-trilho" aria-hidden="true"></span></label><div><strong>Botão do WhatsApp</strong><p class="nota">Botão flutuante no canto da tela.</p><input name="whatsapp.numero" inputmode="tel" maxlength="16" placeholder="DDD + número"><input name="whatsapp.mensagem" maxlength="120" placeholder="Mensagem inicial"></div></div>
+          <div class="site-linha"><label class="fin-chave"><input type="checkbox" name="abas.frete" aria-label="Ligar ou desligar"><span class="fin-chave-trilho" aria-hidden="true"></span></label><div><strong>Aba “Cotar frete”</strong><p class="nota">Desligada, some do topo do site e o endereço volta para a consulta.</p></div></div>
+          <div class="site-linha"><label class="fin-chave"><input type="checkbox" name="abas.entregador" aria-label="Ligar ou desligar"><span class="fin-chave-trilho" aria-hidden="true"></span></label><div><strong>Aba “Trabalhe com a gente”</strong><p class="nota">Desligue para pausar novos cadastros de entregadores.</p></div></div>
+          <div class="site-linha"><label class="fin-chave"><input type="checkbox" name="selos" aria-label="Ligar ou desligar"><span class="fin-chave-trilho" aria-hidden="true"></span></label><div><strong>Situação das empresas abaixo da busca</strong><p class="nota">Selos “Shopee SPX · atualizado às 10:12”.</p></div></div>
+          <div class="site-linha"><label class="fin-chave"><input type="checkbox" name="manutencao" aria-label="Ligar ou desligar"><span class="fin-chave-trilho" aria-hidden="true"></span></label><div><strong>Modo manutenção</strong><p class="nota">As páginas públicas mostram “Voltamos em instantes”. O painel continua normal.</p></div></div>
+        </section>
+        <section class="tabela-bloco site-bloco">
+          <div class="fin-titulo-bloco"><h2>Menu do painel</h2><span class="nota">Desmarque o que não usa no dia a dia</span></div>
+          <div id="site-menu" class="site-menu"></div>
+        </section>
+        <div class="site-rodape"><p id="site-msg" class="nota" role="status"></p><button type="submit" class="botao-principal botao-medio">Salvar ajustes</button></div>
+      </form>
+    </section>
+
     <!-- Aba Importações -->
     <section id="aba-importacoes" class="aba" hidden>
       <div class="cabecalho">
         <div>
-          <h1>Importações</h1>
-          <p class="descricao">Histórico das últimas 100 importações. Importações aguardando confirmação ainda não alteraram a consulta.</p>
+          <h1>Integrações e ajustes</h1>
+          <p class="descricao">Histórico das últimas 100 importações. As que aguardam confirmação ainda não mudaram a consulta.</p>
+          <div class="segmentos" role="tablist" aria-label="Integrações e ajustes"><button type="button" class="segmento" data-ir="configuracoes">Extensão e portais</button><button type="button" class="segmento" data-ir="site">Site público</button><button type="button" class="segmento" data-ir="importacoes" aria-current="page">Histórico de importações</button></div>
         </div>
         <div class="acoes">
           <div class="campo">
@@ -335,8 +411,9 @@
     <section id="aba-configuracoes" class="aba" hidden>
       <div class="cabecalho">
         <div>
-          <h1>Configurações</h1>
-          <p class="descricao">Regras de leitura dos relatórios de cada empresa. Senhas e chaves nunca ficam aqui: só no servidor.</p>
+          <h1>Integrações e ajustes</h1>
+          <p class="descricao">Extensão do Edge e regras de leitura de cada empresa. Senhas e chaves ficam só no servidor.</p>
+          <div class="segmentos" role="tablist" aria-label="Integrações e ajustes"><button type="button" class="segmento" data-ir="configuracoes" aria-current="page">Extensão e portais</button><button type="button" class="segmento" data-ir="site">Site público</button><button type="button" class="segmento" data-ir="importacoes">Histórico de importações</button></div>
         </div>
       </div>
       <div id="lista-configuracoes" class="lista-configuracoes"></div>
@@ -369,10 +446,11 @@
   </form>
 </dialog>
 
-<script src="/admin/admin.js"></script>
-<script src="/admin/financeiro.js"></script>
-<script src="/admin/sacas.js"></script>
-<script src="/admin/acessos.js"></script>
-<script src="/admin/fretes.js"></script>
+<script src="/admin/admin.js" defer></script>
+<script src="/admin/financeiro.js" defer></script>
+<script src="/admin/sacas.js" defer></script>
+<script src="/admin/acessos.js" defer></script>
+<script src="/admin/painel.js" defer></script>
+<script src="/admin/fretes.js" defer></script>
 </body>
 </html>

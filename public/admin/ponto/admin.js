@@ -1,6 +1,6 @@
 // Ponto GoBox — painel do administrador (computador).
 import {
-  configured, auth, db, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, createLogin, uidDoLogin, apagarLogin,
+  configured, auth, db, onAuthStateChanged, signInWithEmailAndPassword, signInWithCustomToken, signOut, sendPasswordResetEmail, createLogin, uidDoLogin, apagarLogin,
   doc, collection, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, writeBatch, batchDay, deleteField,
   $, esc, pad, dayKey, today, keyToDate, hm, dur, hmm, saldoTxt, fmtDay, longDate, DOWC, DOWL, MES,
   LABEL, SHORT, STATUS, DIAS_PADRAO, derive, isOpen, isStale, minHoje, empStatus, extrasDia, errMsg, toast, notConfigured,
@@ -38,6 +38,8 @@ else onAuthStateChanged(auth, async user => {
   if (!user) {
     // Dentro do painel da GoBox: entra sozinho com o acesso guardado no servidor.
     if (await entrarAutomatico()) return;
+    // Dentro do painel nunca pede login: mostra o aviso e tenta de novo.
+    if (window.self !== window.top) return semConexao();
     return renderLogin();
   }
   let me = null;
@@ -50,18 +52,28 @@ else onAuthStateChanged(auth, async user => {
   renderShell(); startData();
 });
 
-let tentouAutomatico = false;
+// Dentro do painel da GoBox: entra sozinho e fica conectado (o Firebase guarda a sessão
+// neste navegador). Com a chave de serviço no servidor, a senha nunca chega ao navegador.
 async function entrarAutomatico() {
-  if (tentouAutomatico || window.self === window.top) return false;
-  tentouAutomatico = true;
+  if (window.self === window.top) return false;
   try {
     const r = await fetch("/admin/api/ponto/acesso", { credentials: "same-origin", cache: "no-store" });
     if (!r.ok) return false;
-    const { email, senha } = await r.json();
-    if (!email || !senha) return false;
-    await signInWithEmailAndPassword(auth, email, senha); // onAuthStateChanged segue daqui
-    return true;
+    const d = await r.json();
+    if (d.token) await signInWithCustomToken(auth, d.token);
+    else if (d.email && d.senha) await signInWithEmailAndPassword(auth, d.email, d.senha);
+    else return false;
+    return true; // onAuthStateChanged segue daqui
   } catch { return false; }
+}
+function semConexao() {
+  root.innerHTML = `<div class="login"><div class="k-card" style="text-align:center">
+    <h2 style="margin:0">Conectando ao Controle de ponto…</h2>
+    <p class="muted" style="margin:0">Não consegui conectar agora. Confira a internet; tento de novo sozinho em alguns segundos.</p>
+    <button class="btn primary" id="ponto-tentar">Tentar agora</button></div></div>`;
+  const tentar = async () => { clearTimeout(t); if (!(await entrarAutomatico())) t = setTimeout(tentar, 15000); };
+  let t = setTimeout(tentar, 15000);
+  root.querySelector("#ponto-tentar").addEventListener("click", tentar);
 }
 
 async function renderLogin(msg = "") {
