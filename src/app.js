@@ -20,6 +20,7 @@ const financeiro = require('./financeiro');
 const contabilidade = require('./contabilidade');
 const sacas = require('./sacas');
 const fretes = require('./fretes');
+const portal = require('./portal');
 const entregadores = require('./entregadores');
 const site = require('./site');
 
@@ -57,7 +58,7 @@ function createApp({ config, db, robo = null }) {
   }));
   const jsonPequeno = express.json({ limit: '4kb' });
   const jsonContabilidade = express.json({ limit: '64kb' }); // modelos e documentos de emissão das notas
-  app.use((req, res, next) => (req.path.startsWith('/api/extensao/') ? next()
+  app.use((req, res, next) => (req.path.startsWith('/api/extensao/') || req.path.startsWith('/api/portal/') ? next()
     : /^\/admin\/api\/(contabilidade|entregadores|site)\b/.test(req.path) ? jsonContabilidade(req, res, next) : jsonPequeno(req, res, next)));
 
   const publicDir = path.join(config.ROOT, 'public');
@@ -211,6 +212,20 @@ function createApp({ config, db, robo = null }) {
     res.json({ situacao: a.situacao });
   });
 
+  // Portal de etiquetas: a extensão "Subir Etiquetas" (logada no SPX) pega os lotes dos clientes.
+  const jsonPortal = express.json({ limit: '256kb' });
+  const portalRota = (fn) => (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    try { const r = fn(req); if (r === null) return res.status(204).end(); return res.json(r); } catch (e) { return res.status(e.status || 400).json({ erro: e.message }); }
+  };
+  app.get('/api/extensao/portal/fila', extensaoLimiter, exigirChaveExtensao, portalRota(() => ({ lotes: portal.fila(db) })));
+  app.post('/api/extensao/portal/reservar', extensaoLimiter, exigirChaveExtensao, jsonPortal,
+    portalRota((req) => portal.reservarLote(db, req.body && req.body.id ? String(req.body.id) : null)));
+  app.post('/api/extensao/portal/lotes/:id/resultado', extensaoLimiter, exigirChaveExtensao, jsonPortal,
+    portalRota((req) => portal.resultadoLote(db, String(req.params.id), req.body || {})));
+  app.post('/api/extensao/portal/bipar', extensaoLimiter, exigirChaveExtensao, jsonPortal,
+    portalRota((req) => portal.bipar(db, req.body && req.body.codigo)));
+
   // Verificação de funcionamento (usada pela hospedagem e pelo "manter acordado").
   // pontoSeguro: true quando o Ponto entra com token temporário (sem a senha ir ao navegador).
   app.get('/saude', (req, res) => { res.set('Cache-Control', 'no-store'); res.json({ ok: true, pontoSeguro: pontoAcesso.seguro }); });
@@ -276,6 +291,22 @@ function createApp({ config, db, robo = null }) {
       fontes: allSourceStatus(db).map((f) => ({ id: f.id, nome: f.name, situacao: f.state, ultima: f.lastSuccessAt }))
     });
   });
+
+  // ---------------- Portal de etiquetas (link secreto do cliente) ----------------
+  const portalLimiter = rateLimit({
+    windowMs: 60_000, limit: 60, standardHeaders: 'draft-7', legacyHeaders: false,
+    handler: (req, res) => res.status(429).json({ erro: 'Muitas tentativas seguidas. Aguarde um minuto.' })
+  });
+  app.get('/c/:token', portalLimiter, (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.set('Referrer-Policy', 'no-referrer');
+    res.sendFile(path.join(publicDir, 'cliente', 'index.html'));
+  });
+  app.get('/api/portal/:token', portalLimiter, portalRota((req) => portal.painelCliente(db, String(req.params.token))));
+  app.post('/api/portal/:token/etiquetas', portalLimiter, auth.sameOrigin, jsonPortal,
+    portalRota((req) => portal.subirEtiquetas(db, String(req.params.token), req.body || {})));
+  app.delete('/api/portal/:token/etiquetas/:codigo', portalLimiter, auth.sameOrigin,
+    portalRota((req) => portal.removerEtiqueta(db, String(req.params.token), String(req.params.codigo))));
 
   // ---------------- Cotação de fretes (parceria Azul Cargo) ----------------
   // O cliente vê só o preço final; custo, margem e transporte ficam no servidor.
@@ -476,6 +507,19 @@ function createApp({ config, db, robo = null }) {
       res.json(a);
     } catch (e) { res.status(409).json({ erro: e.message }); }
   });
+
+  // ---------- Portal de etiquetas dos clientes ----------
+  const portalAdmin = (fn) => (req, res) => {
+    try { res.json(fn(req)); } catch (e) { res.status(e.status || 400).json({ erro: e.message }); }
+  };
+  admin.get('/portal', requireAdmin, portalAdmin(() => portal.resumo(db)));
+  admin.post('/portal/clientes', requireAdmin, portalAdmin((req) => ({ cliente: portal.criarCliente(db, req.body || {}) })));
+  admin.put('/portal/clientes/:id', requireAdmin, portalAdmin((req) => ({ cliente: portal.editarCliente(db, String(req.params.id), req.body || {}) })));
+  admin.post('/portal/clientes/:id/link', requireAdmin, portalAdmin((req) => ({ cliente: portal.novoLink(db, String(req.params.id)) })));
+  admin.delete('/portal/clientes/:id', requireAdmin, portalAdmin((req) => portal.excluirCliente(db, String(req.params.id))));
+  admin.post('/portal/bipar', requireAdmin, portalAdmin((req) => portal.bipar(db, req.body && req.body.codigo)));
+  admin.post('/portal/desfazer', requireAdmin, portalAdmin((req) => portal.desfazerBaixa(db, req.body && req.body.codigo)));
+  admin.post('/portal/tentar-de-novo', requireAdmin, portalAdmin((req) => portal.tentarDeNovo(db, req.body && req.body.cliente ? String(req.body.cliente) : null)));
 
   admin.get('/fontes', requireAdmin, (req, res) => {
     res.json({ fontes: allSourceStatus(db), agora: new Date().toISOString() });

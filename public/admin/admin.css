@@ -337,3 +337,46 @@ p.fin-origem { margin: 0; }
 .site-menu-item { display: flex; align-items: center; gap: 10px; font-size: 14px; min-height: 36px; cursor: pointer; }
 .site-menu-item input { width: 18px; height: 18px; accent-color: var(--azul); }
 .site-rodape { display: flex; justify-content: flex-end; align-items: center; gap: 14px; }
+
+/* Etiquetas dos clientes (portal) */
+.ptl-corpo { padding: 16px 20px 20px; }
+.ptl-bip { width: 100%; height: 58px; padding: 0 16px; font-size: 20px; font-family: var(--mono); letter-spacing: .02em; }
+.ptl-msg { margin-top: 12px; padding: 12px 14px; border-radius: 12px; font-weight: 600; background: var(--azul-claro); color: var(--azul); }
+.ptl-msg.ok { background: var(--ok-fundo); color: var(--ok-texto); }
+.ptl-msg.alerta { background: var(--alerta-fundo); color: var(--alerta-texto); }
+.ptl-msg.erro { background: var(--erro-fundo); color: var(--erro-texto); }
+.ptl-numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.ptl-numeros div { background: var(--branco); border: 1px solid var(--borda-clara); border-radius: 18px; padding: 16px 18px; color: var(--texto-suave); font-size: 13px; }
+.ptl-numeros b { display: block; font-size: 30px; color: var(--azul); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.ptl-numeros .falta b, .ptl-mini .falta b, td.falta, span.falta { color: var(--laranja-texto); }
+.ptl-numeros .ok b, .ptl-mini .ok b, td.ok { color: var(--ok-texto); }
+.ptl-fila { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.ptl-fila li { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 14px; }
+.ptl-selo { font-size: 11.5px; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--azul-claro); color: var(--azul); margin-left: 6px; white-space: nowrap; }
+.ptl-selo.alerta, .ptl-selo.fila { background: var(--alerta-fundo); color: var(--alerta-texto); }
+.ptl-selo.ok { background: var(--ok-fundo); color: var(--ok-texto); margin-left: 0; }
+.ptl-selo.erro { background: var(--erro-fundo); color: var(--erro-texto); margin-left: 0; }
+.ptl-selo.fila { margin-left: 0; }
+.ptl-novo { display: grid; gap: 12px; border-bottom: 1px solid var(--borda-clara); }
+.ptl-novo textarea, .ptl-editar textarea { border: 1.5px solid var(--borda); border-radius: 12px; padding: 10px 12px; font: inherit; font-size: 15px; resize: vertical; }
+.ptl-acoes { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+.ptl-clientes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 14px; padding: 16px 20px 20px; }
+.ptl-cliente { border: 1px solid var(--borda-clara); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.ptl-cliente.inativo { opacity: .65; }
+.ptl-cliente-topo { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.ptl-cliente h3 { margin: 0 0 2px; font-size: 18px; }
+.ptl-mini { display: flex; gap: 12px; }
+.ptl-mini span { font-size: 11.5px; color: var(--texto-suave); text-align: center; }
+.ptl-mini b { display: block; font-size: 20px; color: var(--azul); font-variant-numeric: tabular-nums; }
+.ptl-lojas, .ptl-tabela { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.ptl-lojas th, .ptl-tabela th { text-align: left; font-size: 12px; color: var(--texto-suave); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--borda-clara); }
+.ptl-lojas td, .ptl-tabela td { padding: 7px 8px; border-bottom: 1px solid #F0F0F2; }
+.ptl-tabela td.mono { font-family: var(--mono); font-size: 13px; }
+.ptl-tabela .botao-texto { min-height: 28px; font-size: 13px; }
+.ptl-link { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ptl-link code { flex: 1 1 200px; font-size: 12px; background: var(--superficie); border-radius: 10px; padding: 8px 10px; word-break: break-all; }
+.ptl-cliente .botao-texto { min-height: 32px; padding: 0 4px; font-size: 13px; }
+.botao-texto.perigo { color: var(--erro-texto); }
+.ptl-editar { display: grid; gap: 10px; background: var(--superficie); border-radius: 12px; padding: 12px; }
+.ptl-filtros { display: flex; gap: 8px; flex-wrap: wrap; }
+.ptl-filtros select { height: 38px; padding: 0 10px; font-size: 14px; }

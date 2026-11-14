@@ -121,7 +121,7 @@
     if (aba === 'importacoes') carregarImportacoes();
     if (aba === 'configuracoes') carregarConfiguracoes();
     for (const [nome, mod] of [['financeiro', 'goboxFinanceiro'], ['sacas', 'goboxSacas'], ['acessos', 'goboxAcessos'], ['fretes', 'goboxFretes'],
-      ['inicio', 'goboxInicio'], ['motoboys', 'goboxEntregadores'], ['site', 'goboxSite']]) {
+      ['inicio', 'goboxInicio'], ['motoboys', 'goboxEntregadores'], ['site', 'goboxSite'], ['etiquetas', 'goboxPortal']]) {
       if (window[mod]) window[mod][aba === nome ? 'abrir' : 'fechar']();
     }
     // Ponto e Folha: carregam só quando abertas pela primeira vez (entram sozinhas, sem login).

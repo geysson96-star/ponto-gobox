@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minhas etiquetas · GoBox</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="/assets/cubo.webp">
+<link rel="stylesheet" href="/base.css">
+<link rel="stylesheet" href="/cliente/cliente.css">
+<script src="/cliente/vendor/pdf.min.js" defer></script>
+<script src="/cliente/vendor/pdf.worker.min.js" defer></script>
+<script src="/cliente/cliente.js" defer></script>
+</head>
+<body>
+<header class="topo">
+  <img src="/assets/cubo.webp" alt="" class="cubo"><img src="/assets/wordmark.webp" alt="GoBox" class="marca">
+</header>
+<main class="pg" id="pg">
+  <p class="carregando" id="carregando">Carregando…</p>
+
+  <section id="conteudo" hidden>
+    <h1 id="ola"></h1>
+    <p class="sub">Suba aqui as etiquetas dos seus pacotes. Depois é só levar os pacotes na GoBox.</p>
+
+    <div class="numeros">
+      <div class="num destaque"><b id="n-faltam">0</b><span>faltam entregar</span></div>
+      <div class="num"><b id="n-subidos">0</b><span>etiquetas subidas</span></div>
+      <div class="num ok"><b id="n-entregues">0</b><span>entregues na GoBox</span></div>
+    </div>
+
+    <section class="cartao">
+      <h2>Subir etiquetas</h2>
+      <div class="abas-envio" role="tablist">
+        <button type="button" class="ab on" data-modo="pdf" role="tab">PDF das etiquetas</button>
+        <button type="button" class="ab" data-modo="digitar" role="tab">Digitar códigos</button>
+      </div>
+
+      <div id="modo-pdf">
+        <label class="soltar" id="soltar" for="arquivo">
+          <strong>Arraste o PDF aqui ou toque para escolher</strong>
+          <span>Pode mandar vários PDFs de uma vez. A loja de cada etiqueta é lida sozinha.</span>
+        </label>
+        <input type="file" id="arquivo" accept="application/pdf,.pdf" multiple class="oculto">
+      </div>
+
+      <div id="modo-digitar" hidden>
+        <label class="rot" for="loja-digitar">Loja</label>
+        <select id="loja-digitar"></select>
+        <label class="rot" for="codigos">Códigos (BR…), um por linha ou separados por espaço</label>
+        <textarea id="codigos" rows="4" spellcheck="false" autocapitalize="characters" placeholder="BR261234567890A"></textarea>
+        <button type="button" class="botao-principal" id="enviar-digitados">Subir códigos</button>
+      </div>
+
+      <div id="previa" hidden></div>
+      <div id="aviso" class="aviso" hidden></div>
+    </section>
+
+    <section class="cartao">
+      <h2>Por loja</h2>
+      <div class="rolagem"><table class="tab-lojas">
+        <thead><tr><th>Loja</th><th>Subidas</th><th>Entregues</th><th>Faltam</th></tr></thead>
+        <tbody id="lojas"></tbody>
+      </table></div>
+    </section>
+
+    <section class="cartao">
+      <div class="abas-lista">
+        <button type="button" class="al on" data-lista="faltam">Faltam entregar <span id="c-faltam"></span></button>
+        <button type="button" class="al" data-lista="entregues">Entregues <span id="c-entregues"></span></button>
+      </div>
+      <div class="rolagem"><table class="tab-pac">
+        <thead><tr><th>Código</th><th>Loja</th><th id="th-data">Subida em</th><th></th></tr></thead>
+        <tbody id="pacotes"></tbody>
+      </table></div>
+      <p class="dica" id="dica-lista"></p>
+    </section>
+    <p class="rodape">Esta página atualiza sozinha. Não compartilhe este link: ele é só seu.</p>
+  </section>
+
+  <section id="invalido" hidden class="cartao centro">
+    <h1>Link inválido</h1>
+    <p class="sub">Este link não existe mais ou foi desativado. Fale com a GoBox para receber um link novo.</p>
+  </section>
+</main>
+</body>
+</html>

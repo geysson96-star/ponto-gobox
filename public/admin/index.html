@@ -44,6 +44,7 @@
         <span class="titulo-grupo" id="gm-operacao">Operação</span>
         <button type="button" class="item-menu" data-aba="pacotes"><svg class="icone-menu" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10"/></svg><span>Pacotes na agência</span></button>
         <button type="button" class="item-menu" data-aba="sacas"><svg class="icone-menu" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 12H6zM9 8V6a3 3 0 0 1 6 0v2"/></svg><span>Chegada de sacas</span><span class="contador" id="contador-sacas" hidden></span></button>
+        <button type="button" class="item-menu" data-aba="etiquetas"><svg class="icone-menu" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/></svg><span>Etiquetas dos clientes</span></button>
         <button type="button" class="item-menu" data-aba="fretes"><svg class="icone-menu" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 16V7h11v9M14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="2"/><circle cx="17" cy="17.5" r="2"/></svg><span>Cotação de fretes</span></button>
       </div>
       <div class="grupo-menu" role="group" aria-labelledby="gm-equipe">
@@ -228,6 +229,49 @@
             <tbody id="ace-dias"></tbody>
           </table>
         </div>
+      </section>
+    </section>
+
+    <!-- Aba Etiquetas dos clientes (link secreto para o cliente subir as etiquetas) -->
+    <section id="aba-etiquetas" class="aba" hidden>
+      <div class="cabecalho">
+        <div>
+          <h1>Etiquetas dos clientes</h1>
+          <p class="descricao">Gere um link para cada cliente subir as etiquetas (PDF ou digitando). A extensão Subir Etiquetas, no seu computador, sobe os lotes no SPX. Quando a equipe bipa o pacote, ele recebe baixa e sai da lista do cliente.</p>
+        </div>
+      </div>
+      <section class="tabela-bloco ptl-bipar">
+        <div class="fin-titulo-bloco"><h2>Bipar pacote (baixa na entrega)</h2><span class="nota">Funciona com o leitor de código de barras</span></div>
+        <form id="ptl-form-bipar" class="ptl-corpo" autocomplete="off">
+          <input type="text" id="ptl-bip" class="ptl-bip" placeholder="Bipe ou digite o código BR e aperte Enter" spellcheck="false">
+          <div id="ptl-bip-msg" class="ptl-msg" hidden></div>
+        </form>
+      </section>
+      <div id="ptl-resumo" class="ptl-numeros"></div>
+      <section class="tabela-bloco">
+        <div class="fin-titulo-bloco"><h2>Fila para o SPX</h2><span class="nota" id="ptl-fila-nota"></span></div>
+        <div id="ptl-fila" class="ptl-corpo"></div>
+      </section>
+      <section class="tabela-bloco">
+        <div class="fin-titulo-bloco"><h2>Clientes</h2><button type="button" class="botao-secundario" id="ptl-novo-btn">+ Novo cliente</button></div>
+        <form id="ptl-novo" class="ptl-corpo ptl-novo" hidden>
+          <div class="campo"><label for="ptl-nome">Nome do cliente</label><input type="text" id="ptl-nome" maxlength="60" placeholder="Ex.: Anthony"></div>
+          <div class="campo"><label for="ptl-lojas">Lojas (nome do remetente na etiqueta), uma por linha</label><textarea id="ptl-lojas" rows="3" placeholder="LOJA DO ANTHONY&#10;ANTHONY IMPORTS"></textarea></div>
+          <div class="ptl-acoes"><button type="submit" class="botao-principal botao-medio">Criar cliente e gerar link</button><button type="button" class="botao-secundario" id="ptl-novo-cancelar">Cancelar</button></div>
+        </form>
+        <div id="ptl-clientes" class="ptl-clientes"></div>
+      </section>
+      <section class="tabela-bloco">
+        <div class="fin-titulo-bloco"><h2>Pacotes</h2>
+          <div class="ptl-filtros">
+            <select id="ptl-f-cliente" aria-label="Cliente"><option value="">Todos os clientes</option></select>
+            <select id="ptl-f-sit" aria-label="Situação"><option value="faltam">Faltam entregar</option><option value="entregues">Entregues</option><option value="erro">Erro no SPX</option><option value="todos">Todos</option></select>
+          </div>
+        </div>
+        <div class="rolagem"><table class="ptl-tabela">
+          <thead><tr><th>Código</th><th>Cliente</th><th>Loja</th><th>Subido</th><th>SPX</th><th>Entregue</th><th></th></tr></thead>
+          <tbody id="ptl-pacotes"></tbody>
+        </table></div>
       </section>
     </section>
 
@@ -452,5 +496,6 @@
 <script src="/admin/acessos.js" defer></script>
 <script src="/admin/painel.js" defer></script>
 <script src="/admin/fretes.js" defer></script>
+<script src="/admin/portal.js" defer></script>
 </body>
 </html>
