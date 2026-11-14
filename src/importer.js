@@ -90,11 +90,42 @@ function prepareFromCodes(db, { sourceId, codes, origin, label, modo = 'estoque'
   return { importId, ...diff, codesValid: codes.size, settings };
 }
 
+// Desempenho: no modo 'eventos' (nada é marcado por ausência), os pacotes que vieram
+// iguais ao que já está gravado não precisam ser regravados. A Shopee manda ~40 mil
+// pacotes a cada sincronização; regravar todos travava o servidor por vários segundos.
+function filtrarInalterados(db, sourceId, codes) {
+  const atuais = new Map();
+  for (const r of db.prepare(
+    'SELECT code, external_id, active, situacao, rotulo, tipo, recebido_em, saida_em, volume FROM packages WHERE source = ?'
+  ).all(sourceId)) atuais.set(r.code, r);
+  const mudou = new Map();
+  for (const [code, v] of codes) {
+    const ex = atuais.get(code);
+    if (!ex || ex.active !== 1) { mudou.set(code, v); continue; }
+    const det = v && typeof v === 'object' ? v : null;
+    const d = (det && normalizarDetalhes(det)) || {};
+    const ext = det ? (det.idFonte ?? null) : (v ?? null);
+    const igual = (d.situacao || 'na_agencia') === ex.situacao
+      && (d.rotulo || null) === (ex.rotulo ?? null)
+      && (d.tipo || ex.tipo || null) === (ex.tipo ?? null)
+      && (d.volume || ex.volume || null) === (ex.volume ?? null)
+      && (d.recebidoEm || ex.recebido_em || null) === (ex.recebido_em ?? null)
+      && (d.saidaEm || null) === (ex.saida_em ?? null)
+      && (ext ?? ex.external_id ?? null) === (ex.external_id ?? null);
+    if (!igual) mudou.set(code, v);
+  }
+  return mudou;
+}
+
 const SITUACOES = new Set(['na_agencia', 'retirado', 'enviado', 'saiu', 'outro']);
 function limparDetalhes(json) {
   if (!json) return null;
   let d;
   try { d = JSON.parse(json); } catch { return null; }
+  return normalizarDetalhes(d);
+}
+function normalizarDetalhes(d) {
+  if (!d || typeof d !== 'object') return null;
   const txt = (v, n) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
   const data = (v) => {
     if (v === null || v === undefined || v === '' || v === 0) return null;
@@ -202,9 +233,11 @@ function applyImport(db, importId) {
     db.prepare(
       "UPDATE imports SET status = 'sucesso', finished_at = ?, to_deactivate = ? WHERE id = ?"
     ).run(ts, deactivated, importId);
+    return { mudou: rows.length > 0 || deactivated > 0 };
   });
-  run();
-  eventos.emit('pacotes', imp.source); // salva a cópia no Firebase
+  const resultado = run();
+  // Só salva a cópia no Firebase quando algum pacote mudou.
+  if (resultado === undefined || resultado.mudou) eventos.emit('pacotes', imp.source);
   return db.prepare('SELECT * FROM imports WHERE id = ?').get(importId);
 }
 
@@ -228,5 +261,6 @@ function needsConfirmation(prepared) {
 }
 
 module.exports = {
+  filtrarInalterados,
   prepareImport, prepareFromCodes, recordFailure, applyImport, cancelImport, needsConfirmation, ImportError
 };

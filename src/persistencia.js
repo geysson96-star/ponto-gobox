@@ -101,7 +101,9 @@ function criar({ db, config, fetchFn = fetch, log = console }) {
     }
     return { indice, texto };
   }
-  const compactar = (obj) => zlib.gzipSync(Buffer.from(JSON.stringify(obj)), { level: 9 }).toString('base64');
+  // Compacta em segundo plano (não trava o site enquanto grava a cópia).
+  const gzip = require('node:util').promisify(zlib.gzip);
+  const compactar = async (obj) => (await gzip(Buffer.from(JSON.stringify(obj)), { level: 6 })).toString('base64');
   const descompactar = (txt) => JSON.parse(zlib.gunzipSync(Buffer.from(txt, 'base64')).toString('utf8'));
   const hash = (txt) => crypto.createHash('sha1').update(txt).digest('hex');
 
@@ -182,7 +184,7 @@ function criar({ db, config, fetchFn = fetch, log = console }) {
 
   // ---------- salvar ----------
   async function salvar(id, foto, extra = {}) {
-    const texto = compactar(foto);
+    const texto = await compactar(foto);
     const h = hash(texto);
     if (ultimoHash.get(id) === h) return false; // nada mudou: não grava
     await gravarGrande(id, texto, { hash: h, salvoEm: new Date().toISOString(), ...extra });

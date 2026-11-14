@@ -10,7 +10,8 @@ const { SOURCES, SOURCE_IDS, isSource } = require('./sources');
 const { normalizeCode, isAcceptableQuery } = require('./normalize');
 const { getSettings, saveSettings, allSourceStatus } = require('./db');
 const {
-  prepareImport, prepareFromCodes, recordFailure, applyImport, cancelImport, needsConfirmation, ImportError
+  prepareImport, prepareFromCodes, recordFailure, applyImport, cancelImport, needsConfirmation, ImportError,
+  filtrarInalterados
 } = require('./importer');
 const extensao = require('./extensao');
 const { processAll } = require('./inbox');
@@ -127,7 +128,7 @@ function createApp({ config, db, robo = null }) {
       if (!lista || lista.length > 50_000) {
         return res.status(400).json({ erro: 'Lista de códigos inválida.' });
       }
-      const codigos = new Map();
+      let codigos = new Map();
       for (const item of lista) {
         const bruto = item && typeof item === 'object' ? item.codigo : item;
         const n = normalizeCode(typeof bruto === 'string' || typeof bruto === 'number' ? bruto : '');
@@ -152,12 +153,15 @@ function createApp({ config, db, robo = null }) {
         try { financeiro.salvarTotaisShopee(db, b.financeiro); } catch { /* formato inesperado: ignora */ }
       }
       const modo = b.modo === 'eventos' ? 'eventos' : 'estoque';
+      const recebidos = codigos.size;
+      // Modo eventos: grava só o que mudou (evita travar o servidor com ~40 mil pacotes iguais).
+      if (modo === 'eventos') codigos = filtrarInalterados(db, fonte, codigos);
       const prep = prepareFromCodes(db, { sourceId: fonte, codes: codigos, origin: 'extensao', label: 'extensão do Edge', modo });
       if (needsConfirmation(prep)) {
         return res.json({ situacao: 'aguardando_confirmacao', codigos: codigos.size, removidos: prep.toDeactivate });
       }
       applyImport(db, prep.importId);
-      return res.json({ situacao: 'sucesso', codigos: codigos.size, novos: prep.toInsert, removidos: prep.toDeactivate });
+      return res.json({ situacao: 'sucesso', codigos: recebidos, alterados: codigos.size, novos: prep.toInsert, removidos: prep.toDeactivate });
     });
 
   // Sacas do Mercado Livre (tela "Entrada de unidades"): a extensão manda os envios do dia.

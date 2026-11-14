@@ -127,3 +127,17 @@ test('página pública mostra a última atualização', async () => {
   assert.ok(d.ultimaAtualizacao);
   assert.deepEqual(Object.keys(d), ['ultimaAtualizacao']);
 });
+
+test('sincronização repetida grava só o que mudou (modo eventos)', async () => {
+  const pacotes = Array.from({ length: 50 }, (_, i) => ({ codigo: `BRREP${String(i).padStart(4, '0')}`, situacao: 'na_agencia', tipo: 'retirada', rotulo: 'Disponível para retirada', recebidoEm: 1793722133 + i }));
+  const a = await (await enviar({ fonte: 'shopee', modo: 'eventos', pacotes })).json();
+  assert.equal(a.alterados, 50);
+  const b = await (await enviar({ fonte: 'shopee', modo: 'eventos', pacotes })).json();
+  assert.equal(b.situacao, 'sucesso');
+  assert.equal(b.alterados, 0);
+  pacotes[3] = { ...pacotes[3], situacao: 'retirado', rotulo: 'Retirado pelo comprador', saidaEm: 1793729987 };
+  const c = await (await enviar({ fonte: 'shopee', modo: 'eventos', pacotes })).json();
+  assert.equal(c.alterados, 1);
+  const r = await (await fetch(`${base}/api/consulta`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ codigo: 'BRREP0003' }) })).json();
+  assert.equal(r.situacao, 'retirado');
+});
