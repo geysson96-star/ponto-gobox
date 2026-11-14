@@ -256,8 +256,7 @@
         <div class="fin-titulo-bloco"><h2>Clientes</h2><button type="button" class="botao-secundario" id="ptl-novo-btn">+ Novo cliente</button></div>
         <form id="ptl-novo" class="ptl-corpo ptl-novo" hidden>
           <div class="campo"><label for="ptl-nome">Nome do cliente</label><input type="text" id="ptl-nome" maxlength="60" placeholder="Ex.: Anthony"></div>
-          <div class="campo"><label for="ptl-lojas">Lojas (nome do remetente na etiqueta), uma por linha</label><textarea id="ptl-lojas" rows="3" placeholder="LOJA DO ANTHONY&#10;ANTHONY IMPORTS"></textarea></div>
-          <div class="ptl-acoes"><button type="submit" class="botao-principal botao-medio">Criar cliente e gerar link</button><button type="button" class="botao-secundario" id="ptl-novo-cancelar">Cancelar</button></div>
+          <div class="ptl-acoes"><button type="submit" class="botao-principal botao-medio">Criar cliente e gerar link</button><span class="nota">As lojas aparecem sozinhas, lidas do remetente de cada etiqueta.</span><button type="button" class="botao-secundario" id="ptl-novo-cancelar">Cancelar</button></div>
         </form>
         <div id="ptl-clientes" class="ptl-clientes"></div>
       </section>

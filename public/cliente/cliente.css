@@ -48,3 +48,18 @@ td.n { font-weight: 700; } td.falta { color: var(--laranja-texto); font-weight: 
 .dica { color: var(--texto-suave); font-size: 13px; margin: 10px 0 0; }
 .rodape { text-align: center; color: var(--texto-suave); font-size: 12.5px; }
 @media (max-width: 560px) { .num b { font-size: 24px; } .num { padding: 10px; } .num span { font-size: 12px; } }
+input#loja-digitar { width: 100%; height: 44px; padding: 0 12px; }
+.dica-topo { margin: -6px 0 10px; }
+.lojas-lista { display: flex; flex-direction: column; gap: 6px; }
+.loja { border: 1px solid var(--borda-clara); border-radius: 12px; }
+.loja summary { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 12px; cursor: pointer; list-style: none; }
+.loja summary::-webkit-details-marker { display: none; }
+.loja summary::before { content: '▸'; color: var(--texto-suave); }
+.loja[open] summary::before { content: '▾'; }
+.loja-nome { font-weight: 700; margin-right: auto; }
+.loja-n { font-size: 13px; color: var(--texto-2); }
+.loja-n.entregue { color: var(--ok-texto); } .loja-n.falta { color: var(--laranja-texto); font-weight: 700; }
+.etiquetas { list-style: none; margin: 0; padding: 6px 12px 12px; border-top: 1px solid var(--borda-clara); display: flex; flex-direction: column; gap: 5px; max-height: 280px; overflow: auto; }
+.etiquetas li { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
+.etiquetas code { font-family: var(--mono); }
+.etiquetas .ok { color: var(--ok-texto); font-weight: 600; } .etiquetas .pend { color: var(--laranja-texto); font-weight: 600; }

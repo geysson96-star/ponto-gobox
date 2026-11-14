@@ -40,14 +40,15 @@
       <div id="modo-pdf">
         <label class="soltar" id="soltar" for="arquivo">
           <strong>Arraste o PDF aqui ou toque para escolher</strong>
-          <span>Pode mandar vários PDFs de uma vez. A loja de cada etiqueta é lida sozinha.</span>
+          <span>Pode mandar vários PDFs de uma vez. A loja de cada etiqueta é lida sozinha, pelo remetente.</span>
         </label>
         <input type="file" id="arquivo" accept="application/pdf,.pdf" multiple class="oculto">
       </div>
 
       <div id="modo-digitar" hidden>
-        <label class="rot" for="loja-digitar">Loja</label>
-        <select id="loja-digitar"></select>
+        <label class="rot" for="loja-digitar">Loja (nome do remetente)</label>
+        <input type="text" id="loja-digitar" list="lojas-conhecidas" maxlength="60" autocomplete="off" placeholder="Ex.: Loja da Maria">
+        <datalist id="lojas-conhecidas"></datalist>
         <label class="rot" for="codigos">Códigos (BR…), um por linha ou separados por espaço</label>
         <textarea id="codigos" rows="4" spellcheck="false" autocapitalize="characters" placeholder="BR261234567890A"></textarea>
         <button type="button" class="botao-principal" id="enviar-digitados">Subir códigos</button>
@@ -59,10 +60,8 @@
 
     <section class="cartao">
       <h2>Por loja</h2>
-      <div class="rolagem"><table class="tab-lojas">
-        <thead><tr><th>Loja</th><th>Subidas</th><th>Entregues</th><th>Faltam</th></tr></thead>
-        <tbody id="lojas"></tbody>
-      </table></div>
+      <p class="dica dica-topo">Toque na loja para ver as etiquetas dela.</p>
+      <div id="lojas" class="lojas-lista"></div>
     </section>
 
     <section class="cartao">

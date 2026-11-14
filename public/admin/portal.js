@@ -53,12 +53,11 @@
   // ---------- novo cliente ----------
   $('#ptl-novo-btn').addEventListener('click', () => { $('#ptl-novo').hidden = false; $('#ptl-nome').focus(); });
   $('#ptl-novo-cancelar').addEventListener('click', () => { $('#ptl-novo').hidden = true; });
-  const lojasDoTexto = (t) => t.split(/\n|;/).map((s) => s.trim()).filter(Boolean);
   $('#ptl-novo').addEventListener('submit', async (ev) => {
     ev.preventDefault();
     try {
-      const { cliente } = await api('/portal/clientes', { method: 'POST', body: { nome: $('#ptl-nome').value, lojas: lojasDoTexto($('#ptl-lojas').value) } });
-      $('#ptl-nome').value = ''; $('#ptl-lojas').value = ''; $('#ptl-novo').hidden = true;
+      const { cliente } = await api('/portal/clientes', { method: 'POST', body: { nome: $('#ptl-nome').value } });
+      $('#ptl-nome').value = ''; $('#ptl-novo').hidden = true;
       await carregar();
       copiar(linkDe(cliente), `Cliente ${cliente.nome} criado. Link copiado — é só mandar para ele.`);
     } catch (e) { alert(e.message); }
@@ -81,6 +80,30 @@
       el('span', { class: 'ok' }, el('b', {}, t.entregues), 'entregues'));
   }
 
+  // Lojas lidas do remetente das etiquetas: quantidade e a lista de etiquetas de cada uma.
+  const abertas = new Set(); // lojas abertas (para não fechar quando a tela atualiza)
+  function lojasDoCliente(c) {
+    if (!c.porLoja.length) return el('p', { class: 'nota' }, 'As lojas aparecem aqui quando o cliente subir as etiquetas.');
+    const pacs = dados.pacotes.filter((p) => p.cliente === c.id);
+    return el('div', { class: 'ptl-lojas-lista' }, c.porLoja.map((l) => {
+      const chave = `${c.id}|${l.loja}`;
+      const dela = pacs.filter((p) => (p.loja || 'Sem loja') === l.loja)
+        .sort((a, b) => Boolean(a.entregueEm) - Boolean(b.entregueEm) || String(b.subidoEm).localeCompare(String(a.subidoEm)));
+      const d = el('details', { class: 'ptl-loja', open: abertas.has(chave) },
+        el('summary', {},
+          el('span', { class: 'ptl-loja-nome' }, l.loja),
+          el('span', { class: 'ptl-loja-num' }, `${l.subidos} etiqueta${l.subidos === 1 ? '' : 's'}`),
+          el('span', { class: 'ptl-loja-num ok' }, `${l.entregues} entregue${l.entregues === 1 ? '' : 's'}`),
+          el('span', { class: 'ptl-loja-num falta' }, `${l.faltam} falta${l.faltam === 1 ? '' : 'm'}`)),
+        el('ul', { class: 'ptl-etiquetas' }, dela.map((p) => el('li', {},
+          el('code', {}, p.codigo),
+          p.entregueEm ? el('span', { class: 'ptl-selo ok' }, `entregue ${quando(p.entregueEm)}`) : el('span', { class: 'ptl-selo fila' }, 'falta entregar'),
+          p.spx === 'erro' ? el('span', { class: 'ptl-selo erro', title: p.spxErro || '' }, 'erro no SPX') : null))));
+      d.addEventListener('toggle', () => { if (d.open) abertas.add(chave); else abertas.delete(chave); });
+      return d;
+    }));
+  }
+
   function cartaoCliente(c) {
     const emEdicao = editando === c.id;
     return el('article', { class: `ptl-cliente${c.ativo ? '' : ' inativo'}` },
@@ -88,24 +111,19 @@
         el('div', {}, el('h3', {}, c.nome, c.ativo ? null : el('span', { class: 'ptl-selo' }, 'desativado')),
           el('p', { class: 'nota' }, c.ultimoEnvio ? `Último envio: ${quando(c.ultimoEnvio)}` : 'Ainda não subiu etiquetas')),
         numeros(c.totais)),
-      el('table', { class: 'ptl-lojas' },
-        el('thead', {}, el('tr', {}, el('th', {}, 'Loja'), el('th', {}, 'Subidas'), el('th', {}, 'Entregues'), el('th', {}, 'Faltam'))),
-        el('tbody', {}, c.porLoja.map((l) => el('tr', {},
-          el('td', {}, l.loja, l.cadastrada ? null : el('span', { class: 'ptl-selo alerta' }, 'não cadastrada')),
-          el('td', {}, l.subidos), el('td', { class: 'ok' }, l.entregues), el('td', { class: 'falta' }, l.faltam))))),
+      lojasDoCliente(c),
       emEdicao ? el('form', {
         class: 'ptl-editar',
-        onsubmit: (ev) => { ev.preventDefault(); acao(async () => { await api(`/portal/clientes/${c.id}`, { method: 'PUT', body: { nome: ev.target.nome.value, lojas: lojasDoTexto(ev.target.lojas.value) } }); editando = null; }); }
+        onsubmit: (ev) => { ev.preventDefault(); acao(async () => { await api(`/portal/clientes/${c.id}`, { method: 'PUT', body: { nome: ev.target.nome.value } }); editando = null; }); }
       },
       el('div', { class: 'campo' }, el('label', {}, 'Nome'), el('input', { type: 'text', name: 'nome', value: c.nome, maxlength: '60' })),
-      el('div', { class: 'campo' }, el('label', {}, 'Lojas, uma por linha'), (() => { const t = el('textarea', { name: 'lojas', rows: '3' }); t.value = c.lojas.join('\n'); return t; })()),
       el('div', { class: 'ptl-acoes' }, el('button', { type: 'submit', class: 'botao-principal botao-medio' }, 'Salvar'),
         el('button', { type: 'button', class: 'botao-secundario', onclick: () => { editando = null; desenhar(); } }, 'Cancelar'))) : null,
       el('div', { class: 'ptl-link' },
         el('code', {}, c.ativo ? linkDe(c) : 'Link desativado'),
         c.ativo ? el('button', { type: 'button', class: 'botao-secundario', onclick: () => copiar(linkDe(c), 'Link copiado.') }, 'Copiar link') : null),
       el('div', { class: 'ptl-acoes' },
-        el('button', { type: 'button', class: 'botao-texto', onclick: () => { editando = c.id; desenhar(); } }, 'Editar lojas'),
+        el('button', { type: 'button', class: 'botao-texto', onclick: () => { editando = c.id; desenhar(); } }, 'Editar nome'),
         el('button', { type: 'button', class: 'botao-texto', onclick: () => acao(() => api(`/portal/clientes/${c.id}/link`, { method: 'POST' }), `Gerar um link novo para ${c.nome}? O link antigo para de funcionar na hora.`) }, 'Gerar link novo'),
         el('button', { type: 'button', class: 'botao-texto', onclick: () => acao(() => api(`/portal/clientes/${c.id}`, { method: 'PUT', body: { ativo: !c.ativo } }), c.ativo ? `Desativar o link de ${c.nome}? Ele não consegue mais entrar até você ativar de novo.` : null) }, c.ativo ? 'Desativar link' : 'Ativar link'),
         el('button', { type: 'button', class: 'botao-texto perigo', onclick: () => acao(() => api(`/portal/clientes/${c.id}`, { method: 'DELETE' }), `Excluir ${c.nome}? O link para de funcionar e os pacotes dele saem do sistema. Não dá para desfazer.`) }, 'Excluir cliente')));
@@ -126,6 +144,7 @@
     trocar($('#ptl-fila'),
       dados.fila.length ? el('ul', { class: 'ptl-fila' }, dados.fila.map((l) => el('li', {},
         el('strong', {}, l.cliente), ` · ${l.quantidade} etiqueta(s) · enviado ${quando(l.criadoEm)}`,
+        el('span', { class: 'nota ptl-fila-lojas' }, Object.entries(l.lojas || {}).map(([n, cs]) => `${n}: ${cs.length}`).join(' · ')),
         el('span', { class: `ptl-selo ${l.situacao === 'reservado' ? '' : 'alerta'}` }, l.situacao === 'reservado' ? 'subindo no SPX…' : 'aguardando')))) :
         el('p', { class: 'nota' }, 'Nenhum lote esperando. Tudo que os clientes subiram já foi para o SPX.'),
       tot.erro ? el('p', { class: 'nota erro' }, `${tot.erro} etiqueta(s) deram erro no SPX. `,
@@ -148,7 +167,7 @@
       const [rot, cls] = SPX[p.spx] || ['—', ''];
       return el('tr', {},
         el('td', { class: 'mono' }, p.codigo), el('td', {}, p.clienteNome),
-        el('td', {}, p.loja || '—', p.lojaConfere === false && p.loja ? el('span', { class: 'ptl-selo alerta' }, '?') : null),
+        el('td', {}, p.loja || '—'),
         el('td', {}, quando(p.subidoEm)),
         el('td', { title: p.spxErro || '' }, el('span', { class: `ptl-selo ${cls}` }, rot)),
         el('td', {}, p.entregueEm ? quando(p.entregueEm) : el('span', { class: 'falta' }, 'falta')),

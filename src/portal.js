@@ -2,7 +2,8 @@
 // Portal de etiquetas dos clientes.
 //
 // Fluxo:
-//  1. No painel, o administrador cadastra o cliente (nome + lojas) e gera um link secreto.
+//  1. No painel, o administrador cadastra o cliente (só o nome) e gera um link secreto.
+//     As lojas saem do REMETENTE de cada etiqueta e são agrupadas sozinhas.
 //  2. Pelo link, o cliente sobe as etiquetas (PDF lido no navegador dele, ou códigos digitados).
 //     Cada envio vira um LOTE.
 //  3. A extensão "Subir Etiquetas" (no computador da GoBox, logado no SPX) pega o próximo
@@ -61,13 +62,21 @@ function limparLojas(lista) {
   return out.slice(0, 30);
 }
 
-// Liga o nome do remetente lido na etiqueta a uma loja cadastrada do cliente.
-function acharLoja(cliente, nome) {
+// Lojas que o cliente já tem: as cadastradas (versões antigas) + as lidas nas etiquetas.
+function lojasConhecidas(dados, c) {
+  const vistas = new Map();
+  for (const l of c.lojas || []) if (!vistas.has(normLoja(l))) vistas.set(normLoja(l), l);
+  for (const p of Object.values(dados.pacotes)) {
+    if (p.cliente === c.id && p.loja && !vistas.has(normLoja(p.loja))) vistas.set(normLoja(p.loja), p.loja);
+  }
+  return [...vistas.values()];
+}
+// Liga o remetente lido na etiqueta a uma loja que o cliente já tem (mesmo nome, sem
+// diferença de maiúsculas/acentos), para a mesma loja não aparecer duas vezes.
+function acharLoja(lojas, nome) {
   const n = normLoja(nome);
   if (!n) return null;
-  return cliente.lojas.find((l) => normLoja(l) === n)
-    || cliente.lojas.find((l) => { const x = normLoja(l); return x.length >= 3 && (n.includes(x) || x.includes(n)); })
-    || null;
+  return lojas.find((l) => normLoja(l) === n) || null;
 }
 
 // ---------- clientes (painel) ----------
@@ -75,7 +84,6 @@ function criarCliente(db, { nome, lojas } = {}) {
   const n = texto(nome, 60);
   if (!n) throw erro('Digite o nome do cliente.');
   const ls = limparLojas(lojas);
-  if (!ls.length) throw erro('Cadastre pelo menos uma loja do cliente.');
   const dados = ler(db);
   const c = { id: novoId(), nome: n, lojas: ls, token: novoToken(), ativo: true, criadoEm: iso(Date.now()) };
   dados.clientes[c.id] = c;
@@ -87,7 +95,7 @@ function editarCliente(db, id, patch = {}) {
   const c = dados.clientes[id];
   if (!c) throw erro('Cliente não encontrado.', 404);
   if (patch.nome !== undefined) { const n = texto(patch.nome, 60); if (!n) throw erro('Digite o nome do cliente.'); c.nome = n; }
-  if (patch.lojas !== undefined) { const ls = limparLojas(patch.lojas); if (!ls.length) throw erro('Cadastre pelo menos uma loja.'); c.lojas = ls; }
+  if (patch.lojas !== undefined) c.lojas = limparLojas(patch.lojas);
   if (patch.ativo !== undefined) c.ativo = patch.ativo === true;
   gravar(db, dados);
   return c;
@@ -125,17 +133,19 @@ function clienteDoToken(dados, token) {
 // ---------- contagens ----------
 function contar(dados, c) {
   const meus = Object.values(dados.pacotes).filter((p) => p.cliente === c.id);
-  const porLoja = new Map(c.lojas.map((l) => [l, { loja: l, cadastrada: true, subidos: 0, entregues: 0, faltam: 0 }]));
+  const porLoja = new Map();
   const tot = { subidos: 0, entregues: 0, faltam: 0, noSpx: 0, aguardandoSpx: 0, erroSpx: 0 };
   for (const p of meus) {
     const nome = p.loja || 'Sem loja';
-    if (!porLoja.has(nome)) porLoja.set(nome, { loja: nome, cadastrada: false, subidos: 0, entregues: 0, faltam: 0 });
+    if (!porLoja.has(nome)) porLoja.set(nome, { loja: nome, subidos: 0, entregues: 0, faltam: 0 });
     const g = porLoja.get(nome);
     g.subidos++; tot.subidos++;
     if (p.entregueEm) { g.entregues++; tot.entregues++; } else { g.faltam++; tot.faltam++; }
     if (p.spx === 'subido') tot.noSpx++; else if (p.spx === 'erro') tot.erroSpx++; else tot.aguardandoSpx++;
   }
-  return { totais: tot, lojas: [...porLoja.values()], pacotes: meus };
+  // Lojas com pacotes faltando primeiro, depois as maiores.
+  const lojas = [...porLoja.values()].sort((a, b) => b.faltam - a.faltam || b.subidos - a.subidos || a.loja.localeCompare(b.loja, 'pt-BR'));
+  return { totais: tot, lojas, pacotes: meus };
 }
 
 const pacotePublico = (p) => ({
@@ -152,7 +162,7 @@ function painelCliente(db, token) {
   pacotes.sort((a, b) => String(b.entregueEm || b.subidoEm).localeCompare(String(a.entregueEm || a.subidoEm)));
   return {
     cliente: c.nome,
-    lojasCadastradas: c.lojas,
+    lojasConhecidas: lojasConhecidas(dados, c),
     totais: { subidos: totais.subidos, entregues: totais.entregues, faltam: totais.faltam },
     lojas,
     pacotes: pacotes.map(pacotePublico)
@@ -167,7 +177,8 @@ function subirEtiquetas(db, token, { pacotes, origem } = {}, { agora = Date.now(
   if (!Array.isArray(pacotes) || !pacotes.length) throw erro('Nenhum código enviado.');
   if (pacotes.length > MAX_POR_ENVIO) throw erro(`Mande no máximo ${MAX_POR_ENVIO} etiquetas por vez.`);
   const org = origem === 'pdf' ? 'pdf' : 'digitado';
-  const r = { novos: 0, jaSubidos: 0, deOutroCliente: 0, invalidos: [], foraDasLojas: {} };
+  const r = { novos: 0, jaSubidos: 0, deOutroCliente: 0, invalidos: [], porLoja: {} };
+  const conhecidas = lojasConhecidas(dados, c);
   const vistos = new Set();
   const lote = { id: novoId(), cliente: c.id, criadoEm: iso(agora), codigos: [], situacao: 'pendente' };
   for (const item of pacotes) {
@@ -178,10 +189,12 @@ function subirEtiquetas(db, token, { pacotes, origem } = {}, { agora = Date.now(
     const existe = dados.pacotes[codigo];
     if (existe) { if (existe.cliente === c.id) r.jaSubidos++; else r.deOutroCliente++; continue; }
     const lido = texto(item.loja, 60);
-    const loja = acharLoja(c, lido) || lido || (c.lojas.length === 1 ? c.lojas[0] : '');
-    if (lido && !acharLoja(c, lido)) r.foraDasLojas[lido] = (r.foraDasLojas[lido] || 0) + 1;
+    let loja = acharLoja(conhecidas, lido);
+    if (!loja && lido) { loja = lido; conhecidas.push(lido); }
+    loja = loja || '';
+    r.porLoja[loja || 'Sem loja'] = (r.porLoja[loja || 'Sem loja'] || 0) + 1;
     dados.pacotes[codigo] = {
-      codigo, cliente: c.id, loja, lojaConfere: Boolean(acharLoja(c, loja)), origem: org,
+      codigo, cliente: c.id, loja, origem: org,
       subidoEm: iso(agora), lote: lote.id, spx: 'pendente', spxEm: null, spxErro: null, entregueEm: null
     };
     lote.codigos.push(codigo);
@@ -227,9 +240,16 @@ function fila(db, { agora = Date.now() } = {}) {
     .map((l) => {
       const c = dados.clientes[l.cliente];
       const pend = l.codigos.filter((k) => dados.pacotes[k] && dados.pacotes[k].spx !== 'subido');
-      return { id: l.id, cliente: c ? c.nome : '?', criadoEm: l.criadoEm, situacao: l.situacao, quantidade: pend.length };
+      return { id: l.id, cliente: c ? c.nome : '?', criadoEm: l.criadoEm, situacao: l.situacao, quantidade: pend.length, lojas: porLojaDe(dados, pend) };
     })
     .filter((l) => l.quantidade > 0);
+}
+
+// { "NOME DA LOJA": [códigos] } — lojas lidas do remetente das etiquetas.
+function porLojaDe(dados, codigos) {
+  const out = {};
+  for (const k of codigos) { const n = (dados.pacotes[k] && dados.pacotes[k].loja) || 'Sem loja'; (out[n] = out[n] || []).push(k); }
+  return out;
 }
 
 // Reserva um lote (o indicado, ou o mais antigo) e entrega os códigos que faltam subir.
@@ -244,7 +264,7 @@ function reservarLote(db, id, { agora = Date.now() } = {}) {
   l.situacao = 'reservado'; l.reservadoEm = iso(agora);
   gravar(db, dados, agora);
   const c = dados.clientes[l.cliente];
-  return { id: l.id, cliente: c ? c.nome : '?', criadoEm: l.criadoEm, codigos };
+  return { id: l.id, cliente: c ? c.nome : '?', criadoEm: l.criadoEm, codigos, lojas: porLojaDe(dados, codigos) };
 }
 
 // resultado: { ok: [codigos], erros: [{codigo, erro}] }
@@ -322,12 +342,12 @@ function resumo(db, { agora = Date.now() } = {}) {
     });
   const pacotes = Object.values(dados.pacotes).map((p) => ({
     ...pacotePublico(p), cliente: p.cliente, clienteNome: (dados.clientes[p.cliente] || {}).nome || '?',
-    lojaConfere: p.lojaConfere, spxErro: p.spxErro
+    spxErro: p.spxErro
   })).sort((a, b) => String(b.entregueEm || b.subidoEm).localeCompare(String(a.entregueEm || a.subidoEm)));
   return { clientes, pacotes, fila: fila(db, { agora }) };
 }
 
 module.exports = {
   criarCliente, editarCliente, novoLink, excluirCliente, painelCliente, subirEtiquetas, removerEtiqueta,
-  fila, reservarLote, resultadoLote, tentarDeNovo, bipar, desfazerBaixa, resumo, _acharLoja: acharLoja
+  fila, reservarLote, resultadoLote, tentarDeNovo, bipar, desfazerBaixa, resumo
 };

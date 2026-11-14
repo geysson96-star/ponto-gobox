@@ -44,7 +44,7 @@ test('fluxo completo: cliente com link, sobe etiquetas, extensão sobe no SPX, b
   const semLogin = await fetch(base + '/admin/api/portal/clientes', { method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json' }, body: '{"nome":"x","lojas":["x"]}' });
   assert.equal(semLogin.status, 401);
 
-  r = await req('POST', '/admin/api/portal/clientes', { body: { nome: 'Anthony', lojas: ['Loja do Anthony', 'ANTHONY KIDS', 'Anthony Imports'] } });
+  r = await req('POST', '/admin/api/portal/clientes', { body: { nome: 'Anthony' } });
   assert.equal(r.res.status, 200, r.text);
   const cli = r.json.cliente;
   assert.ok(cli.token.length >= 20);
@@ -56,18 +56,19 @@ test('fluxo completo: cliente com link, sobe etiquetas, extensão sobe no SPX, b
   assert.equal(pagina.status, 200);
 
   // cliente sobe: 2 do PDF (remetente lido) e 1 digitado
-  r = await req('POST', `/api/portal/${cli.token}/etiquetas`, { body: { origem: 'pdf', pacotes: [{ codigo: C1, loja: 'LOJA DO ANTHONY' }, { codigo: C2, loja: 'Anthony Kids' }, { codigo: C1, loja: 'x' }, { codigo: 'XX1', loja: '' }] } });
+  r = await req('POST', `/api/portal/${cli.token}/etiquetas`, { body: { origem: 'pdf', pacotes: [{ codigo: C1, loja: 'LOJA DO ANTHONY' }, { codigo: C2, loja: 'ANTHONY KIDS' }, { codigo: C1, loja: 'x' }, { codigo: 'XX1', loja: '' }] } });
   assert.equal(r.res.status, 200, r.text);
   assert.equal(r.json.novos, 2);
-  r = await req('POST', `/api/portal/${cli.token}/etiquetas`, { body: { origem: 'digitado', pacotes: [{ codigo: C3.toLowerCase(), loja: 'Anthony Imports' }, { codigo: C1, loja: '' }] } });
+  r = await req('POST', `/api/portal/${cli.token}/etiquetas`, { body: { origem: 'digitado', pacotes: [{ codigo: C3.toLowerCase(), loja: 'Anthony Kids' }, { codigo: C1, loja: '' }] } });
   assert.equal(r.json.novos, 1);
   assert.equal(r.json.jaSubidos, 1);
 
   r = await req('GET', `/api/portal/${cli.token}`);
   assert.equal(r.json.totais.subidos, 3);
   assert.equal(r.json.totais.faltam, 3);
-  const kids = r.json.lojas.find((l) => l.loja === 'ANTHONY KIDS');
-  assert.equal(kids.subidos, 1);
+  // lojas saem do remetente; o mesmo nome com outra grafia entra na mesma loja
+  assert.deepEqual(r.json.lojas.map((l) => [l.loja, l.subidos]), [['ANTHONY KIDS', 2], ['LOJA DO ANTHONY', 1]]);
+  assert.deepEqual(r.json.lojasConhecidas.sort(), ['ANTHONY KIDS', 'LOJA DO ANTHONY']);
 
   // extensão: sem chave não entra
   assert.equal((await fetch(`${base}/api/extensao/portal/fila`)).status, 401);
@@ -115,7 +116,7 @@ test('fluxo completo: cliente com link, sobe etiquetas, extensão sobe no SPX, b
 });
 
 test('outro site não consegue subir etiquetas pelo link do cliente', async () => {
-  const c = portal.criarCliente(db, { nome: 'Teste', lojas: ['T'] });
+  const c = portal.criarCliente(db, { nome: 'Teste' });
   const r = await fetch(`${base}/api/portal/${c.token}/etiquetas`, { method: 'POST', headers: { Origin: 'https://malicioso.com', 'Content-Type': 'application/json' }, body: JSON.stringify({ pacotes: [{ codigo: C1 }] }) });
   assert.equal(r.status, 403);
 });

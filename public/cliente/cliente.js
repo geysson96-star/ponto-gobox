@@ -8,6 +8,7 @@
   let dados = null;
   let lista = 'faltam';
   let previa = null; // pacotes lidos do PDF, aguardando confirmação
+  const abertas = new Set(); // lojas abertas na lista (continuam abertas quando a página atualiza)
 
   function el(tag, attrs, ...filhos) {
     const n = document.createElement(tag);
@@ -65,11 +66,10 @@
   }
 
   const normLoja = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim();
-  function lojaCadastrada(nome) {
+  // Mesmo nome de loja já usado antes (sem diferença de maiúsculas/acentos).
+  function lojaConhecida(nome) {
     const n = normLoja(nome);
-    if (!n) return null;
-    return dados.lojasCadastradas.find((l) => normLoja(l) === n)
-      || dados.lojasCadastradas.find((l) => { const x = normLoja(l); return x.length >= 3 && (n.includes(x) || x.includes(n)); }) || null;
+    return n ? dados.lojasConhecidas.find((l) => normLoja(l) === n) || null : null;
   }
 
   async function lerArquivos(files) {
@@ -96,14 +96,13 @@
   function mostrarPrevia(pacotes, avisos, repetidos) {
     const porLoja = {};
     for (const p of pacotes) {
-      const nome = lojaCadastrada(p.loja) || p.loja || 'Loja não identificada';
+      const nome = lojaConhecida(p.loja) || p.loja || 'Sem loja (remetente não lido)';
       porLoja[nome] = (porLoja[nome] || 0) + 1;
     }
     const box = $('#previa');
     box.replaceChildren(el('div', { class: 'previa' },
       el('strong', {}, `${pacotes.length} etiqueta(s) encontrada(s)`),
-      el('ul', {}, Object.entries(porLoja).map(([n, q]) =>
-        el('li', { class: lojaCadastrada(n) ? '' : 'fora' }, `${n}: ${q}`, lojaCadastrada(n) ? '' : ' (não é uma das suas lojas cadastradas)'))),
+      el('ul', {}, Object.entries(porLoja).sort((a, b) => b[1] - a[1]).map(([n, q]) => el('li', {}, el('b', {}, n), `: ${q} etiqueta${q === 1 ? '' : 's'}`))),
       repetidos ? el('p', { class: 'dica' }, `${repetidos} código(s) repetido(s) no PDF foram ignorados.`) : null,
       avisos.length ? el('p', { class: 'dica' }, `Atenção: ${avisos.slice(0, 5).join(' · ')}`) : null,
       el('div', { class: 'acoes' },
@@ -137,16 +136,21 @@
     $('#n-subidos').textContent = dados.totais.subidos;
     $('#n-entregues').textContent = dados.totais.entregues;
 
-    const sel = $('#loja-digitar');
-    const atual = sel.value;
-    sel.replaceChildren(...(dados.lojasCadastradas.length > 1 ? [el('option', { value: '' }, 'Escolha a loja')] : []),
-      ...dados.lojasCadastradas.map((l) => el('option', { value: l }, l)));
-    if (atual) sel.value = atual;
+    $('#lojas-conhecidas').replaceChildren(...dados.lojasConhecidas.map((l) => el('option', { value: l })));
 
-    $('#lojas').replaceChildren(...(dados.lojas.length ? dados.lojas.map((l) => el('tr', {},
-      el('td', {}, l.loja, l.cadastrada ? null : el('span', { class: 'selo' }, 'não cadastrada')),
-      el('td', { class: 'n' }, l.subidos), el('td', { class: 'entregue' }, l.entregues), el('td', { class: 'falta' }, l.faltam)))
-      : [el('tr', {}, el('td', { colspan: '4', class: 'vazio' }, 'Nenhuma etiqueta ainda.'))]));
+    $('#lojas').replaceChildren(...(dados.lojas.length ? dados.lojas.map((l) => {
+      const dela = dados.pacotes.filter((p) => (p.loja || 'Sem loja') === l.loja)
+        .sort((a, b) => Boolean(a.entregueEm) - Boolean(b.entregueEm));
+      const d = el('details', { class: 'loja', open: abertas.has(l.loja) },
+        el('summary', {}, el('span', { class: 'loja-nome' }, l.loja),
+          el('span', { class: 'loja-n' }, `${l.subidos} etiqueta${l.subidos === 1 ? '' : 's'}`),
+          el('span', { class: 'loja-n entregue' }, `${l.entregues} entregue${l.entregues === 1 ? '' : 's'}`),
+          el('span', { class: 'loja-n falta' }, `${l.faltam} falta${l.faltam === 1 ? '' : 'm'}`)),
+        el('ul', { class: 'etiquetas' }, dela.map((p) => el('li', {}, el('code', {}, p.codigo),
+          el('span', { class: p.entregueEm ? 'ok' : 'pend' }, p.entregueEm ? `entregue ${quando(p.entregueEm)}` : 'falta entregar')))));
+      d.addEventListener('toggle', () => { if (d.open) abertas.add(l.loja); else abertas.delete(l.loja); });
+      return d;
+    }) : [el('p', { class: 'vazio' }, 'Nenhuma etiqueta ainda.')]));
 
     const faltam = dados.pacotes.filter((p) => !p.entregueEm);
     const entregues = dados.pacotes.filter((p) => p.entregueEm);
@@ -199,8 +203,7 @@
   $('#enviar-digitados').addEventListener('click', (ev) => {
     const cods = [...new Set(($('#codigos').value.toUpperCase().match(COD_RE) || []))];
     if (!cods.length) return aviso('alerta', 'Não achei nenhum código BR.', 'O código começa com BR e tem 15 caracteres, ex.: BR261234567890A.');
-    const loja = $('#loja-digitar').value;
-    if (!loja) return aviso('alerta', 'Escolha de qual loja são esses pacotes.');
+    const loja = $('#loja-digitar').value.trim();
     enviar(cods.map((codigo) => ({ codigo, loja })), 'digitado', ev.target);
   });
 
