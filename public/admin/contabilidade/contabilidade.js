@@ -231,9 +231,9 @@ async function trocarQuinzena() {
 }
 function atualizarCC() {
   const emps = empsDaQuinzena();
-  const tot = emps.reduce((a, e) => a + calc(e.id).liq, 0);
   const pagos = emps.filter(e => slip(e.id).pagoEm).length;
-  $("#folha").innerHTML = `<span>Folha da quinzena · ${pagos} de ${emps.length} pagos</span><b>${brl(tot)}</b>`;
+  // Sem o valor total da folha no topo: só quantos já foram pagos.
+  $("#folha").innerHTML = `<span>Folha da quinzena</span><b>${pagos} de ${emps.length} pagos</b>`;
   $("#lista").innerHTML = emps.map(e => {
     const c = calc(e.id);
     const he = c.he50 + c.he100;
