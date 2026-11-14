@@ -393,3 +393,4 @@ p.fin-origem { margin: 0; }
 .ptl-etiquetas li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; padding-top: 4px; }
 .ptl-etiquetas code { font-family: var(--mono); font-size: 13px; }
 .ptl-fila-lojas { flex-basis: 100%; }
+.botao-link { display: inline-flex; align-items: center; text-decoration: none; height: 46px; }

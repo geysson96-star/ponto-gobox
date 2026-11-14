@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relatório de faturamento · GoBox</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/assets/cubo.png">
+<link rel="stylesheet" href="/base.css">
+<link rel="stylesheet" href="/admin/relatorio.css">
+</head>
+<body>
+<div class="barra-acoes">
+  <a href="/admin/#financeiro" class="rel-btn">‹ Voltar ao painel</a>
+  <label class="rel-ano">Ano <select id="ano"></select></label>
+  <button type="button" id="imprimir" class="rel-btn primario">Salvar em PDF</button>
+</div>
+<main class="folha" id="folha" aria-live="polite">
+  <p class="carregando">Montando o relatório…</p>
+</main>
+<script src="/admin/relatorio.js" defer></script>
+</body>
+</html>

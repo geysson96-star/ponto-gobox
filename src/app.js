@@ -427,7 +427,14 @@ function createApp({ config, db, robo = null }) {
 
   // ---------- Financeiro ----------
   admin.get('/financeiro', requireAdmin, (req, res) => {
-    try { res.json(financeiro.resumo(db, req.query.mes ? String(req.query.mes) : undefined)); }
+    try {
+      const r = financeiro.resumo(db, req.query.mes ? String(req.query.mes) : undefined);
+      try { financeiro.registrarFechamento(db, r); } catch { /* fechamento é só para o relatório */ }
+      res.json(r);
+    } catch (e) { res.status(400).json({ erro: e.message }); }
+  });
+  admin.get('/financeiro/relatorio', requireAdmin, (req, res) => {
+    try { res.json(financeiro.relatorioAno(db, req.query.ano || undefined)); }
     catch (e) { res.status(400).json({ erro: e.message }); }
   });
   admin.put('/financeiro/:mes/ajustes', requireAdmin, (req, res) => {

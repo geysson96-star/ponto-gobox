@@ -95,6 +95,19 @@ async function shutdown() {
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
+// Guarda o fechamento do mês atual e do anterior (para o relatório do ano), a cada 6 horas.
+function fecharMeses() {
+  try {
+    const fin = require('./financeiro');
+    const atual = fin.mesAtual();
+    const [a, m] = atual.split('-').map(Number);
+    const anterior = m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, '0')}`;
+    for (const mes of [anterior, atual]) fin.registrarFechamento(db, fin.resumo(db, mes));
+  } catch (e) { console.warn('[financeiro] não guardei o fechamento:', e.message); }
+}
+setTimeout(fecharMeses, 2 * 60_000).unref();
+setInterval(fecharMeses, 6 * 3600_000).unref();
+
 // Diagnóstico: avisa no log quando o servidor fica travado (atraso > 1,5 s).
 let esperado = Date.now() + 1000;
 setInterval(() => {

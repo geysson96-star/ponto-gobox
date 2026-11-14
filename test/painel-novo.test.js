@@ -92,3 +92,12 @@ test('páginas saem compactadas e imagens com cache longo', async () => {
   const img = await fetch(`${base}/assets/cubo.webp`);
   assert.match(img.headers.get('cache-control'), /max-age=2592000/);
 });
+
+test('relatório do ano: um item por mês até o mês atual, com fechamento guardado', async () => {
+  const d = await (await adm('/financeiro/relatorio?ano=2026')).json();
+  assert.equal(d.ano, 2026);
+  assert.ok(d.meses.length >= 1 && d.meses.length <= 12);
+  assert.ok(d.meses.every((m) => /^2026-\d\d$/.test(m.mes)));
+  assert.equal((await adm('/financeiro/relatorio?ano=abc')).status, 400);
+  assert.equal((await fetch(`${base}/admin/api/financeiro/relatorio`)).status, 401);
+});

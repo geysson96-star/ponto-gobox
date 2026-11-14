@@ -393,7 +393,51 @@ function resumo(db, mes = mesAtual()) {
   };
 }
 
+// ---------- relatório do ano ----------
+// Os pacotes antigos são apagados depois de alguns dias; para o relatório não perder os
+// meses passados, guardamos o fechamento de cada mês ("fechamento:AAAA-MM") e mantemos
+// sempre o maior valor visto (os números de um mês só crescem enquanto ele acontece).
+function linhaDoMes(r) {
+  const q = r.quantidades;
+  const pacMl = ['q1', 'q2'].reduce((s, k) => s + q.ml[k].delivery + q.ml[k].pickup + q.ml[k].falhas, 0);
+  return {
+    mes: r.mes,
+    total: r.total,
+    pacotes: r.pacotes,
+    shopee: { valor: r.shopee.total, pacotes: q.shopee.expedidos + q.shopee.retiradas + q.shopee.devolucoes, expedidos: q.shopee.expedidos, retiradas: q.shopee.retiradas, devolucoes: q.shopee.devolucoes },
+    ml: { valor: r.ml.total, pacotes: pacMl, entregas: q.ml.q1.delivery + q.ml.q2.delivery, retiradas: q.ml.q1.pickup + q.ml.q2.pickup },
+    correios: { valor: r.correios.total, pacotes: q.correios.pacotes }
+  };
+}
+function registrarFechamento(db, r) {
+  const linha = linhaDoMes(r);
+  const atual = ler(db, `fechamento:${r.mes}`, null);
+  if (atual && atual.pacotes > linha.pacotes) return atual;
+  if (!atual && !linha.pacotes) return linha;
+  if (!atual || atual.pacotes !== linha.pacotes || atual.total !== linha.total) {
+    gravar(db, `fechamento:${r.mes}`, { ...linha, atualizadoEm: new Date().toISOString() });
+  }
+  return linha;
+}
+function relatorioAno(db, ano = Number(mesAtual().slice(0, 4))) {
+  ano = Number(ano);
+  if (!Number.isInteger(ano) || ano < 2020 || ano > 2100) throw new Error('Ano inválido.');
+  const atual = mesAtual();
+  const meses = [];
+  for (let m = 1; m <= 12; m++) {
+    const mes = `${ano}-${String(m).padStart(2, '0')}`;
+    if (mes > atual) break;
+    let linha;
+    try { linha = registrarFechamento(db, resumo(db, mes)); } catch { linha = null; }
+    const salvo = ler(db, `fechamento:${mes}`, null);
+    if (salvo && (!linha || salvo.pacotes > linha.pacotes)) linha = salvo;
+    meses.push(linha && linha.pacotes ? { ...linha, emAndamento: mes === atual } : { mes, semDados: true });
+  }
+  return { ano, mesAtual: atual, geradoEm: new Date().toISOString(), meses };
+}
+
 module.exports = {
+  relatorioAno, registrarFechamento,
   resumo, salvarAjustes, salvarMedalha, salvarEstimado, salvarEstimadoMl, salvarOficialMl, salvarTotaisShopee, mesAtual, limitesDoMes,
   calcularShopee, calcularMlQuinzena, porFaixas, valorDoPacote, MEDALHAS_PADRAO
 };
