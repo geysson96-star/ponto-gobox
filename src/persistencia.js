@@ -205,8 +205,18 @@ function criar({ db, config, fetchFn = fetch, log = console }) {
       if (falhas <= 3 || falhas % 20 === 0) log.warn(`[persistência] não salvei ${alvo}: ${e.message}`);
     }
   }
+  // A cópia dos pacotes é grande (~40 mil): grava no máximo a cada 10 minutos por empresa.
+  // Se o servidor reiniciar, a extensão reenvia tudo em poucos minutos.
+  const INTERVALO_PACOTES_MS = 10 * 60_000;
+  const ultimaGravacao = new Map();
   function agendar(alvo) {
     if (!ativo || restaurando) return;
+    if (alvo !== 'estado') {
+      if (timers.has(alvo)) return; // já tem gravação marcada: ela pega a mudança nova
+      const espera = Math.max(ESPERA_MS, (ultimaGravacao.get(alvo) || 0) + INTERVALO_PACOTES_MS - Date.now());
+      timers.set(alvo, setTimeout(() => { timers.delete(alvo); ultimaGravacao.set(alvo, Date.now()); salvarAgora(alvo); }, espera));
+      return;
+    }
     clearTimeout(timers.get(alvo));
     timers.set(alvo, setTimeout(() => { timers.delete(alvo); salvarAgora(alvo); }, ESPERA_MS));
   }

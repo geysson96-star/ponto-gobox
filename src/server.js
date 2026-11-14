@@ -94,3 +94,11 @@ async function shutdown() {
 }
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
+
+// Diagnóstico: avisa no log quando o servidor fica travado (atraso > 1,5 s).
+let esperado = Date.now() + 1000;
+setInterval(() => {
+  const atraso = Date.now() - esperado;
+  if (atraso > 1500) console.warn(`[lento] servidor travado por ${atraso} ms (memória ${Math.round(process.memoryUsage().rss / 1048576)} MB)`);
+  esperado = Date.now() + 1000;
+}, 1000).unref();

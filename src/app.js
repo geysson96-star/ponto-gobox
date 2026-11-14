@@ -103,11 +103,16 @@ function createApp({ config, db, robo = null }) {
     res.json({ ok: true, fontes: allSourceStatus(db).map((f) => ({ id: f.id, nome: f.name, situacao: f.state, ultima: f.lastSuccessAt })) });
   });
 
+  // Último envio de cada empresa (só a "assinatura" de cada pacote), para pular o que não mudou.
+  const ultimoEnvio = new Map();
+
   // Registro simples dos envios da extensão (sem dados de clientes), para diagnóstico.
   app.use('/api/extensao/', (req, res, next) => {
+    const t0 = Date.now();
     res.on('finish', () => {
       const tam = req.headers['content-length'] || 0;
-      console.log(`[extensão] ${req.method} ${req.path} -> ${res.statusCode} (${tam} bytes)`);
+      const extra = res.locals.diag ? ` ${res.locals.diag}` : '';
+      console.log(`[extensão] ${req.method} ${req.path} -> ${res.statusCode} (${tam} bytes, ${Date.now() - t0} ms)${extra}`);
     });
     next();
   });
@@ -125,7 +130,7 @@ function createApp({ config, db, robo = null }) {
       // Formato novo: `pacotes` [{codigo, situacao, rotulo, tipo, recebidoEm, saidaEm}] + `modo`.
       // Formato antigo: `codigos` [string] (só presença, modo estoque).
       const lista = Array.isArray(b.pacotes) ? b.pacotes : (Array.isArray(b.codigos) ? b.codigos : null);
-      if (!lista || lista.length > 50_000) {
+      if (!lista || lista.length > 150_000) {
         return res.status(400).json({ erro: 'Lista de códigos inválida.' });
       }
       let codigos = new Map();
@@ -155,12 +160,27 @@ function createApp({ config, db, robo = null }) {
       const modo = b.modo === 'eventos' ? 'eventos' : 'estoque';
       const recebidos = codigos.size;
       // Modo eventos: grava só o que mudou (evita travar o servidor com ~40 mil pacotes iguais).
-      if (modo === 'eventos') codigos = filtrarInalterados(db, fonte, codigos);
+      // 1º filtro: compara com o último envio guardado na memória (rápido, sem ler o banco).
+      // 2º filtro (após reiniciar, sem memória): compara com o banco.
+      let assinaturas = null;
+      if (modo === 'eventos') {
+        const anterior = ultimoEnvio.get(fonte);
+        assinaturas = new Map();
+        const mudou = new Map();
+        for (const [code, v] of codigos) {
+          const sig = v ? `${v.situacao}|${v.rotulo}|${v.tipo}|${v.volume}|${v.recebidoEm}|${v.saidaEm}|${v.idFonte}` : '';
+          assinaturas.set(code, sig);
+          if (!anterior || anterior.get(code) !== sig) mudou.set(code, v);
+        }
+        codigos = anterior ? mudou : filtrarInalterados(db, fonte, mudou);
+      }
+      res.locals.diag = `recebidos ${recebidos}, alterados ${codigos.size}`;
       const prep = prepareFromCodes(db, { sourceId: fonte, codes: codigos, origin: 'extensao', label: 'extensão do Edge', modo });
       if (needsConfirmation(prep)) {
         return res.json({ situacao: 'aguardando_confirmacao', codigos: codigos.size, removidos: prep.toDeactivate });
       }
       applyImport(db, prep.importId);
+      if (assinaturas) ultimoEnvio.set(fonte, assinaturas);
       return res.json({ situacao: 'sucesso', codigos: recebidos, alterados: codigos.size, novos: prep.toInsert, removidos: prep.toDeactivate });
     });
 
