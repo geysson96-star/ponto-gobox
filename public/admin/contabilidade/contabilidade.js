@@ -128,7 +128,16 @@ async function carregarPonto() {
   } catch (e) {
     console.warn("[contabilidade] ponto:", e);
     S.pontoEstado = "erro";
-    S.pontoErro = e && /configurado/.test(e.message || "") ? e.message : "Não consegui ler as horas no Ponto GoBox. Confira a internet e abra a aba de novo.";
+    S.pontoErro = e && /configurado/.test(e.message || "") ? e.message : "Não consegui ler as horas no Ponto GoBox agora. Tento de novo sozinho em alguns segundos.";
+    // Tenta de novo sozinho; quando conseguir, o aviso some.
+    if (!/configurado/.test((e && e.message) || "")) {
+      clearTimeout(S.pontoRetry);
+      S.pontoRetry = setTimeout(async () => {
+        if (ref !== S.ref) return;
+        await carregarPonto();
+        if (S.aba === "cc") renderCC(); else if (S.aba === "rel") renderRel();
+      }, 15000);
+    }
   }
 }
 
