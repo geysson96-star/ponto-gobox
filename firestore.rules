@@ -37,6 +37,11 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // Cópia de segurança do site de consulta (pacotes, faturamento, ajustes). Só o administrador.
+    match /consulta/{doc} {
+      allow read, write: if isAdmin();
+    }
+
     match /funcionarios/{fid} {
       allow read: if isAdmin() || isTerminal();
       allow create, delete: if isAdmin();
