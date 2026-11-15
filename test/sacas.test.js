@@ -312,3 +312,14 @@ test('rotas: extensão envia, painel liga, n8n pega e confirma', async () => {
   const painel = await (await fetch(`${base}/admin/api/sacas`, { headers: adm })).json();
   assert.equal(painel.avisos[0].situacao, 'enviado');
 });
+
+test('só o dia de hoje fica guardado: no dia seguinte o histórico some', () => {
+  const db = banco();
+  sacas.registrar(db, [{ numero: '078', status: 'recebido', dia: DIA, entregar: 1, extra: 0, caminhoEm: ISO('06:24'), recebidoEm: ISO('07:00') }], { agora: T('07:01') });
+  assert.equal(sacas.resumo(db, { agora: T('12:00') }).envios.length, 1);
+  const amanha = T('12:00') + 86400_000;
+  const r = sacas.resumo(db, { agora: amanha });
+  assert.equal(r.envios.length, 0);
+  assert.equal(r.avisos.length, 0);
+  db.close();
+});

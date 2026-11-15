@@ -398,7 +398,7 @@ function createApp({ config, db, robo = null }) {
       pacotes: { total: Object.values(porFonte).reduce((a, b) => a + b, 0), porFonte },
       fontes: fontes.map((f) => ({ id: f.id, nome: f.name, situacao: f.state, ultima: f.lastSuccessAt, pendentes: f.pendingConfirmations })),
       acessos: acessos.resumo({ dias: 1 }).hoje,
-      sacas: { envios: sac.envios.length, envioLigado: Boolean(sac.config.ativo), falhas: sac.avisos.filter((a) => a.situacao === 'falhou').length },
+      sacas: (() => { const f = sac.avisos.filter((a) => a.situacao === 'falhou'); return { envios: sac.envios.length, envioLigado: Boolean(sac.config.ativo), falhas: f.length, ultimaFalha: f.length ? f[0].id : null }; })(),
       entregadores: ent.contagem,
       faturamento: fin,
       notasParaEmitir: notas,

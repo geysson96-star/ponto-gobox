@@ -36,6 +36,11 @@
     return h < 24 ? `há ${h} h` : new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
   };
   function aviso(id, msg) { const a = $(id); if (!a) return; a.textContent = msg || ''; a.hidden = !msg; }
+  // Sacas: o aviso vermelho some quando você abre a aba e só volta com uma falha nova.
+  function falhasSacas(s) {
+    let visto = null; try { visto = localStorage.getItem('gobox-sacas-visto'); } catch { /* sem memória */ }
+    return s.ultimaFalha && s.ultimaFalha !== visto ? s.falhas : 0;
+  }
   function contador(aba, n) {
     const c = $(`#contador-${aba}`);
     if (!c) return;
@@ -85,7 +90,7 @@
         rotulo ? el('button', { type: 'button', class: 'botao-texto', onclick: ir(aba) }, rotulo) : null)));
       $('#vg-hora').textContent = `Atualizado às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
       contador('motoboys', d.entregadores.pendente);
-      contador('sacas', d.sacas.falhas);
+      contador('sacas', falhasSacas(d.sacas));
     } catch (e) { aviso('#vg-aviso', e.message); }
   }
   $('#vg-atualizar')?.addEventListener('click', carregarInicio);
@@ -260,9 +265,15 @@
   });
   window.goboxSite = { abrir: carregarSite, fechar() {} };
 
+  // Abrir a aba Chegada de sacas marca as falhas como vistas.
+  document.querySelector('.item-menu[data-aba="sacas"]')?.addEventListener('click', async () => {
+    contador('sacas', 0);
+    try { const d = await api('/visao-geral'); if (d.sacas.ultimaFalha) localStorage.setItem('gobox-sacas-visto', d.sacas.ultimaFalha); } catch { /* ignora */ }
+  });
+
   // Ao entrar no painel: aplica o menu salvo e os contadores.
   window.addEventListener('gobox:painel', async () => {
     try { const { ajustes: a } = await api('/site'); aplicarMenu(a.menuOculto); } catch { /* menu completo */ }
-    try { const d = await api('/visao-geral'); contador('motoboys', d.entregadores.pendente); contador('sacas', d.sacas.falhas); } catch { /* sem contadores */ }
+    try { const d = await api('/visao-geral'); contador('motoboys', d.entregadores.pendente); contador('sacas', falhasSacas(d.sacas)); window.__goboxUltimaFalhaSacas = d.sacas.ultimaFalha; } catch { /* sem contadores */ }
   });
 }());

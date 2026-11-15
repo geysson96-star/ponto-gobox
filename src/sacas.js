@@ -18,7 +18,6 @@ const eventos = require('./eventos');
 
 const CHAVE = '__sacas';
 const FUSO = 'America/Bahia';
-const DIAS_GUARDADOS = 7;
 const AVISOS_GUARDADOS = 60;
 const RESERVA_EXPIRA_MIN = 10;   // n8n pegou e não confirmou: marca como falhou
 
@@ -38,15 +37,23 @@ const valido = (iso) => typeof iso === 'string' && !Number.isNaN(Date.parse(iso)
 const min = (ms) => ms * 60_000;
 
 // ---------- armazenamento ----------
-function ler(db) {
+// Só o dia de hoje fica guardado: envios e avisos de dias anteriores são apagados.
+function soHoje(dados, agora = Date.now()) {
+  if (agora === null) return dados; // ajustes de configuração não mexem no histórico
+  const hoje = diaDe(agora);
+  for (const [k, e] of Object.entries(dados.envios)) if (e.dia !== hoje) delete dados.envios[k];
+  dados.avisos = dados.avisos
+    .filter((a) => (a.envio ? String(a.envio).startsWith(`${hoje}#`) : diaDe(Date.parse(a.criadoEm)) === hoje))
+    .slice(-AVISOS_GUARDADOS);
+  return dados;
+}
+function ler(db, agora = Date.now()) {
   const row = db.prepare('SELECT json FROM settings WHERE source = ?').get(CHAVE);
   const d = row ? JSON.parse(row.json) : {};
-  return { config: { ...PADRAO, ...(d.config || {}) }, envios: d.envios || {}, avisos: d.avisos || [], ultimaLeitura: d.ultimaLeitura || null };
+  return soHoje({ config: { ...PADRAO, ...(d.config || {}) }, envios: d.envios || {}, avisos: d.avisos || [], ultimaLeitura: d.ultimaLeitura || null }, agora);
 }
-function gravar(db, dados) {
-  const corte = diaDe(Date.now() - DIAS_GUARDADOS * 86400_000);
-  for (const [k, e] of Object.entries(dados.envios)) if (e.dia < corte) delete dados.envios[k];
-  dados.avisos = dados.avisos.slice(-AVISOS_GUARDADOS);
+function gravar(db, dados, agora = Date.now()) {
+  soHoje(dados, agora);
   db.prepare(`INSERT INTO settings (source, json) VALUES (?, ?)
               ON CONFLICT(source) DO UPDATE SET json = excluded.json`).run(CHAVE, JSON.stringify(dados));
   eventos.emit('estado');
@@ -196,7 +203,7 @@ function avisarCaminho(dados, e, agora) {
 
 // Registra os envios lidos agora. Devolve um resumo do que mudou.
 function registrar(db, lista, { agora = Date.now() } = {}) {
-  const dados = ler(db);
+  const dados = ler(db, agora);
   const hoje = diaDe(agora);
   const resumo = { envios: 0, novosAvisos: 0 };
   const limpos = (Array.isArray(lista) ? lista : []).slice(0, 60).map(limpar).filter(Boolean)
@@ -250,7 +257,7 @@ function registrar(db, lista, { agora = Date.now() } = {}) {
     resumo.envios += 1;
   }
   dados.ultimaLeitura = new Date(agora).toISOString();
-  gravar(db, dados);
+  gravar(db, dados, agora);
   return resumo;
 }
 
@@ -292,24 +299,24 @@ function comTexto(dados, a) {
 
 // n8n: pega o próximo aviso pronto (e o reserva para não sair duas vezes).
 function reservarProximo(db, { agora = Date.now() } = {}) {
-  const dados = ler(db);
+  const dados = ler(db, agora);
   let mudou = expirarReservas(dados, agora);
   const a = dados.config.ativo ? dados.avisos.find((x) => pronto(dados, x, agora)) : null;
   if (a) { a.situacao = 'enviando'; a.reservadoEm = new Date(agora).toISOString(); mudou = true; }
-  if (mudou) gravar(db, dados);
+  if (mudou) gravar(db, dados, agora);
   return a ? comTexto(dados, a) : null;
 }
 
 // n8n: confirma o resultado do envio.
 function confirmar(db, id, { ok, erro } = {}, { agora = Date.now() } = {}) {
-  const dados = ler(db);
+  const dados = ler(db, agora);
   const a = dados.avisos.find((x) => x.id === id);
   if (!a) return null;
   if (a.situacao !== 'enviando') return comTexto(dados, a);
   a.situacao = ok ? 'enviado' : 'falhou';
   a.enviadoEm = ok ? new Date(agora).toISOString() : null;
   a.erro = ok ? null : (texto(String(erro || ''), 200) || 'Falha no envio.');
-  gravar(db, dados);
+  gravar(db, dados, agora);
   return comTexto(dados, a);
 }
 
@@ -326,19 +333,19 @@ function novoAvisoManual(dados, e, grupo, agora) {
 }
 
 function enviarAgora(db, chave, grupo, { agora = Date.now() } = {}) {
-  const dados = ler(db);
+  const dados = ler(db, agora);
   if (!dados.config.ativo) throw new Error('Ligue "Enviar para o grupo" antes.');
   const e = dados.envios[chave];
   if (!e) throw new Error('Envio não encontrado.');
   if (!gruposDo(e).includes(grupo)) throw new Error('Este envio não tem sacas desse tipo.');
   const a = novoAvisoManual(dados, e, grupo, agora);
-  gravar(db, dados);
+  gravar(db, dados, agora);
   return comTexto(dados, a);
 }
 
 // Painel: manda de novo a mensagem de chegada de cada envio recebido hoje, em cada grupo.
 function reenviarHoje(db, { agora = Date.now() } = {}) {
-  const dados = ler(db);
+  const dados = ler(db, agora);
   if (!dados.config.ativo) throw new Error('Ligue "Enviar para o grupo" antes.');
   const hoje = diaDe(agora);
   const naFila = (e, g) => dados.avisos.some((a) => a.envio === e.chave && (a.grupo || 'delivery') === g
@@ -353,34 +360,34 @@ function reenviarHoje(db, { agora = Date.now() } = {}) {
       n += 1;
     }
   }
-  gravar(db, dados);
+  gravar(db, dados, agora);
   return { novos: n };
 }
 
 // Painel: reenviar um aviso (volta para a fila do n8n).
 function reenviar(db, id) {
-  const dados = ler(db);
+  const dados = ler(db, null);
   const a = dados.avisos.find((x) => x.id === id);
   if (!a) return null;
   if (!dados.config.ativo) throw new Error('Ligue o envio para o grupo antes de reenviar.');
   if (a.generico) throw new Error('Este é um aviso antigo (mensagem geral, sem separar Delivery e Next). Use "Enviar agora" no envio.');
   a.situacao = 'pendente'; a.erro = null; a.enviadoEm = null; delete a.reservadoEm;
-  gravar(db, dados);
+  gravar(db, dados, null);
   return comTexto(dados, a);
 }
 
 function salvarConfig(db, patch = {}) {
-  const dados = ler(db);
+  const dados = ler(db, null);
   for (const k of ['ativo', 'avisoCaminho', 'zonas']) if (typeof patch[k] === 'boolean') dados.config[k] = patch[k];
   const j = Number(patch.janelaMin);
   if (Number.isInteger(j) && j >= 10 && j <= 720) dados.config.janelaMin = j;
-  gravar(db, dados);
+  gravar(db, dados, null);
   return dados.config;
 }
 
 // Painel: envios de hoje (e dos últimos dias) com as mensagens prontas.
 function resumo(db, { agora = Date.now() } = {}) {
-  const dados = ler(db);
+  const dados = ler(db, agora);
   const hoje = diaDe(agora);
   const envios = Object.values(dados.envios)
     .sort((a, b) => (b.dia.localeCompare(a.dia)) || String(a.caminhoEm || a.vistoPrimeiro).localeCompare(String(b.caminhoEm || b.vistoPrimeiro)))
