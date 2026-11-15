@@ -40,7 +40,7 @@
 .ent .f { display: block; font-size: 13px; font-weight: 500; color: var(--ink); min-width: 0; }
 .ent .f small { color: var(--mut); font-weight: 400; }
 .ent .f.lbl { margin-bottom: 6px; }
-.ent input[type=text], .ent input[type=tel], .ent input[type=date], .ent input[type=number], .ent select, .ent textarea {
+.ent input[type=text], .ent input[type=tel], .ent input[type=email], .ent input[type=date], .ent input[type=number], .ent select, .ent textarea {
   display: block; width: 100%; min-width: 0; margin-top: 5px; font: inherit; font-size: 16px; padding: 12px 13px;
   border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--ink); outline: none; min-height: 48px; -webkit-appearance: none; appearance: none; }
 .ent select { background-image: linear-gradient(45deg, transparent 50%, var(--mut) 50%), linear-gradient(135deg, var(--mut) 50%, transparent 50%);

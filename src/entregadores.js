@@ -3,7 +3,7 @@
 //
 // O cadastro público (/entregador) grava aqui; o painel aceita, recusa, exclui, dá nota
 // e filtra por serviço. Guardamos só o necessário para o credenciamento: nome, WhatsApp,
-// serviços, dias/horários, experiência e observação (com a autorização da LGPD).
+// e-mail, serviços, dias/horários, experiência e observação (com a autorização da LGPD).
 // Tudo fica na tabela "financeiro" (chaves "entreg:*"), salva no Firebase pela persistência.
 
 const crypto = require('node:crypto');
@@ -96,6 +96,8 @@ function cadastrar(db, corpo, agora = new Date()) {
   if (nome.length < 2) throw new Error('Digite seu nome.');
   const digitos = String(corpo.whatsapp || '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '');
   if (digitos.length < 10 || digitos.length > 11) throw new Error('WhatsApp incompleto.');
+  const email = texto(corpo.email, 120).toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) throw new Error('Confira o e-mail.');
   const ids = config(db).servicos.map((s) => s.id);
   const servicos = lista(corpo.servicos, (s) => ids.includes(s), 12);
   if (!servicos.length) throw new Error('Escolha pelo menos um serviço.');
@@ -114,7 +116,7 @@ function cadastrar(db, corpo, agora = new Date()) {
     anotacao: existente ? existente.anotacao : '',
     criadoEm: existente ? existente.criadoEm : agora.toISOString(),
     atualizadoEm: agora.toISOString(),
-    funcao, nome, whatsapp: digitos, servicos, horarios, experiencia,
+    funcao, nome, whatsapp: digitos, email, servicos, horarios, experiencia,
     apps: lista(corpo.apps, (a) => APPS.includes(a), 7),
     obs: texto(corpo.obs, 500)
   };

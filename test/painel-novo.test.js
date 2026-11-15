@@ -24,7 +24,7 @@ before(async () => {
 after(() => { server.close(); db.close(); });
 
 const adm = (p, o = {}) => fetch(`${base}/admin/api${p}`, { ...o, headers: { Cookie: cookie, Origin: base, 'Content-Type': 'application/json', ...(o.headers || {}) } });
-const cadastro = { lgpd: true, nome: 'Fulano de Tal', whatsapp: '(79) 99999-0000', servicos: ['ml'], horarios: ['Seg-Manhã'], funcao: 'entregador', experiencia: 'Sim, mais de 1 ano' };
+const cadastro = { lgpd: true, nome: 'Fulano de Tal', whatsapp: '(79) 99999-0000', email: 'Fulano@Exemplo.com', servicos: ['ml'], horarios: ['Seg-Manhã'], funcao: 'entregador', experiencia: 'Sim, mais de 1 ano' };
 
 test('telas do Ponto e da Folha exigem a sessão do painel', async () => {
   const r = await fetch(`${base}/admin/ponto/`, { redirect: 'manual' });
@@ -51,6 +51,9 @@ test('cadastro público de entregador: valida, grava e não mostra valores', asy
   const r = await (await adm('/entregadores')).json();
   assert.equal(r.cadastros.length, 1);
   assert.equal(r.cadastros[0].whatsapp, '79999990000');
+  assert.equal(r.cadastros[0].email, 'fulano@exemplo.com');
+  const semEmail = await fetch(`${base}/api/entregadores`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...cadastro, whatsapp: '79988887777', email: 'sem-arroba' }) });
+  assert.equal(semEmail.status, 400);
   assert.equal(r.contagem.pendente, 1);
 });
 

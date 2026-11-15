@@ -148,6 +148,7 @@
         c.situacao === 'aprovado' ? estrelas(c) : null),
       el('div', { class: 'ent-servicos' }, (c.servicos || []).map((id) => el('span', { class: 'ent-chip', title: nomeServ[id] && nomeServ[id].valor ? nomeServ[id].valor : '' }, nomeServ[id] ? nomeServ[id].nome : id))),
       el('dl', { class: 'ent-dados' },
+        el('dt', null, 'E-mail'), el('dd', null, c.email ? el('a', { href: `mailto:${c.email}` }, c.email) : 'não informado'),
         el('dt', null, 'Disponível'), el('dd', null, diasDe(c) || '—'),
         c.experiencia ? [el('dt', null, 'Experiência'), el('dd', null, c.experiencia)] : null,
         (c.apps || []).length ? [el('dt', null, 'Já rodou em'), el('dd', null, c.apps.join(', '))] : null,

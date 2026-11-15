@@ -103,11 +103,12 @@
     var bad = $$('#f [required]').filter(function (i) { return i.type === 'checkbox' ? !i.checked : !String(i.value).trim(); })[0];
     if (bad) { err.textContent = bad.name === 'lgpd' ? 'Marque a autorização da LGPD para enviar.' : 'Preencha todos os campos com *.'; bad.focus(); return; }
     if (f.whatsapp.value.replace(/\D/g, '').length < 10) { err.textContent = 'WhatsApp incompleto.'; f.whatsapp.focus(); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.value.trim())) { err.textContent = 'Confira o e-mail.'; f.email.focus(); return; }
     function all(n) { return $$('#f [name=' + n + ']:checked').map(function (i) { return i.value; }); }
     if (!all('serv').length) { err.textContent = 'Escolha pelo menos um serviço.'; return; }
     if (!all('hor').length) { err.textContent = 'Marque os dias e horários que você pode.'; return; }
     var data = {
-      funcao: ($('[name=funcao]:checked') || {}).value, nome: f.nome.value.trim(), whatsapp: f.whatsapp.value,
+      funcao: ($('[name=funcao]:checked') || {}).value, nome: f.nome.value.trim(), whatsapp: f.whatsapp.value, email: f.email.value.trim(),
       servicos: all('serv'), horarios: all('hor'), experiencia: f.experiencia.value, apps: all('apps'),
       obs: f.obs.value.trim(), lgpd: true, enviadoEm: new Date().toISOString()
     };
