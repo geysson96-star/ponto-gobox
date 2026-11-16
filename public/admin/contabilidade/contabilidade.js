@@ -387,17 +387,49 @@ function relatorioFolhaHTML(paraImprimir) {
       <td class="r">${p.deb ? hm(p.deb) : "—"}</td><td class="r">${brl(c.base)}</td><td class="r">${brl(c.v50 + c.v100)}</td>
       <td class="r">${c.prov || c.desc ? `${c.prov ? "+" + brl(c.prov) : ""}${c.desc ? " −" + brl(c.desc) : ""}` : "—"}</td><td class="r"><b>${brl(c.liq)}</b></td></tr>`).join("")}
     <tr class="tot"><td colspan="9">Total da folha</td><td class="r">${brl(tot)}</td></tr></tbody></table>`;
-  const detalhes = linhas.filter(x => (x.p.detalhe || []).length).map(({ e, p }) => `<section class="rel-pessoa"><h3>${esc(e.nome || "")}</h3>
-    <table class="rel-tab"><thead><tr><th>Dia</th><th class="r">Previsto</th><th class="r">Trabalhado</th><th class="r">Extra 50%</th><th class="r">Extra 100%</th><th class="r">Devendo</th><th>Obs.</th></tr></thead><tbody>
-    ${p.detalhe.map(d => `<tr${d.falta ? ' class="falta"' : ""}><td>${diaBr(d.dia)}</td><td class="r">${d.prev ? hm(d.prev) : "folga"}</td><td class="r">${d.falta ? "—" : hm(d.min)}</td>
-      <td class="r">${d.ex50 ? hm(d.ex50) : ""}</td><td class="r">${d.ex100 ? hm(d.ex100) : ""}</td><td class="r">${d.deb ? hm(d.deb) : ""}</td>
-      <td>${d.falta ? "Falta" : d.aberto ? "Em andamento" : d.tipo === "feriado" ? "Feriado" : !d.prev ? "Dia de folga" : ""}</td></tr>`).join("")}</tbody></table></section>`).join("");
+  const detalhes = linhas.filter(x => (x.p.detalhe || []).length).map(({ e, p }) => `<section class="rel-pessoa"><h3>${esc(e.nome || "")}</h3>${detalheHorasHTML(p)}</section>`).join("");
   return `<article class="relatorio${paraImprimir ? " impresso" : ""}">
     <header class="rel-cab"><div><b>GoBox · Folha da quinzena</b><br><span class="muted">${rotuloQ(S.ref)} · ${br(l.ini)} a ${br(l.fim)}</span></div>
     <div class="muted r">Gerado em ${new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}<br>Horas do Ponto GoBox · tolerância ${tol()} min</div></header>
     ${resumo}
     <p class="muted rel-nota">Extras 50%: o que passou do previsto no dia (e folgas trabalhadas). Extras 100%: domingos e feriados. Horas devidas: atrasos, saídas cedo e faltas.</p>
     ${detalhes}</article>`;
+}
+// Relatório só de horas (sem valores), para entregar ou mandar a cada funcionário.
+let relFunc = "";
+function detalheHorasHTML(p) {
+  return `<table class="rel-tab"><thead><tr><th>Dia</th><th class="r">Previsto</th><th class="r">Trabalhado</th><th class="r">Extra 50%</th><th class="r">Extra 100%</th><th class="r">Devendo</th><th>Obs.</th></tr></thead><tbody>
+    ${(p.detalhe || []).map(d => `<tr${d.falta ? ' class="falta"' : ""}><td>${diaBr(d.dia)}</td><td class="r">${d.prev ? hm(d.prev) : "folga"}</td><td class="r">${d.falta ? "—" : hm(d.min)}</td>
+      <td class="r">${d.ex50 ? hm(d.ex50) : ""}</td><td class="r">${d.ex100 ? hm(d.ex100) : ""}</td><td class="r">${d.deb ? hm(d.deb) : ""}</td>
+      <td>${d.falta ? "Falta" : d.aberto ? "Em andamento" : d.tipo === "feriado" ? "Feriado" : !d.prev ? "Dia de folga" : ""}</td></tr>`).join("") || `<tr><td colspan="7" class="muted">Sem registros de ponto nesta quinzena.</td></tr>`}</tbody></table>`;
+}
+function relatorioHorasHTML(paraImprimir) {
+  const l = limitesQ(S.ref);
+  const linhas = folhaLinhas().filter(x => !relFunc || x.e.id === relFunc);
+  return linhas.map(({ e, c, p }, i) => `<article class="relatorio${paraImprimir ? " impresso" : ""}${i ? " rel-nova-pagina" : ""}">
+    <header class="rel-cab"><div><b>GoBox · Relatório de horas</b><br><span class="muted">${rotuloQ(S.ref)} · ${br(l.ini)} a ${br(l.fim)}</span></div>
+    <div class="muted r">${esc(e.nome || "")}${e.cargo ? `<br>${esc(e.cargo)}` : ""}</div></header>
+    <div class="rel-resumo-horas">
+      <div><span>Dias trabalhados</span><b>${p.dias ?? 0}</b></div>
+      <div><span>Faltas</span><b>${p.faltas ?? 0}</b></div>
+      <div><span>Horas extras 50%</span><b>${hrs(c.he50)}</b></div>
+      <div><span>Horas extras 100%</span><b>${hrs(c.he100)}</b></div>
+      <div><span>Horas devidas</span><b>${p.deb ? hm(p.deb) : "0h"}</b></div>
+    </div>
+    ${detalheHorasHTML(p)}
+    <p class="muted rel-nota">Horas do Ponto GoBox (tolerância de ${tol()} min por dia). Extras 50%: o que passou do horário previsto e folgas trabalhadas. Extras 100%: domingos e feriados. Horas devidas: atrasos, saídas mais cedo e faltas.</p>
+    <div class="assin"><div>GoBox</div><div>${esc(e.nome || "Funcionário")}</div></div>
+  </article>`).join("") || `<p class="muted">Nenhum funcionário nesta quinzena.</p>`;
+}
+function relatorioHorasTexto() {
+  const l = limitesQ(S.ref);
+  return folhaLinhas().filter(x => !relFunc || x.e.id === relFunc).map(({ e, c, p }) => [
+    `*GoBox · Horas da ${rotuloQ(S.ref)}* (${br(l.ini)} a ${br(l.fim)})`,
+    `${e.nome}`,
+    `Dias trabalhados: ${p.dias ?? 0} · Faltas: ${p.faltas ?? 0}`,
+    `Horas extras 50%: ${hrs(c.he50)} · Horas extras 100%: ${hrs(c.he100)}`,
+    `Horas devidas: ${p.deb ? hm(p.deb) : "0h"}`
+  ].join("\n")).join("\n\n");
 }
 function relatorioFolhaTexto() {
   const l = limitesQ(S.ref);
@@ -445,10 +477,16 @@ async function renderRel() {
   else if (S.pontoEstado === "erro") aviso = `<div class="aviso erro">${esc(S.pontoErro)}</div>`;
   v.innerHTML = `${aviso}
     <div class="bloco rel-bloco">
-      <div class="rel-topo"><div><h2>Folha da quinzena</h2><p class="muted">Para quem faz os contracheques: dias, horas extras, faltas e valores de cada funcionário.</p></div>
+      <div class="rel-topo"><div><h2>Folha completa (para você)</h2><p class="muted">Tudo o que vai ser pago: salário, horas extras em horas e em reais, faltas, descontos e o líquido de cada funcionário.</p></div>
         <div class="rel-acoes"><div class="navq"><button class="btn sm" data-q="-1" aria-label="Quinzena anterior">‹</button><strong>${rotuloQ(S.ref)}</strong><button class="btn sm" data-q="1" aria-label="Próxima quinzena">›</button></div>
         <button class="btn" id="rel-copiar">Copiar resumo</button><button class="btn primary" id="rel-imprimir">Imprimir ou salvar PDF</button></div></div>
       <div class="rel-previa">${Object.keys(S.emps).length ? relatorioFolhaHTML(false) : `<p class="muted">Carregando funcionários…</p>`}</div>
+    </div>
+    <div class="bloco rel-bloco">
+      <div class="rel-topo"><div><h2>Relatório de horas (para os funcionários)</h2><p class="muted">Só as horas: dias trabalhados, faltas, horas extras e horas devidas, dia a dia. Sem salário nem valores. Imprimindo “Todos”, cada funcionário sai numa página.</p></div>
+        <div class="rel-acoes"><label class="muted">Funcionário <select id="rel-func"><option value="">Todos</option>${empsDaQuinzena().map(e => `<option value="${esc(e.id)}"${e.id === relFunc ? " selected" : ""}>${esc(e.nome || "")}</option>`).join("")}</select></label>
+        <button class="btn" id="hor-copiar">Copiar para o WhatsApp</button><button class="btn primary" id="hor-imprimir">Imprimir ou salvar PDF</button></div></div>
+      <div class="rel-previa" id="hor-previa">${Object.keys(S.emps).length ? relatorioHorasHTML(false) : `<p class="muted">Carregando funcionários…</p>`}</div>
     </div>
     <div class="bloco rel-bloco">
       <div class="rel-topo"><div><h2>Escala dos sábados</h2><p class="muted">Quem trabalha de manhã, quem trabalha à tarde e quem folga, pelo rodízio do Controle de ponto. Trocas feitas na escala do mês já aparecem aqui.</p></div>
@@ -459,6 +497,9 @@ async function renderRel() {
   $$("[data-q]").forEach(b => b.onclick = async () => { mudarQuinzena(Number(b.dataset.q)); await trocarQuinzena(); });
   $("#rel-imprimir").onclick = () => imprimir(relatorioFolhaHTML(true));
   $("#rel-copiar").onclick = () => copiar(relatorioFolhaTexto());
+  $("#rel-func").onchange = ev => { relFunc = ev.target.value; $("#hor-previa").innerHTML = relatorioHorasHTML(false); };
+  $("#hor-imprimir").onclick = () => imprimir(relatorioHorasHTML(true));
+  $("#hor-copiar").onclick = () => copiar(relatorioHorasTexto());
   $("#rel-n").onchange = (ev) => { relSabados = Number(ev.target.value); montarEscala(); };
   await montarEscala();
 }
