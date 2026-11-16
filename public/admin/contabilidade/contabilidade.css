@@ -113,6 +113,10 @@ input:focus,select:focus{border-color:var(--navy);outline:none}
 .assin{display:flex;gap:28px;margin-top:38px;font-size:10px;color:var(--muted)}
 .assin div{flex:1;border-top:1px solid #9aa4bd;padding-top:4px;text-align:center}
 
+.doc .via{display:inline-block;margin-bottom:4px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);font-size:9.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.duas-vias .corte{display:flex;align-items:center;gap:8px;color:#9aa4bd;font-size:9px;margin:4mm 0}
+.duas-vias .corte::before,.duas-vias .corte::after{content:"";flex:1;border-top:1px dashed #9aa4bd}
+
 /* ---------- notas ---------- */
 .cartoes{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:20px}
 .cartao{border:1px solid var(--line);border-radius:18px;padding:16px 18px;display:flex;flex-direction:column;gap:7px}
@@ -194,10 +198,20 @@ textarea:focus{border-color:var(--navy);outline:none}
 @media print{.rel-pessoa{break-inside:avoid-page}.rel-tab tr.falta td{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 
 @media print{
-  @page{margin:14mm}
+  @page{size:A4;margin:10mm}
   body>*:not(#area-impressao){display:none!important}
   #area-impressao{display:block}
   #area-impressao .recibo,#area-impressao .documento{border:0;padding:0}
   #area-impressao .copiar{display:none}
   .liquido{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  /* duas vias por folha A4: cada recibo ocupa metade da página */
+  .duas-vias .recibo{height:128mm;overflow:hidden;font-size:10.5px;display:flex;flex-direction:column}
+  .duas-vias .recibo header{padding-bottom:7px;margin-bottom:8px}
+  .duas-vias .marca img{height:24px}.duas-vias .marca .nome{height:16px}
+  .duas-vias .quem{gap:4px 12px;margin-bottom:8px;grid-template-columns:repeat(3,1fr)}
+  .duas-vias .recibo th{padding:3px 4px;font-size:8.5px}
+  .duas-vias .recibo td{padding:3px 4px}
+  .duas-vias .liquido{padding:6px 12px;margin-top:8px}.duas-vias .liquido b{font-size:15px}
+  .duas-vias .declaro{margin-top:8px;font-size:9.5px}
+  .duas-vias .assin{margin-top:auto;padding-top:16px}
 }

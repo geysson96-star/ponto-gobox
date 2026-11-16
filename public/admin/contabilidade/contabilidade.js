@@ -322,11 +322,15 @@ function renderEditor() {
     if (S.pontoEstado === "ok" && s.he100 == null) { s.he100 = c.he100; mudou = true; }
     if (!s.pagoEm) { s.pagoEm = today(); mudou = true; }
     if (mudou) { salvarSlip(fid); renderEditor(); atualizarCC(); toast("Quinzena fechada: marcada como paga e horas extras guardadas."); }
-    imprimir(reciboHTML(fid));
+    imprimir(reciboDuasViasHTML(fid));
   };
 }
 
-function reciboHTML(fid) {
+// Duas vias na mesma folha A4: uma fica com a GoBox, a outra com o funcionário.
+function reciboDuasViasHTML(fid) {
+  return `<div class="duas-vias">${reciboHTML(fid, "Via da empresa")}<div class="corte" aria-hidden="true"><span>✂ recorte aqui</span></div>${reciboHTML(fid, "Via do funcionário")}</div>`;
+}
+function reciboHTML(fid, via) {
   if (!fid) return "";
   const e = S.emps[fid] || {}, c = calc(fid), s = c.s, l = limitesQ(S.ref);
   const vh50 = cent(c.vh * s.m50), vh100 = cent(c.vh * s.m100);
@@ -341,7 +345,7 @@ function reciboHTML(fid) {
   return `<article class="recibo" aria-label="Recibo de pagamento">
     <header>
       <div><div class="marca"><img src="/assets/cubo.png" alt=""><img class="nome" src="/assets/wordmark.png" alt="GoBox"></div><small class="muted" style="font-size:8.5px;letter-spacing:.12em;font-weight:600">CENTRO DE DISTRIBUIÇÃO • PONTO DE COLETA</small></div>
-      <div class="doc"><b>Recibo de pagamento</b>${rotuloQ(S.ref)}<br>Período ${br(l.ini)} a ${br(l.fim)}</div>
+      <div class="doc">${via ? `<span class="via">${via}</span>` : ""}<b>Recibo de pagamento</b>${rotuloQ(S.ref)}<br>Período ${br(l.ini)} a ${br(l.fim)}</div>
     </header>
     <div class="quem">
       <div><span>Funcionário</span>${esc(e.nome || "")}</div>
