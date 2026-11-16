@@ -35,6 +35,12 @@ const S = {
   salarios: {}, cc: {}, dados: null
 };
 S.ref = quinzenaDe(S.hoje);
+// Nos primeiros 5 dias de cada quinzena abre a anterior, que é a que vai ser paga.
+if (Number(S.hoje.slice(8)) <= 5 || (Number(S.hoje.slice(8)) >= 16 && Number(S.hoje.slice(8)) <= 20)) {
+  const d0 = keyToDate(`${S.hoje.slice(0, 8)}${Number(S.hoje.slice(8)) <= 15 ? "01" : "16"}`);
+  d0.setDate(d0.getDate() - 1);
+  S.ref = quinzenaDe(dayKey(d0));
+}
 
 /* ---------------- servidor ---------------- */
 async function api(path, opts = {}) {
@@ -305,16 +311,30 @@ function renderEditor() {
     salvarSlip(fid); renderEditor(); atualizarCC();
     const ins = $$(`.lin [data-k="${d ? "valor" : "desc"}"]`); const u = ins[ins.length - 1]; if (u) u.focus();
   });
-  $("#b-imp").onclick = () => imprimir(reciboHTML(fid));
+  // Imprimir fecha a quinzena deste funcionário: marca como pago e congela as horas extras
+  // (mudanças posteriores no Ponto não alteram o recibo). A próxima quinzena começa do zero.
+  $("#b-imp").onclick = () => {
+    if (S.pontoEstado === "carregando") { toast("Espere carregar as horas do Ponto antes de imprimir.", true); return; }
+    if (S.pontoEstado === "erro" && s.he50 == null && s.he100 == null && !confirm("Não consegui ler as horas extras no Ponto. Imprimir mesmo assim, sem horas extras?")) return;
+    const c = calc(fid);
+    let mudou = false;
+    if (S.pontoEstado === "ok" && s.he50 == null) { s.he50 = c.he50; mudou = true; }
+    if (S.pontoEstado === "ok" && s.he100 == null) { s.he100 = c.he100; mudou = true; }
+    if (!s.pagoEm) { s.pagoEm = today(); mudou = true; }
+    if (mudou) { salvarSlip(fid); renderEditor(); atualizarCC(); toast("Quinzena fechada: marcada como paga e horas extras guardadas."); }
+    imprimir(reciboHTML(fid));
+  };
 }
 
 function reciboHTML(fid) {
   if (!fid) return "";
   const e = S.emps[fid] || {}, c = calc(fid), s = c.s, l = limitesQ(S.ref);
+  const vh50 = cent(c.vh * s.m50), vh100 = cent(c.vh * s.m100);
   const linhas = [
     ["Salário (quinzena)", "15 dias", c.base, null],
-    ...(c.he50 ? [[`Horas extras ${Math.round((s.m50 - 1) * 100)}%`, hrs(c.he50), c.v50, null]] : []),
-    ...(c.he100 ? [["Horas extras 100%", hrs(c.he100), c.v100, null]] : []),
+    // Horas extras sempre aparecem, mesmo zeradas: quantidade × valor da hora extra.
+    [`Horas extras ${Math.round((s.m50 - 1) * 100)}% (dias normais)`, `${hrs(c.he50)} × ${brl(vh50)}`, c.v50, null],
+    [`Horas extras ${Math.round((s.m100 - 1) * 100)}% (domingos e feriados)`, `${hrs(c.he100)} × ${brl(vh100)}`, c.v100, null],
     ...s.linhas.filter(x => x.tipo === "p").map(x => [x.desc || "Provento", "", +x.valor || 0, null]),
     ...s.linhas.filter(x => x.tipo === "d").map(x => [x.desc || "Desconto", "", null, +x.valor || 0])
   ];
@@ -327,6 +347,8 @@ function reciboHTML(fid) {
       <div><span>Funcionário</span>${esc(e.nome || "")}</div>
       <div><span>Função</span>${esc(e.cargo || "—")}</div>
       <div><span>Salário mensal</span>${brl(c.sal.salario)}</div>
+      <div><span>Valor da hora</span>${brl(c.vh)}</div>
+      <div><span>Horas extras na quinzena</span>${hrs(c.he50 + c.he100)} · ${brl(c.v50 + c.v100)}</div>
       <div><span>Pago em</span>${br(s.pagoEm)}</div>
     </div>
     <table><thead><tr><th>Descrição</th><th class="r">Ref.</th><th class="r">Proventos</th><th class="r">Descontos</th></tr></thead>
