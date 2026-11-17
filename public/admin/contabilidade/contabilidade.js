@@ -412,7 +412,8 @@ function relatorioHorasHTML(paraImprimir) {
   const linhas = folhaLinhas().filter(x => !relFunc || x.e.id === relFunc);
   return linhas.map(({ e, c, p }, i) => `<article class="relatorio${paraImprimir ? " impresso" : ""}${i ? " rel-nova-pagina" : ""}">
     <header class="rel-cab"><div><b>GoBox · Relatório de horas</b><br><span class="muted">${rotuloQ(S.ref)} · ${br(l.ini)} a ${br(l.fim)}</span></div>
-    <div class="muted r">${esc(e.nome || "")}${e.cargo ? `<br>${esc(e.cargo)}` : ""}</div></header>
+    <div class="muted r">Gerado em ${new Date().toLocaleDateString("pt-BR")}</div></header>
+    <div class="rel-nome"><span>Funcionário</span><strong>${esc(e.nome || "Sem nome")}</strong>${e.cargo ? `<small>${esc(e.cargo)}</small>` : ""}</div>
     <div class="rel-resumo-horas">
       <div><span>Dias trabalhados</span><b>${p.dias ?? 0}</b></div>
       <div><span>Faltas</span><b>${p.faltas ?? 0}</b></div>

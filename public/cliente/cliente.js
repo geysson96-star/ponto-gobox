@@ -174,6 +174,7 @@
   }
 
   async function carregar() {
+    if (!token) { $('#carregando').hidden = true; $('#conteudo').hidden = true; $('#invalido').hidden = false; return; }
     try {
       dados = await api('');
       $('#carregando').hidden = true; $('#conteudo').hidden = false;
@@ -208,5 +209,5 @@
   });
 
   carregar();
-  setInterval(() => { if (!document.hidden && !previa) carregar(); }, 20_000);
+  if (token) setInterval(() => { if (!document.hidden && !previa) carregar(); }, 20_000);
 }());
