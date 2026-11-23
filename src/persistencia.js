@@ -111,14 +111,23 @@ function criar({ db, config, fetchFn = fetch, log = console }) {
   const seg = (iso) => (iso ? Math.round(Date.parse(iso) / 1000) : 0);
   const iso = (s) => (s ? new Date(s * 1000).toISOString() : null);
 
-  function fotoPacotes(fonte) {
+  async function fotoPacotes(fonte) {
     // Limpeza: pacotes que já saíram há mais tempo que a retenção.
     const corte = new Date(Date.now() - retencaoMs).toISOString();
     db.prepare(`DELETE FROM packages WHERE source = ? AND active = 0 AND COALESCE(saida_em, last_updated_at) < ?`).run(fonte, corte);
-    const rows = db.prepare(
+    // Lê em blocos, devolvendo a vez ao site entre um bloco e outro (servidor fraco: não trava).
+    const bloco = db.prepare(
       `SELECT code, external_id, active, first_seen_at, last_updated_at, situacao, rotulo, tipo, recebido_em, saida_em, volume
-       FROM packages WHERE source = ? ORDER BY code`
-    ).all(fonte);
+       FROM packages WHERE source = ? AND code > ? ORDER BY code LIMIT 4000`
+    );
+    const rows = [];
+    for (let depois = ''; ;) {
+      const parte = bloco.all(fonte, depois);
+      for (const r of parte) rows.push(r);
+      if (parte.length < 4000) break;
+      depois = parte[parte.length - 1].code;
+      await new Promise((r) => setImmediate(r));
+    }
     // Dicionário de textos repetidos (situação, rótulo, tipo, volume) para ficar compacto.
     const textos = [];
     const indice = new Map();
@@ -200,7 +209,7 @@ function criar({ db, config, fetchFn = fetch, log = console }) {
       let gravou;
       if (alvo === 'estado') gravou = await salvar('estado', fotoEstado());
       else {
-        const foto = fotoPacotes(alvo);
+        const foto = await fotoPacotes(alvo);
         gravou = await salvar(`pacotes_${alvo}`, foto, { quantidade: foto.p.length });
       }
       log.log(`[persistência] ${alvo}: ${gravou ? 'gravado' : 'sem mudança'} (${Date.now() - t0} ms, ${ultimoTamanho.get(alvo) || 0} KB)`);
