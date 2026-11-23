@@ -184,8 +184,17 @@ function contarAgora(db, mes) {
   // Desempenho: três buscas por faixa de data (com índice) em vez de varrer todos os pacotes.
   // Shopee conta pela SAÍDA; Mercado Livre e Correios pela CHEGADA.
   const campos = 'source, tipo, situacao, volume, COALESCE(recebido_em, first_seen_at) AS chegada, saida_em, COALESCE(external_id, code) AS chave, code';
+  // Shopee (dezenas de milhares por mês): o banco conta direto; só os 12 mais recentes vêm para a lista.
+  const saiuShopee = `source = 'shopee' AND saida_em >= ? AND saida_em < ? AND (
+    (COALESCE(tipo, '') = 'retirada' AND situacao = 'retirado') OR (COALESCE(tipo, '') <> 'retirada' AND situacao IN ('enviado', 'saiu')))`;
+  const totaisShopee = { ret: 0, exp: 0 };
+  for (const t of db.prepare(`SELECT COALESCE(tipo, '') = 'retirada' AS ret, COUNT(DISTINCT COALESCE(external_id, code)) AS n
+    FROM packages WHERE ${saiuShopee} GROUP BY 1`).all(ini, fim)) totaisShopee[t.ret ? 'ret' : 'exp'] = t.n;
+  const recentesShopee = db.prepare(`SELECT ${campos} FROM packages WHERE ${saiuShopee} ORDER BY saida_em DESC LIMIT 12`).all(ini, fim);
+  const falta = { ret: totaisShopee.ret, exp: totaisShopee.exp };
+  for (const r of recentesShopee) { const k = r.tipo === 'retirada' ? 'ret' : 'exp'; r.ordem = falta[k]; falta[k] -= 1; }
   const rows = [
-    ...db.prepare(`SELECT ${campos} FROM packages WHERE source = 'shopee' AND saida_em >= ? AND saida_em < ?`).all(ini, fim),
+    ...recentesShopee,
     ...db.prepare(`SELECT ${campos} FROM packages WHERE source IN ('ml', 'correios') AND recebido_em >= ? AND recebido_em < ?`).all(ini, fim),
     ...db.prepare(`SELECT ${campos} FROM packages WHERE source IN ('ml', 'correios') AND recebido_em IS NULL AND first_seen_at >= ? AND first_seen_at < ?`).all(ini, fim)
   ];
@@ -212,9 +221,11 @@ function contarAgora(db, mes) {
   lista.sort((a, b) => (a.em < b.em ? -1 : a.em > b.em ? 1 : 0));
 
   const auto = ajustesVazios();
+  auto.shopee.retiradas = totaisShopee.ret;
+  auto.shopee.expedidos = totaisShopee.exp;
   for (const r of lista) {
     if (r.source === 'shopee') {
-      if (r.tipo === 'retirada') auto.shopee.retiradas += 1; else auto.shopee.expedidos += 1;
+      // já contado pelo banco
     } else if (r.source === 'ml') {
       const q = r.em < meio ? 'q1' : 'q2';
       if (r.volume && r.volume !== 'shipment') continue; // saca: os pacotes dela contam
@@ -234,8 +245,8 @@ function ultimos(lista, limite = 12) {
   for (const r of lista) {
     let item; let valor;
     if (r.source === 'shopee') {
-      if (r.tipo === 'retirada') { n.ret += 1; item = 'Retirada'; valor = valorDoPacote(n.ret); }
-      else { n.exp += 1; item = 'Expedido'; valor = valorDoPacote(n.exp); }
+      if (r.tipo === 'retirada') { n.ret += 1; item = 'Retirada'; valor = valorDoPacote(r.ordem ?? n.ret); }
+      else { n.exp += 1; item = 'Expedido'; valor = valorDoPacote(r.ordem ?? n.exp); }
     } else if (r.source === 'ml') {
       if (r.volume && r.volume !== 'shipment') { item = 'Saca'; valor = 0; }
       else if (r.tipo === 'nex') { item = 'NEx (pago por rota)'; valor = 0; }
