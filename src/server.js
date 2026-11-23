@@ -95,6 +95,13 @@ async function shutdown() {
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
+// Mantém o servidor acordado no Render gratuito (ele dorme após 15 min sem visitas e a
+// primeira página demora ~50 s). O GitHub só roda o "manter acordado" a cada algumas horas.
+if (process.env.RENDER_EXTERNAL_URL) {
+  const alvo = `${process.env.RENDER_EXTERNAL_URL.replace(/\/$/, '')}/saude`;
+  setInterval(() => { fetch(alvo).catch(() => {}); }, 10 * 60_000).unref();
+}
+
 // Guarda o fechamento do mês atual e do anterior (para o relatório do ano), a cada 6 horas.
 function fecharMeses() {
   try {

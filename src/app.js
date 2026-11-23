@@ -184,8 +184,22 @@ function createApp({ config, db, robo = null }) {
       res.locals.diag = `recebidos ${recebidos}, alterados ${codigos.size}`;
       const prep = prepareFromCodes(db, { sourceId: fonte, codes: codigos, origin: 'extensao', label: 'extensão do Edge', modo });
       if (needsConfirmation(prep)) {
-        return res.json({ situacao: 'aguardando_confirmacao', codigos: codigos.size, removidos: prep.toDeactivate });
+        // Proteção contra lista incompleta: muitos pacotes sumindo de uma vez esperam confirmação.
+        // Mas se a extensão mandou a MESMA lista menor 3 vezes seguidas (em até 90 min), ela é real:
+        // aplica sozinho, para a empresa não ficar dias sem atualizar esperando um clique.
+        const anteriores = db.prepare(`SELECT id, codes_valid FROM imports
+          WHERE source = ? AND origin = 'extensao' AND status = 'aguardando_confirmacao' AND id <> ? AND started_at >= ?
+          ORDER BY id DESC LIMIT 2`).all(fonte, prep.importId, new Date(Date.now() - 90 * 60_000).toISOString());
+        const parecido = (n) => prep.codesValid > 0 && Math.abs(n - prep.codesValid) <= Math.max(3, prep.codesValid * 0.03);
+        if (!(anteriores.length === 2 && anteriores.every((a) => parecido(a.codes_valid)))) {
+          return res.json({ situacao: 'aguardando_confirmacao', codigos: codigos.size, removidos: prep.toDeactivate });
+        }
+        console.log(`[extensão] ${fonte}: lista menor confirmada 3 vezes seguidas — aplicando sozinho (${prep.toDeactivate} saíram)`);
       }
+      // Pendências antigas desta empresa ficam superadas por esta lista.
+      db.prepare("UPDATE imports SET status = 'cancelada', finished_at = ? WHERE source = ? AND status = 'aguardando_confirmacao' AND id <> ?")
+        .run(new Date().toISOString(), fonte, prep.importId);
+      db.prepare("DELETE FROM import_rows WHERE import_id IN (SELECT id FROM imports WHERE source = ? AND status = 'cancelada')").run(fonte);
       applyImport(db, prep.importId);
       if (assinaturas) ultimoEnvio.set(fonte, assinaturas);
       return res.json({ situacao: 'sucesso', codigos: recebidos, alterados: codigos.size, novos: prep.toInsert, removidos: prep.toDeactivate });

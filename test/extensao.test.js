@@ -141,3 +141,15 @@ test('sincronização repetida grava só o que mudou (modo eventos)', async () =
   const r = await (await fetch(`${base}/api/consulta`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ codigo: 'BRREP0003' }) })).json();
   assert.equal(r.situacao, 'retirado');
 });
+
+test('lista menor repetida 3 vezes é aplicada sozinha (não fica dias esperando)', async () => {
+  const cheia = Array.from({ length: 20 }, (_, i) => ({ codigo: `OB${String(i).padStart(9, '0')}BR`, situacao: 'na_agencia', tipo: 'envio' }));
+  assert.equal((await (await enviar({ fonte: 'correios', modo: 'estoque', pacotes: cheia })).json()).situacao, 'sucesso');
+  const menor = cheia.slice(0, 5);
+  assert.equal((await (await enviar({ fonte: 'correios', modo: 'estoque', pacotes: menor })).json()).situacao, 'aguardando_confirmacao');
+  assert.equal((await (await enviar({ fonte: 'correios', modo: 'estoque', pacotes: menor })).json()).situacao, 'aguardando_confirmacao');
+  assert.equal((await (await enviar({ fonte: 'correios', modo: 'estoque', pacotes: menor })).json()).situacao, 'sucesso');
+  const r = await (await fetch(`${base}/api/consulta`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ codigo: 'OB000000010BR' }) })).json();
+  assert.equal(r.situacao, 'saiu');
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM imports WHERE source = 'correios' AND status = 'aguardando_confirmacao'").get().n, 0);
+});
