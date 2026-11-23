@@ -119,7 +119,8 @@ function createApp({ config, db, robo = null }) {
     res.on('finish', () => {
       const tam = req.headers['content-length'] || 0;
       const extra = res.locals.diag ? ` ${res.locals.diag}` : '';
-      console.log(`[extensão] ${req.method} ${req.path} -> ${res.statusCode} (${tam} bytes, ${Date.now() - t0} ms)${extra}`);
+      const fonte = req.body && typeof req.body.fonte === 'string' ? ` ${req.body.fonte.slice(0, 12)}` : '';
+      console.log(`[extensão] ${req.method} ${req.path}${fonte} -> ${res.statusCode} (${tam} bytes, ${Date.now() - t0} ms)${extra}`);
     });
     next();
   });
@@ -132,6 +133,7 @@ function createApp({ config, db, robo = null }) {
       if (b.erro) {
         // A extensão avisa quando não conseguiu ler (ex.: sessão expirada no portal).
         recordFailure(db, { sourceId: fonte, origin: 'extensao', label: 'extensão do Edge', message: String(b.erro).slice(0, 200) });
+        res.locals.diag = `erro informado pela extensão: ${String(b.erro).slice(0, 120)}`;
         return res.json({ situacao: 'falhou' });
       }
       // Formato novo: `pacotes` [{codigo, situacao, rotulo, tipo, recebidoEm, saidaEm}] + `modo`.
@@ -192,6 +194,7 @@ function createApp({ config, db, robo = null }) {
           ORDER BY id DESC LIMIT 2`).all(fonte, prep.importId, new Date(Date.now() - 90 * 60_000).toISOString());
         const parecido = (n) => prep.codesValid > 0 && Math.abs(n - prep.codesValid) <= Math.max(3, prep.codesValid * 0.03);
         if (!(anteriores.length === 2 && anteriores.every((a) => parecido(a.codes_valid)))) {
+          res.locals.diag = `${res.locals.diag || ''} · aguardando confirmação (${prep.toDeactivate} sairiam de ${prep.activeNow})`;
           return res.json({ situacao: 'aguardando_confirmacao', codigos: codigos.size, removidos: prep.toDeactivate });
         }
         console.log(`[extensão] ${fonte}: lista menor confirmada 3 vezes seguidas — aplicando sozinho (${prep.toDeactivate} saíram)`);

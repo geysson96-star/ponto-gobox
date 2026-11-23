@@ -120,6 +120,10 @@ function migrate(db) {
   add('packages', 'saida_em', 'TEXT');    // quando saiu (retirado/enviado), se o portal informa
   add('packages', 'volume', 'TEXT');      // pacote (shipment) ou saca, quando o portal informa
   add('import_rows', 'dados', 'TEXT');    // detalhes do pacote (JSON) vindos do portal
+  // Índices por data (Faturamento e relatório do ano buscam por faixa de datas).
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_packages_saida ON packages (source, saida_em);
+    CREATE INDEX IF NOT EXISTS idx_packages_recebido ON packages (source, recebido_em);
+    CREATE INDEX IF NOT EXISTS idx_packages_primeiro ON packages (source, first_seen_at);`);
 }
 
 function nowIso() {

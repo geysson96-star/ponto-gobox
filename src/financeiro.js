@@ -166,14 +166,29 @@ function salvarMedalha(db, mes, entrada) {
 // ---------- contagem automática ----------
 // Um pacote pode estar guardado com dois códigos (ex.: Shopee guarda o ID do envio
 // e o código de rastreio); external_id junta os dois para não contar em dobro.
+// Cache da contagem por mês: refaz só quando algum pacote mudou (ou depois de 1 minuto).
+// Num servidor fraco a contagem de ~50 mil pacotes trava tudo por alguns segundos.
+let versaoPacotes = 0;
+require('./eventos').on('pacotes', () => { versaoPacotes += 1; });
+const cacheContagem = new Map();
 function contar(db, mes) {
+  const c = cacheContagem.get(mes);
+  if (c && c.db === db && (c.versao === versaoPacotes || Date.now() - c.em < 60_000)) return c.res;
+  const res = contarAgora(db, mes);
+  cacheContagem.set(mes, { db, versao: versaoPacotes, em: Date.now(), res });
+  if (cacheContagem.size > 24) cacheContagem.delete(cacheContagem.keys().next().value);
+  return res;
+}
+function contarAgora(db, mes) {
   const { ini, meio, fim } = limitesDoMes(mes);
-  const chegada = 'COALESCE(recebido_em, first_seen_at)';
-  const rows = db.prepare(
-    `SELECT source, tipo, situacao, volume, ${chegada} AS chegada, saida_em, COALESCE(external_id, code) AS chave, code
-     FROM packages
-     WHERE (${chegada} >= ? AND ${chegada} < ?) OR (saida_em >= ? AND saida_em < ?)`
-  ).all(ini, fim, ini, fim);
+  // Desempenho: três buscas por faixa de data (com índice) em vez de varrer todos os pacotes.
+  // Shopee conta pela SAÍDA; Mercado Livre e Correios pela CHEGADA.
+  const campos = 'source, tipo, situacao, volume, COALESCE(recebido_em, first_seen_at) AS chegada, saida_em, COALESCE(external_id, code) AS chave, code';
+  const rows = [
+    ...db.prepare(`SELECT ${campos} FROM packages WHERE source = 'shopee' AND saida_em >= ? AND saida_em < ?`).all(ini, fim),
+    ...db.prepare(`SELECT ${campos} FROM packages WHERE source IN ('ml', 'correios') AND recebido_em >= ? AND recebido_em < ?`).all(ini, fim),
+    ...db.prepare(`SELECT ${campos} FROM packages WHERE source IN ('ml', 'correios') AND recebido_em IS NULL AND first_seen_at >= ? AND first_seen_at < ?`).all(ini, fim)
+  ];
   const vistos = new Set();
   const lista = [];
   for (const r of rows) {
@@ -191,7 +206,8 @@ function contar(db, mes) {
     const k = `${r.source}|${r.chave}`;
     if (vistos.has(k)) continue;
     vistos.add(k);
-    lista.push({ ...r, em });
+    r.em = em;
+    lista.push(r);
   }
   lista.sort((a, b) => (a.em < b.em ? -1 : a.em > b.em ? 1 : 0));
 
